@@ -34,10 +34,8 @@ export function atom<Value>(initialValue: Value): Atom<Value> {
     set(newValue: Value) {
       if (newValue !== currentValue) {
         currentValue = newValue;
-        // Iterate directly over the Set. Modern engines handle deletion during iteration safely.
-        for (const fn of listeners) {
-          fn(currentValue);
-        }
+        // Using Array.from for safe iteration if a listener unsubscribes itself
+        Array.from(listeners).forEach(fn => fn(currentValue));
       }
     },
     subscribe(listener: Listener<Value>) {
