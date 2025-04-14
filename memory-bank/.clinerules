@@ -1,0 +1,18 @@
+# Cline Rules: zen Library
+
+## Project Intelligence
+- **Core Goal:** Extreme minimalism in bundle size and high performance, challenging Nanostores.
+- **Key Metric:** Bundle size (bytes) and runtime benchmarks (ops/sec) compared to Nanostores.
+- **Decision Bias:** Prioritize smaller code footprint and faster execution over DX features or abstractions *unless* the impact is negligible. Avoid dependencies religiously.
+
+## Patterns & Preferences
+- **Code Style:** Follow strict TypeScript guidelines. Use Prettier/ESLint for consistency (configure for minimal diffs).
+- **API Design:** Keep functions small, pure (where possible), and highly tree-shakeable. Mimic Nanostores' core API (`atom`, `subscribe`, `get`) initially.
+- **Dependencies:** **AVOID.** If absolutely necessary, scrutinize bundle size impact mercilessly.
+- **Testing:** Aim for high coverage with simple, fast tests (Vitest preferred). Include basic benchmarks early.
+- **Build:** Target ES Modules primarily. Use Rollup or ESBuild configured for maximum size optimization.
+
+## Challenges
+- Achieving smaller size *and* competitive performance against a mature library like Nanostores.
+- Balancing minimalism with a usable API.
+- Ensuring effective tree-shaking.
