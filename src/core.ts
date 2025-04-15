@@ -14,7 +14,7 @@ export interface Atom<T = any> {
   get(): T;
   set(newValue: T, forceNotify?: boolean): void; // Simplified set signature
   subscribe(listener: Listener<T>): Unsubscribe;
-  readonly value: T;
+  // REMOVED: readonly value: T;
   // REMOVED: readonly listeners: ReadonlySet<Listener<T>>;
   _notify(value: T, oldValue?: T): void; // Simplified notify signature
   _notifyBatch(): void;
@@ -30,7 +30,7 @@ export interface ReadonlyAtom<T = any> {
 
   get(): T;
   subscribe(listener: Listener<T>): Unsubscribe;
-  readonly value: T;
+  // REMOVED: readonly value: T;
   // REMOVED: readonly listeners: ReadonlySet<Listener<T>>;
   _notify(value: T, oldValue?: T): void; // Simplified notify signature
   _notifyBatch(): void;

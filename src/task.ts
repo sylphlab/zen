@@ -35,11 +35,10 @@ export function task<T = void>(
     // Delegate core ReadonlyAtom methods to the internal atom
     get: taskState.get.bind(taskState), // Bind 'this'
     subscribe: taskState.subscribe.bind(taskState), // Bind 'this'
-    // Expose internal value and listeners as readonly properties if needed by interface
-    // Use getters to delegate value
-    get value() { return taskState.value; },
+    // Expose internal value via get()
+    // REMOVED: value getter
+    // get value() { return taskState.value; },
     // REMOVED: listeners getter
-    // get listeners() { return taskState.listeners; },
     // Internal methods required by ReadonlyAtom interface (delegate)
     _notify: taskState._notify.bind(taskState),
     _notifyBatch: taskState._notifyBatch.bind(taskState),

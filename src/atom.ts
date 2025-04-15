@@ -76,18 +76,20 @@ export const AtomProto: Atom<any> = {
 
   // Simplified subscribe - no events, no mount/start/stop
   subscribe(listener: Listener<any>): Unsubscribe {
-    let listeners = this._listeners;
-    if (!listeners) {
-      listeners = new Set();
-      this._listeners = listeners;
-    }
-    listeners.add(listener);
+    // Optimized listener set initialization and addition
+    (this._listeners = this._listeners || new Set()).add(listener);
 
     listener(this._value, undefined); // Immediate notification with current value
 
-    const atomInstance = this; // Capture instance for unsubscribe closure
+    // Return unsubscribe function directly using 'this'
+    // Note: 'this' context within the returned function might be unpredictable
+    // if the function is detached or called with a different 'this'.
+    // Let's test if Terser handles this well or if we need the explicit capture.
+    // Reverting to explicit capture if tests fail.
+    const self = this; // Use 'self' for explicit capture, safer than relying on 'this' in closure
     return function unsubscribe(): void {
-      const currentListeners = atomInstance._listeners;
+      // Use captured 'self' instead of potentially ambiguous 'this'
+      const currentListeners = self._listeners;
       if (currentListeners) {
         currentListeners.delete(listener);
         // No need to check for empty or trigger lifecycle events
@@ -95,10 +97,10 @@ export const AtomProto: Atom<any> = {
     };
   },
 
-  // Keep the convenience getter
-  get value(): any {
-    return this.get();
-  },
+  // REMOVED: Convenience getter
+  // get value(): any {
+  //   return this.get();
+  // },
 
   // listeners getter REMOVED
   // get listeners(): ReadonlySet<Listener<any>> { ... }

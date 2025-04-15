@@ -173,10 +173,10 @@ export const ComputedAtomProto: ReadonlyAtom<any> = {
 
   // _notify and _notifyBatch are inherited directly from simplified AtomProto
 
-  // Keep value getter
-  get value(): any {
-    return this.get();
-  },
+  // REMOVED: value getter
+  // get value(): any {
+  //   return this.get();
+  // },
   // REMOVED: listeners getter
 };
 
