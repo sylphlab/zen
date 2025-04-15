@@ -22,31 +22,41 @@
     - Ran `npx tsc --noEmit`: Passed.
     - Ran `npm run test`: All tests passed.
     - Ran `npm run build && npm run size`: Build successful.
-    - **`zen (atom only)`: 602 B** (brotlied) - Significant reduction, but still > 265 B target.
-    - **`zen (full)`: 893 B** (brotlied) - Significant reduction.
-    - **Analysis:** Radical optimization successful functionally and reduced size considerably. Core `atom` size still needs further aggressive reduction.
+    - **`zen (atom only)`: 588 B** (brotlied) - Post micro-optimization v2. Still > 265 B target.
+    - **`zen (full)`: 881 B** (brotlied) - Post micro-optimization v2.
+    - **Analysis:** Micro-optimizations provided minor gains. Factory function refactor needed.
+- **Factory Function Refactor (Optimization v2):**
+    - Refactored `atom` and `computed` from prototype-based to factory function pattern with closures.
+    - Fixed resulting type errors and tests.
+- **Checks & Size Measurement (Post-Factory-Refactor):**
+    - Ran `npx tsc --noEmit`: Passed.
+    - Ran `npm run test`: All tests passed.
+    - Ran `npm run build && npm run size`: Build successful.
+    - **`zen (atom only)`: 219 B** (brotlied) - **SUCCESS! Below 265 B target.**
+    - **`zen (full)`: 879 B** (brotlied) - Further reduction.
+    - **Analysis:** Factory function pattern was highly effective for size reduction, achieving the core goal.
 
 ## Next Steps (Immediate)
 1.  ~~Implement `map` helper (v1).~~
 2.  ~~Implement `task` helper (v1).~~
 3.  ~~Implement `deepMap` helper (v1) & Add Benchmarks.~~
-4.  ~~Implement Lifecycle Events (v1).~~
-5.  ~~Implement Key Subscription API (v1 - Simplified).~~
+4.  ~~Implement Lifecycle Events (v1).~~ (Removed)
+5.  ~~Implement Key Subscription API (v1 - Simplified).~~ (Removed)
 6.  ~~Run checks & benchmarks post-features.~~
-7.  ~~**Plan & Implement Optimizations (v1 - Radical Removal)**~~ (Done)
-    *   ~~Removed Event System.~~
-    *   ~~Removed Key Subscription.~~
-    *   ~~Simplified core methods.~~
-    *   ~~Fixed resulting type errors and tests.~~
-8.  ~~**Git Commit:** Commit key subscription and latest checks.~~ (Done)
-9.  **Git Commit:** Commit radical optimization changes.
-10. **Further Optimization (Micro-optimizations - Highest Priority)**:
-    *   **Re-analyze `src/atom.ts` and `src/core.ts`**: Look for byte-level savings (e.g., variable names, function structures, prototype usage).
-    *   **Consider Terser options**: Explore specific Terser flags that might yield better results *now* with the simpler codebase (e.g., `unsafe`, specific mangling).
-    *   **Target**: Reduce `zen (atom only)` size as close to 265 B as possible without breaking functionality.
-11. **Run Benchmarks:** Re-run `npm run bench` after further optimization to check performance impact.
+7.  ~~**Plan & Implement Optimizations (v1 - Radical Removal)**~~
+8.  ~~**Git Commit:** Commit key subscription and latest checks.~~
+9.  ~~**Git Commit:** Commit radical optimization changes.~~
+10. ~~**Further Optimization (Micro-optimizations v1 & v2)**~~ (Done - minimal impact).
+11. ~~**Run Benchmarks:** Re-run `npm run bench` after micro-optimizations.~~ (Done - mostly stable).
+12. ~~**Further Optimization (v2 - Factory Function Refactor)**~~ (Done - SUCCESS!).
+13. **Git Commit:** Commit factory function refactor and successful size results.
+14. **Performance Benchmarking (Post-Factory Refactor):** Run `npm run bench` to assess performance impact of factory pattern.
+15. **Review `mutable*` Helpers**: Check if `mutableArrayAtom`, `mutableMapAtom`, `mutableObjectAtom` need adjustments after core changes.
+16. **Feature Enhancements (Post-Size-Goal)**: Consider next steps like documentation or revisiting optional features.
 
 ## Active Decisions
 - Using TypeScript for the library development.
-- V1 implementations of map/deepMap exclude fine-grained key notification for now.
+- V1 implementations of map/deepMap exclude fine-grained key notification.
 - Tests and benchmarks organized by feature.
++ **Decision:** Removed event system and key subscription entirely to prioritize core size.
++ **Decision:** Switched from prototype-based `atom`/`computed` to factory function pattern for significant size reduction.
