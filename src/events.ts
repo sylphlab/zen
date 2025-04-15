@@ -67,8 +67,10 @@ export function emit<T>(
 ): void {
   const listeners = atom?.[event] as Set<LifecycleListener<T>> | undefined; // Get listeners with type assertion
   if (listeners) {
-    // Use Array.from for safe iteration if listeners might unsubscribe themselves
-    Array.from(listeners).forEach((listener) => listener(value)); // Type inference should work here now
+    // Direct iteration for performance. Assumes listeners don't unsubscribe themselves during emit.
+    for (const listener of listeners) {
+        listener(value);
+    }
   }
 }
 
@@ -175,11 +177,8 @@ export function emitPaths<T extends object>(
 
 
     // Notify unique listeners
-    // TODO: How to provide the correct value/path to the listener?
-    // It might have subscribed to a parent path, but a child path changed.
-    // For now, let's call with the first matching changed path and its value.
     listenersToNotify.forEach(listener => {
-         // Find which changed paths this listener is interested in (directly or via parent)
+         // Find which changed paths this listener is interested in (directly或via parent)
          const interestedChangedPaths = changedPaths.filter(cp => {
              const cpStr = JSON.stringify(cp);
              // Is it a direct match?

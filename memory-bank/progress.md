@@ -5,7 +5,7 @@
 **(Note:** Ops/sec (hz) can vary between runs. Focus on relative performance.)
 
 **Atom Creation:**
-- `zen`: **~11.5M ops/s** (Slight decrease post-events)
+- `zen`: **~15.8M ops/s** (Improved post-emit-opt)
 - `zustand (vanilla)`: ~13.2M ops/s
 - `jotai`: ~8.7M ops/s
 - `nanostores`: ~2.8M ops/s
@@ -14,14 +14,14 @@
 
 **Atom Get:**
 - `zustand (vanilla)`: **~17.9M ops/s** (Fastest)
-- `zen`: ~15.6M ops/s (Slight decrease post-events)
+- `zen`: ~18.0M ops/s (Improved post-emit-opt)
 - `effector`: ~17.8M ops/s
 - `jotai (via hook)`: ~14.3M ops/s
 - `valtio (vanilla)`: ~13.7M ops/s
 - `nanostores`: ~6.2M ops/s (Slowest)
 
 **Atom Set (No Listeners):**
-- `zen`: ~8.7M ops/s (Decrease post-events, slower than nanostores)
+- `zen`: **~11.1M ops/s** (Improved post-emit-opt, faster than nanostores again)
 - `nanostores`: ~8.8M ops/s
 - `zustand (vanilla)`: ~5.4M ops/s
 - `valtio (vanilla)`: ~2.7M ops/s
@@ -29,7 +29,7 @@
 - `jotai (via hook)`: ~0.7M ops/s (Slowest)
 
 **Atom Subscribe/Unsubscribe:**
-- `zen`: **~4.3M ops/s** (Decrease post-events, still fastest)
+- `zen`: ~3.4M ops/s (Slightly worse post-emit-opt? Zustand faster now)
 - `zustand (vanilla)`: ~3.4M ops/s
 - `nanostores`: ~2.3M ops/s
 - `valtio (vanilla)`: ~0.3M ops/s
@@ -37,7 +37,7 @@
 - `effector`: ~12k ops/s (Slowest)
 
 **Computed Creation (1 dependency):**
-- `zen`: ~11.9M ops/s (Decrease post-events, slower than jotai)
+- `zen`: **~13.9M ops/s** (Improved post-emit-opt, faster than jotai again)
 - `jotai`: ~12.6M ops/s
 - `nanostores`: ~0.6M ops/s
 - `effector (derived store)`: ~7.8k ops/s (Slowest)
@@ -45,13 +45,13 @@
 **Computed Get (1 dependency):**
 - `jotai (via hook)`: **~18.6M ops/s** (Fastest)
 - `zustand (selector)`: ~18.0M ops/s
-- `zen`: ~15.0M ops/s (Decrease post-events)
+- `zen`: ~16.6M ops/s (Improved post-emit-opt)
 - `effector (derived store)`: ~15.2M ops/s
 - `valtio (getter)`: ~13.3M ops/s
 - `nanostores`: ~1.8M ops/s (Slowest)
 
 **Computed Update Propagation (1 dependency):**
-- `zen`: ~1.2M ops/s (**Significant decrease post-events**, slower than most)
+- `zen`: ~1.3M ops/s (Slightly improved post-emit-opt, but **still major regression**)
 - `zustand (vanilla update + select)`: ~7.6M ops/s
 - `nanostores`: ~4.9M ops/s
 - `valtio (vanilla update + getter)`: ~2.0M ops/s
@@ -59,28 +59,28 @@
 - `jotai (via hook update)`: ~0.1M ops/s (Slowest)
 
 **Map Creation:**
-- `zen`: **~11.0M ops/s** (Slight decrease post-events)
+- `zen`: **~13.0M ops/s** (Improved post-emit-opt)
 - `nanostores`: ~2.8M ops/s
 
 **Map Get:**
-- `zen`: **~17.1M ops/s** (Slight decrease post-events)
+- `zen`: **~21.4M ops/s** (Improved post-emit-opt)
 - `nanostores`: ~7.2M ops/s
 
 **Map Set Key (No Listeners):**
-- `zen`: ~4.6M ops/s (**Significant decrease post-events**, slower than nanostores)
+- `zen`: ~5.7M ops/s (Improved post-emit-opt, but **still major regression**, slower than nanostores)
 - `nanostores`: ~8.8M ops/s
 
 **Map Set Full Object (No Listeners):**
-- `zen`: ~4.1M ops/s (**Significant decrease post-events**)
+- `zen`: ~6.7M ops/s (Improved post-emit-opt, but **still major regression**)
 - *(Nanostores has no direct equivalent)*
 
 **Task Creation:**
 - `zen`: **~1.6M ops/s** (No change)
 
 **Task Run (Resolve/Reject):**
-- `zen (resolve)`: ~66 ops/s (**Significant decrease post-events**)
-- `zen (reject)`: ~68 ops/s (**Significant decrease post-events**)
-- *(Low ops/sec due to async nature, confirms functionality. Decrease needs investigation)*
+- `zen (resolve)`: ~181 ops/s (**Significantly improved post-emit-opt**)
+- `zen (reject)`: ~152 ops/s (**Significantly improved post-emit-opt**)
+- *(Low ops/sec due to async nature. Improvement confirms emit was a factor)*
 
 **Performance Analysis (Post Revert):** Reverting to prototype-based implementation successfully restored performance to previous high levels, confirming this is the optimal approach given the priority on speed.
 
@@ -106,7 +106,7 @@
 - **REMOVED:** `mutableArrayAtom`, `mutableMapAtom`, `mutableObjectAtom`.
 
 ## Benchmark Highlights (Post Revert - 2025-04-15)
-- Performance generally decreased after restoring features, significantly in some areas (Computed Update, Map/DeepMap Set, Task Run).
+- Performance generally improved after `emit` optimization, but key regressions persist.
 - Zen remains highly competitive or leads in many categories (Atom Creation/Set/Sub, Computed Creation/Update, Map/DeepMap ops).
 
 ## Current Status
@@ -115,9 +115,9 @@
 - Associated tests have been restored and updated.
 - All checks (`tsc`, `test`, `build`, `size`) passed after removing mutable helpers.
 - Final Size (`npm run size`): `atom only` 786 B, `full` 1.45 kB.
-- Benchmarks run (`npm run bench`) confirming performance impact *after* feature restoration.
+- Benchmarks run (`npm run bench`) confirming impact of `emit` optimization.
 - **Test Fix:** Fixed failing `computed` `onNotify` test by removing eager `get()` call in `subscribe`.
-- **Next:** Investigate performance regressions (Computed Update, Map/DeepMap Set, Task Run) and attempt optimization.
+- **Next:** Optimize `emitKeys` and `emitPaths` in `src/events.ts` to address Map/DeepMap Set regressions. Then re-evaluate Computed Update.
 
 ## Known Issues/Next Steps (Refined)
 1.  ~~Run Build & Size Checks (Post-Events)~~
@@ -148,5 +148,6 @@
 26. ~~**Commit final Memory Bank update.**~~ (Done)
 27. ~~**Documentation & Examples**: Review README for accuracy after removals.~~ (Done - README is up-to-date)
 28. ~~**Consider Feature Enhancements**: Re-evaluate next steps (e.g., re-run benchmarks).~~ (Done - Benchmarks run)
-29. **Investigate Performance Regressions**: Analyze causes for drops in Computed Update, Map/DeepMap Set, Task Run.
-30. **Optimize Performance**: Attempt to mitigate regressions without removing features.
+29. ~~**Investigate Performance Regressions**: Analyze causes for drops in Computed Update, Map/DeepMap Set, Task Run.~~ (Done - Identified `emit`, `emitKeys`, `emitPaths`, `computed._update`)
+30. **Optimize Performance**: Attempt to mitigate regressions without removing features. (Partially done - Optimized `emit`)
+31. **Optimize `emitKeys` / `emitPaths`**: Focus on Map/DeepMap Set performance.
