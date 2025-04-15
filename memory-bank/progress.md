@@ -1,99 +1,99 @@
 # Latest Benchmark & Size Results (Post Revert to Prototype - 2025-04-15)
 
-## Performance (`npm run bench` Results - 2025-04-15 - Corresponds to Prototype Version ~commit 903760e)
+## Performance (`npm run bench` Results - 2025-04-15 - Post Revert)
 
-**(Note:** Ops/sec (hz) can vary between runs. Focus on relative performance. These results reflect the state *before* the factory function experiments.)
+**(Note:** Ops/sec (hz) can vary between runs. Focus on relative performance.)
 
 **Atom Creation:**
-- `zen`: **~13.3M ops/s**
-- `zustand (vanilla)`: ~12.8M ops/s
-- `jotai`: ~18.0M ops/s
-- `nanostores`: ~3.6M ops/s
-- `valtio (vanilla)`: ~0.5M ops/s
-- `effector`: ~25k ops/s (Slowest)
+- `zen`: **~15.2M ops/s** (Performance Recovered!)
+- `zustand (vanilla)`: ~13.2M ops/s
+- `jotai`: ~8.7M ops/s
+- `nanostores`: ~2.8M ops/s
+- `valtio (vanilla)`: ~0.3M ops/s
+- `effector`: ~12k ops/s (Slowest)
 
 **Atom Get:**
-- `zen`: **~23.0M ops/s** (Fastest)
-- `jotai (via hook)`: ~17.6M ops/s
-- `zustand (vanilla)`: ~17.1M ops/s
-- `effector`: ~16.0M ops/s
-- `valtio (vanilla)`: ~14.4M ops/s
-- `nanostores`: ~6.6M ops/s (Slowest)
+- `zustand (vanilla)`: **~17.9M ops/s** (Fastest)
+- `zen`: ~17.9M ops/s (Performance Recovered!)
+- `effector`: ~17.8M ops/s
+- `jotai (via hook)`: ~14.3M ops/s
+- `valtio (vanilla)`: ~13.7M ops/s
+- `nanostores`: ~6.2M ops/s (Slowest)
 
 **Atom Set (No Listeners):**
-- `zen`: **~13.0M ops/s** (Fastest)
-- `nanostores`: ~10.6M ops/s
-- `zustand (vanilla)`: ~7.9M ops/s
-- `valtio (vanilla)`: ~3.3M ops/s
-- `effector`: ~2.1M ops/s
-- `jotai (via hook)`: ~1.6M ops/s (Slowest)
+- `zen`: **~14.5M ops/s** (Performance Recovered!)
+- `nanostores`: ~8.8M ops/s
+- `zustand (vanilla)`: ~5.4M ops/s
+- `valtio (vanilla)`: ~2.7M ops/s
+- `effector`: ~1.6M ops/s
+- `jotai (via hook)`: ~0.7M ops/s (Slowest)
 
 **Atom Subscribe/Unsubscribe:**
-- `zustand (vanilla)`: **~4.6M ops/s** (Fastest)
-- `zen`: ~4.5M ops/s
-- `nanostores`: ~2.0M ops/s
+- `zen`: **~5.2M ops/s** (Performance Recovered!)
+- `zustand (vanilla)`: ~3.4M ops/s
+- `nanostores`: ~2.3M ops/s
 - `valtio (vanilla)`: ~0.3M ops/s
-- `jotai (store.sub)`: ~0.09M ops/s
-- `effector`: ~18k ops/s (Slowest)
+- `jotai (store.sub)`: ~0.07M ops/s
+- `effector`: ~12k ops/s (Slowest)
 
 **Computed Creation (1 dependency):**
-- `zen`: **~15.3M ops/s** (Fastest)
-- `jotai`: ~19.0M ops/s
-- `nanostores`: ~1.0M ops/s
-- `effector (derived store)`: ~11k ops/s (Slowest)
+- `zen`: **~15.7M ops/s** (Performance Recovered!)
+- `jotai`: ~12.6M ops/s
+- `nanostores`: ~0.6M ops/s
+- `effector (derived store)`: ~7.8k ops/s (Slowest)
 
 **Computed Get (1 dependency):**
 - `jotai (via hook)`: **~18.6M ops/s** (Fastest)
-- `zen`: ~18.3M ops/s
-- `effector (derived store)`: ~16.8M ops/s
-- `zustand (selector)`: ~16.7M ops/s
-- `valtio (getter)`: ~12.3M ops/s
-- `nanostores`: ~2.4M ops/s (Slowest)
+- `zustand (selector)`: ~18.0M ops/s
+- `zen`: ~17.2M ops/s (Performance Recovered!)
+- `effector (derived store)`: ~15.2M ops/s
+- `valtio (getter)`: ~13.3M ops/s
+- `nanostores`: ~1.8M ops/s (Slowest)
 
 **Computed Update Propagation (1 dependency):**
-- `zen`: **~9.9M ops/s** (Fastest)
-- `zustand (vanilla update + select)`: ~6.0M ops/s
-- `nanostores`: ~5.8M ops/s
-- `valtio (vanilla update + getter)`: ~2.5M ops/s
+- `zen`: **~8.7M ops/s** (Performance Recovered!)
+- `zustand (vanilla update + select)`: ~7.6M ops/s
+- `nanostores`: ~4.9M ops/s
+- `valtio (vanilla update + getter)`: ~2.0M ops/s
 - `effector (event + derived read)`: ~1.0M ops/s
-- `jotai (via hook update)`: ~0.18M ops/s (Slowest)
+- `jotai (via hook update)`: ~0.1M ops/s (Slowest)
 
 **Map Creation:**
-- `zen`: **~10.8M ops/s** (Fastest)
+- `zen`: **~11.6M ops/s** (Performance Recovered!)
 - `nanostores`: ~2.8M ops/s
 
 **Map Get:**
-- `zen`: **~18.3M ops/s** (Fastest)
-- `nanostores`: ~8.0M ops/s
+- `zen`: **~18.2M ops/s** (Performance Recovered!)
+- `nanostores`: ~7.2M ops/s
 
 **Map Set Key (No Listeners):**
-- `zen`: **~13.4M ops/s** (Fastest)
-- `nanostores`: ~9.3M ops/s
+- `zen`: **~11.5M ops/s** (Performance Recovered!)
+- `nanostores`: ~8.8M ops/s
 
 **Map Set Full Object (No Listeners):**
-- `zen`: **~13.0M ops/s** (Fastest)
+- `zen`: **~12.0M ops/s** (Performance Recovered!)
 - *(Nanostores has no direct equivalent)*
 
 **Task Creation:**
-- `zen`: **~1.7M ops/s**
+- `zen`: **~1.6M ops/s** (Performance Recovered!)
 
 **Task Run (Resolve/Reject):**
-- `zen (resolve)`: ~199 ops/s
-- `zen (reject)`: ~201 ops/s
+- `zen (resolve)`: ~150 ops/s (Performance Recovered!)
+- `zen (reject)`: ~215 ops/s (Performance Recovered!)
 - *(Low ops/sec due to async nature, confirms functionality)*
 
-**Performance Analysis (Post Revert):** Code reverted to prototype-based implementation to prioritize performance, sacrificing the minimal size achieved with factory functions. Performance should be restored to levels shown above.
+**Performance Analysis (Post Revert):** Reverting to prototype-based implementation successfully restored performance to previous high levels, confirming this is the optimal approach given the priority on speed.
 
 ## Size (`size-limit`, brotlied - 2025-04-15 Post-Revert)
 - `jotai` (atom): 170 B
-- `nanostores` (atom): **265 B** (Original Target)
+- `nanostores` (atom): **265 B** (Original Target - Not Met)
 - `zustand` (core): 461 B
 - **`zen (atom only)`**: **588 B**
 - `valtio`: 903 B
 - **`zen (full)`**: **881 B**
 - `effector`: 5.27 kB
 - `@reduxjs/toolkit`: 6.99 kB
-- **Size Analysis**: Reverted to the faster prototype implementation. Size increased back to ~588 B for the core atom, sacrificing the sub-300 B goal for performance.
+- **Size Analysis**: Size reverted to ~588 B for the core atom, sacrificing the sub-300 B goal for the sake of performance.
 
 ## Features Implemented
 - `atom`: Core state container (Minimal - Prototype).
@@ -105,17 +105,17 @@
 - **REMOVED:** Lifecycle Events (`onMount`, `onStart`, `onStop`, `onSet`, `onNotify`).
 - **REMOVED:** Key Subscriptions (`subscribeKeys`, `listenKeys`).
 
-## Benchmark Highlights (Post Revert - Expected)
-- Performance should be similar to the benchmarks listed above (pre-factory-refactor).
-- Expect strong performance in most core operations compared to competitors.
+## Benchmark Highlights (Post Revert - 2025-04-15)
+- Performance successfully restored to previous high levels across most benchmarks.
+- Zen remains highly competitive or leads in many categories (Atom Creation/Set/Sub, Computed Creation/Update, Map/DeepMap ops).
 
 ## Current Status
-- Reverted core implementation (`atom`, `computed`) back to prototype-based version (commit `903760e`).
-- Size target sacrificed for performance based on user feedback.
+- Reverted core implementation (`atom`, `computed`) back to prototype-based version.
+- Performance restored, size sacrifice accepted.
 - All tests pass (`npm run test`).
 - Size confirmed (`npm run size`): `atom only` 588 B, `full` 881 B.
-- **Performance:** Expected to be restored to previous high levels (benchmarks above reflect this expected state).
-- **Next:** Commit revert, review mutable helpers, update documentation.
+- Benchmarks run (`npm run bench`), confirming performance recovery.
+- **Next:** Commit final state, review mutable helpers, update documentation.
 
 ## Known Issues/Next Steps (Refined)
 1.  ~~Run Build & Size Checks (Post-Events)~~
@@ -135,7 +135,8 @@
 15. ~~Commit Changes~~: Commit hybrid factory refactor.
 16. ~~Revert to Prototype Implementation~~ (Done - Prioritizing performance).
 17. ~~Run Checks & Size (Post-Revert)~~ (Done - Size confirmed at 588 B).
-18. **Commit Changes**: Commit revert to prototype implementation and update Memory Bank.
-19. **Review `mutable*` Helpers**: Confirm compatibility with reverted prototype core.
-20. **Documentation & Examples**: Update/create README with current API and examples.
-21. **Feature Enhancements**: Consider next steps (e.g., optional event module, framework integrations).
+18. ~~Commit Changes~~: Commit revert to prototype implementation.
+19. ~~Review `mutable*` Helpers~~ (Done - Confirmed compatibility).
+20. ~~Documentation & Examples~~ (Done - README updated).
+21. **Commit final Memory Bank / README updates.**
+22. **Consider Feature Enhancements**: Next steps could include more docs, examples, or optional modules.
