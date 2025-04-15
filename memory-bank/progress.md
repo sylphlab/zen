@@ -146,5 +146,5 @@
 24. ~~Commit Memory Bank update.~~ (Done)
 25. ~~Run Checks:~~ `tsc --noEmit && npm run test && npm run build && npm run size` passed. (Done)
 26. **Commit final Memory Bank update.** (Current step)
-27. **Documentation & Examples**: Review README for accuracy after removals.
+27. ~~**Documentation & Examples**: Review README for accuracy after removals.~~ (Done - README is up-to-date)
 28. **Consider Feature Enhancements**: Re-evaluate next steps (e.g., re-run benchmarks).
