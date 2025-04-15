@@ -41,6 +41,23 @@
 - **Benchmarking (Post-`deepMap`):**
     - Updated `src/deepMap.bench.ts` to include direct comparisons with Nanostores `deepMap` for each operation type (Creation, shallow/deep setKey, etc.). Grouped benchmarks by operation.
     - Ran `npm run bench`. Zen's `deepMap` significantly outperforms Nanostores (2.9x - 10.2x faster). Updated `progress.md` with detailed comparison results.
+- **Lifecycle Events (v1 Implemented):**
+    - Added event types and properties to `core.ts` interfaces (`Atom`, `ReadonlyAtom`).
+    - Created `src/events.ts` with public APIs: `onMount`, `onStart`, `onStop`, `onSet`, `onNotify`.
+    - Modified `atom.ts` and `computed.ts` to trigger these events at appropriate times (subscribe, unsubscribe, set, notify).
+    - Implemented `abort()` functionality for `onSet` and `onNotify`.
+    - Passed `oldValue` parameter to listeners.
+    - Ensured `shared` payload object is passed between `onSet` and `onNotify`.
+    - Added tests in `src/events.test.ts` and fixed several bugs related to event triggering logic (especially multiple calls in `computed` and `onMount`).
+    - Exported event functions from `src/index.ts`.
+- **Checks & Benchmarking (Post-Events):**
+    - Ran `npm run test`. All tests passed.
+    - Ran `npm run bench`. Observed noticeable performance decrease across most operations due to event system overhead. Updated `progress.md`.
+- **Checks & Size Measurement (Post-Events):**
+    - Ran `npm run build && npm run size`. Build successful.
+    - **`zen (atom only)`: 999 B** (+339 B)
+    - **`zen (full)`: 1.28 kB** (+330 B)
+    - **Analysis:** Event system added significant size overhead (~330-340 B). Core atom size (999 B) is now much larger than Nanostores (265 B).
 
 ## Next Steps (Immediate)
 1.  ~~Implement `map` helper (initial version without `subscribeKey`) in a new file `src/map.ts`.~~
@@ -56,8 +73,10 @@
 11. ~~**Run Build & Size Checks (Post-`deepMap`)**: Execute `npm run build && npm run size`.~~ (Done - 953 B)
 12. ~~**Add & Run Benchmarks (Post-`deepMap`)**: Create `deepMap.bench.ts`, run `npm run bench`, update `progress.md`.~~ (Done)
 13. ~~**Refine Benchmarks & Re-run**: Update `deepMap.bench.ts` to group Zen vs Nanostores, re-run `npm run bench`, update `progress.md`.~~ (Done)
-14. **Analyze Size Increase (Post-`deepMap`)**:
-    *   `deepMap` and helpers (`getDeep`, `setDeep`) added minimal or negative size impact after minification and optimizations.
+14. ~~**Implement Lifecycle Events (v1):** Modify core types, create `events.ts`, integrate triggers into `atom.ts`/`computed.ts`, add tests, fix bugs.~~ (Done)
+15. ~~**Run Post-Event Benchmarks:** Execute `npm run bench` and update `progress.md`.~~ (Done)
+16. ~~**Analyze Size Increase (Post-Events)**: Run `npm run build && npm run size`.~~ (Done)
+    *   `deepMap` helpers had minimal impact.
     *   **Preliminary Findings**:
         *   Core `atom` (`atom.ts`, parts of `core.ts`) logic likely constitutes the bulk of the 660 B `{ atom }` import cost.
         *   `computed` (`computed.ts`) adds significant logic for dependency tracking and updates.
@@ -65,13 +84,13 @@
         *   `task` (`task.ts`) adds async handling logic, contributing size but less than core/computed.
         *   Mutable helpers are currently *not* included in the `zen (full)` size measurement.
     *   **Conclusion**: Optimization MUST focus heavily on `atom.ts` and `computed.ts` implementations and potentially build/minification settings to reduce the core 660 B size.
-    *   **Conclusion**: Optimization MUST focus heavily on `atom.ts` and `computed.ts` implementations and potentially build/minification settings to reduce the core 660 B size.
-15. **Plan & Implement Size Optimizations (Highest Priority)**:
-    *   **Review `tsup` config**: Check minify options (`terser` options if used implicitly by `tsup --minify`) for potential improvements (e.g., `mangle`, `compress` options like `passes`, `pure_funcs`).
-    *   **Code Review (`atom.ts`, `computed.ts`)**: Look for possibilities to shorten code, reduce helper functions, or use alternative patterns with smaller footprint, without sacrificing significant performance. (e.g., Can `AtomProto` and `ComputedAtomProto` be simplified? Can `subscribe` logic be smaller? Inline small functions?).
-    *   **Target**: Aim to drastically reduce the `zen (atom only)` size first, ideally below Nanostores (265 B).
-16. **Git Commit:** Commit the `deepMap` implementation including updated benchmarks.
-17. **(Next Task)** Begin size optimization focus.
+    *   **Conclusion**: Event system added significant size (~330-340 B) and performance overhead. Optimization MUST focus heavily on `atom.ts`, `computed.ts`, AND `events.ts`.
+17. **Plan & Implement Optimizations (Size & Performance - Highest Priority)**:
+    *   **Review `tsup` config**: Check minify options for improvements.
+    *   **Code Review (`atom.ts`, `computed.ts`, `events.ts`)**: Find ways to shrink event logic and core implementation without sacrificing functionality (yet).
+    *   **Target**: Drastically reduce `zen (atom only)` size (goal < 265 B) and recover performance.
+18. **Git Commit:** Commit the lifecycle events implementation, benchmark results, and size analysis.
+19. **(Next Task)** Begin optimization focus.
 
 (Steps renumbered)
 

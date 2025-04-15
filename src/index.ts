@@ -6,6 +6,7 @@ export * from './core';
 export * from './atom';
 export * from './computed';
 export * from './map';
-export * from './deepMap'; // Add deepMap export
-export * from './task'; // Add task export
+export * from './deepMap';
+export * from './task';
 export * from './mutable';
+export * from './events'; // Export event functions

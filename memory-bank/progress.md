@@ -101,6 +101,7 @@
 - `map` (v1): Object atom with `setKey`.
 - `deepMap` (v1): Deeply nested object atom with `setKey`.
 - `task`: Async operation state management.
+- **Lifecycle Events (v1):** `onMount`, `onStart`, `onStop`, `onSet`, `onNotify` implemented. (Debounce for `onMount`/`onStop` and batch support for events pending).
 
 ## Benchmark Highlights (Post map/task v1)
 - `zen` leads or is highly competitive in most core `atom`/`computed` operations (Set, Sub/Unsub, Creation, Update Propagation).
@@ -108,14 +109,18 @@
 - Performance profile remains very strong.
 
 ## Current Status
-- Core features + `map` (v1) + `deepMap` (v1) + `task` implemented and tested.
-- All core tests pass (excluding placeholders in `index.test.ts` which now just contain a dummy test).
-- **Performance:** Ran benchmarks including grouped `deepMap` vs Nanostores `deepMap`. Zen's `deepMap` operations are significantly faster (**2.9x - 10.2x**) than Nanostores' across all tested scenarios (creation, shallow/deep setKey, array index, path creation). Overall library performance remains strong.
-- **Size:** `zen (full)` size including `deepMap` is **953 B** (brotlied). Size reduction remains the **highest priority**, focusing on the core `atom` (660 B).
+- Core features + `map` (v1) + `deepMap` (v1) + `task` + Lifecycle Events (v1) implemented and tested.
+- All tests pass.
+- **Performance:** Re-ran benchmarks after implementing v1 lifecycle events. **Observed noticeable performance decrease** across most operations due to event system overhead. Optimization needed. `deepMap` remains faster than Nanostores'.
+- **Size:** Size measured after adding events:
+    - `zen (atom only)`: **999 B** (brotlied) - Significant increase (+339 B)
+    - `zen (full)`: **1.28 kB** (brotlied) - Significant increase (+330 B)
+- Size reduction is the **absolute highest priority**, focusing on core `atom`, `computed`, and `events`.
 
 ## Known Issues/Next Steps (Refined)
-1.  ~~**Run Build & Size Checks**: Execute `npm run build && npm run size` to get updated size metrics including `deepMap`.~~ (Done - 953 B)
-2.  **Analyze Size Increase (Post-`deepMap`)**: `deepMap` itself added minimal or negative size cost (953 B vs 964 B pre-`deepMap`). Focus remains on core `atom` and `computed`.
-3.  **Aggressive Size Optimization**: Continue focusing on reducing core (`atom`, `computed`) size. Re-evaluate `deepMap` helpers (`getDeep`, `setDeep`) for potential size savings, although they seem efficient currently. Explore `tsup` minify options. Target < Nanostores `{ atom }` size for the core.
-4.  **Performance Benchmarking (Post-`deepMap`)**: ~~Create `deepMap.bench.ts`~~ (Done). Benchmarks including grouped Nanostores comparison executed.
-5.  **Feature Enhancements (Post-Optimization)**: Revisit `map`/`deepMap` v2 (`subscribeKey`), documentation, etc., only after achieving size goals.
+1.  ~~**Run Build & Size Checks (Post-Events)**: Execute `npm run build && npm run size`.~~ (Done - atom: 999 B, full: 1.28 kB)
+2.  ~~**Analyze Size Increase (Post-Events)**~~: Event system added ~330-340 B.
+3.  **Aggressive Size & Performance Optimization**: Focus on reducing core (`atom`, `computed`, `events`) size and recovering performance loss. Explore `tsup` minify options. Target < Nanostores `{ atom }` size for the core.
+4.  **Performance Benchmarking (Post-Events)**: ~~Run `npm run bench`.~~ (Done). Impact observed.
+5.  **TODOs in Code**: Implement `onMount`/`onStop` debounce. Handle `oldValue`/`payload` in `_notifyBatch`.
+6.  **Feature Enhancements (Post-Optimization)**: Revisit `map`/`deepMap` v2 (`subscribeKey`), documentation, etc., only after achieving size goals.

@@ -16,10 +16,12 @@ describe('map', () => {
     const unsubscribe = profile.subscribe(listener);
     listener.mockClear(); // Ignore initial call
 
+    const oldValue = { name: 'John', age: 30 };
     profile.setKey('age', 31);
-    expect(profile.get()).toEqual({ name: 'John', age: 31 });
+    const newValue = { name: 'John', age: 31 };
+    expect(profile.get()).toEqual(newValue);
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith({ name: 'John', age: 31 });
+    expect(listener).toHaveBeenCalledWith(newValue, oldValue); // Add oldValue
 
     unsubscribe();
   });
@@ -44,6 +46,7 @@ describe('map', () => {
     listener.mockClear(); // Ignore initial call
 
     const newProfile = { name: 'Jane', age: 25 };
+    const oldValue = { name: 'John', age: 30 };
     profile.set(newProfile);
     expect(profile.get()).toEqual(newProfile);
     // set() should replace the internal reference
@@ -52,7 +55,7 @@ describe('map', () => {
     // Let's focus on the value and notification.
     // expect(profile.get()).toBe(newProfile);
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith(newProfile);
+    expect(listener).toHaveBeenCalledWith(newProfile, oldValue); // Add oldValue
 
     unsubscribe();
   });

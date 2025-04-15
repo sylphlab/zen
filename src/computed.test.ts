@@ -36,12 +36,12 @@ describe('computed', () => {
 
     const unsubscribe = double.subscribe(listener);
     expect(listener).toHaveBeenCalledTimes(1); // Initial call
-    expect(listener).toHaveBeenCalledWith(20);
+    expect(listener).toHaveBeenCalledWith(20, undefined); // Add undefined oldValue
 
     listener.mockClear();
     count.set(15);
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith(30);
+    expect(listener).toHaveBeenCalledWith(30, 20); // Add oldValue 20
 
     unsubscribe();
   });
@@ -73,16 +73,16 @@ describe('computed', () => {
     expect(listener).toHaveBeenCalledTimes(1); // Initial call
     listener.mockClear();
 
-    num1.set(20);
+    num1.set(20); // sum changes from 15 to 25
     expect(sum.get()).toBe(25);
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith(25);
+    expect(listener).toHaveBeenCalledWith(25, 15); // Add oldValue 15
     listener.mockClear();
 
-    num2.set(7);
+    num2.set(7); // sum changes from 25 to 27
     expect(sum.get()).toBe(27);
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith(27);
+    expect(listener).toHaveBeenCalledWith(27, 25); // Add oldValue 25
 
     unsubscribe();
   });
@@ -96,15 +96,13 @@ describe('computed', () => {
       const unsubscribe = quadruple.subscribe(listener);
       expect(quadruple.get()).toBe(40); // 10 * 2 * 2
       expect(listener).toHaveBeenCalledTimes(1);
+      expect(listener).toHaveBeenCalledWith(40, undefined); // Initial call
       listener.mockClear();
 
       base.set(5);
-      // Note: Need to ensure computed atoms update even without direct subscription if they are dependencies
-      // This depends on the internal implementation. Let's assume intermediate gets might be needed if lazy.
-      // expect(double.get()).toBe(10); // Optional check if implementation is lazy
       expect(quadruple.get()).toBe(20); // 5 * 2 * 2
       expect(listener).toHaveBeenCalledTimes(1);
-      expect(listener).toHaveBeenCalledWith(20);
+      expect(listener).toHaveBeenCalledWith(20, 40); // Add oldValue 40
 
       unsubscribe();
   });

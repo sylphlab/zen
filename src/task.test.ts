@@ -22,9 +22,11 @@ describe('task', () => {
     const promise = myTask.run(); // Don't await yet
 
     // Should immediately reflect loading state
-    expect(myTask.get()).toEqual({ loading: true, error: undefined, data: undefined });
+    const loadingState = { loading: true, error: undefined, data: undefined };
+    expect(myTask.get()).toEqual(loadingState);
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith({ loading: true, error: undefined, data: undefined });
+    // Expect initial state (loading: false) as oldValue
+    expect(listener).toHaveBeenCalledWith(loadingState, { loading: false });
 
     await promise; // Wait for completion
     unsubscribe();
@@ -41,9 +43,11 @@ describe('task', () => {
     await myTask.run('arg1');
 
     expect(mockAsyncFn).toHaveBeenCalledWith('arg1');
-    expect(myTask.get()).toEqual({ loading: false, data: 'Success Data' });
+    const finalState = { loading: false, data: 'Success Data' };
+    const intermediateState = { loading: true, error: undefined, data: undefined }; // State before final one
+    expect(myTask.get()).toEqual(finalState);
     expect(listener).toHaveBeenCalledTimes(2); // loading: true, then loading: false + data
-    expect(listener).toHaveBeenLastCalledWith({ loading: false, data: 'Success Data' });
+    expect(listener).toHaveBeenLastCalledWith(finalState, intermediateState); // Add oldValue
 
     unsubscribe();
   });
@@ -63,9 +67,11 @@ describe('task', () => {
       expect(e).toBe(error); // Ensure the error is re-thrown
     }
 
-    expect(myTask.get()).toEqual({ loading: false, error: error });
+    const finalStateWithError = { loading: false, error: error };
+     const intermediateStateLoading = { loading: true, error: undefined, data: undefined }; // State before final one
+    expect(myTask.get()).toEqual(finalStateWithError);
     expect(listener).toHaveBeenCalledTimes(2); // loading: true, then loading: false + error
-    expect(listener).toHaveBeenLastCalledWith({ loading: false, error: error });
+    expect(listener).toHaveBeenLastCalledWith(finalStateWithError, intermediateStateLoading); // Add oldValue
 
     unsubscribe();
   });

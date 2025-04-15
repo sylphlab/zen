@@ -42,7 +42,7 @@ describe('atom', () => {
     const unsubscribe = count.subscribe(listener);
 
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith(initialValue);
+    expect(listener).toHaveBeenCalledWith(initialValue, undefined); // Add undefined for oldValue
 
     unsubscribe();
   });
@@ -61,11 +61,11 @@ describe('atom', () => {
 
     count.set(1);
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith(1);
+    expect(listener).toHaveBeenCalledWith(1, 0); // Add oldValue 0
 
     count.set(2);
     expect(listener).toHaveBeenCalledTimes(2);
-    expect(listener).toHaveBeenCalledWith(2);
+    expect(listener).toHaveBeenLastCalledWith(2, 1); // Add oldValue 1 and use assertLastCalledWith
 
     unsubscribeUpdate();
   });
@@ -80,18 +80,18 @@ describe('atom', () => {
 
     // Check initial calls
     expect(listener1).toHaveBeenCalledTimes(1);
-    expect(listener1).toHaveBeenCalledWith(0);
+    expect(listener1).toHaveBeenCalledWith(0, undefined); // Add undefined oldValue
     expect(listener2).toHaveBeenCalledTimes(1);
-    expect(listener2).toHaveBeenCalledWith(0);
+    expect(listener2).toHaveBeenCalledWith(0, undefined); // Add undefined oldValue
 
     listener1.mockClear();
     listener2.mockClear();
 
     count.set(5);
     expect(listener1).toHaveBeenCalledTimes(1);
-    expect(listener1).toHaveBeenCalledWith(5);
+    expect(listener1).toHaveBeenCalledWith(5, 0); // Add oldValue 0
     expect(listener2).toHaveBeenCalledTimes(1);
-    expect(listener2).toHaveBeenCalledWith(5);
+    expect(listener2).toHaveBeenCalledWith(5, 0); // Add oldValue 0
 
     unsub1();
     unsub2();
@@ -134,12 +134,12 @@ describe('atom', () => {
     const listenerObj = vi.fn();
     const unsubObj = obj.subscribe(listenerObj);
     expect(obj.get()).toEqual({ a: 1 });
-    // Correct the new object to match the inferred type { a: number }
+    const initialObjValue = { a: 1 }; // Store initial for oldValue check
     const newObjValue = { a: 2 };
     obj.set(newObjValue);
     expect(obj.get()).toEqual(newObjValue);
     expect(listenerObj).toHaveBeenCalledTimes(2); // Initial + update
-    expect(listenerObj).toHaveBeenCalledWith(newObjValue);
+    expect(listenerObj).toHaveBeenLastCalledWith(newObjValue, initialObjValue); // Check last call with oldValue
     unsubObj();
 
     // Array
@@ -147,11 +147,12 @@ describe('atom', () => {
     const listenerArr = vi.fn();
     const unsubArr = arr.subscribe(listenerArr);
     expect(arr.get()).toEqual([1, 2]);
+    const initialArrValue = [1, 2]; // Store initial for oldValue check
     const newArr = [3, 4, 5];
     arr.set(newArr);
     expect(arr.get()).toEqual(newArr);
     expect(listenerArr).toHaveBeenCalledTimes(2); // Initial + update
-    expect(listenerArr).toHaveBeenCalledWith(newArr);
+    expect(listenerArr).toHaveBeenLastCalledWith(newArr, initialArrValue); // Check last call with oldValue
     unsubArr();
   });
 });
