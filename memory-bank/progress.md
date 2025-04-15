@@ -82,45 +82,49 @@
 - `zen (reject)`: ~190 ops/s
 - *(Low ops/sec due to async nature, confirms functionality)*
 
-**Note:** Hook-based benchmarks include React testing overhead. Vanilla benchmarks offer a better core comparison. Effector/Valtio/Zustand derived state patterns differ, making some comparisons less direct.
+**Note:** Benchmarks below are from *before* the radical optimization. Performance impact needs re-evaluation.
 
-## Size (`size-limit`, brotlied, `{ atom }` import cost - 2025-04-15)
-- `jotai`: 170 B
-- `nanostores`: 265 B
+## Size (`size-limit`, brotlied - 2025-04-15 Post-Optimization-v1)
+- `jotai` (atom): 170 B
+- `nanostores` (atom): **265 B** (Target)
 - `zustand` (core): 461 B
-- **`zen`**: **660 B**
+- **`zen (atom only)`**: **602 B**
 - `valtio`: 903 B
+- **`zen (full)`**: **893 B**
 - `effector`: 5.27 kB
 - `@reduxjs/toolkit`: 6.99 kB
-- **Analysis**: `{ atom }` import cost remains 660 B. This is misleading as it doesn't reflect the added size of `map`/`task`. Still significantly larger than Nanostores/Jotai core atom. **Accurate full library size measurement is the immediate priority.**
+- **Analysis**: Radical optimization (removing events/key-subs) significantly reduced size (`atom`: ~1.28kB -> 602B, `full`: ~1.36kB -> 893B). However, core `atom` size is still more than double the Nanostores target. Further micro-optimization is critical.
 
 ## Features Implemented
-- `atom`: Core state container.
-- `computed`: Derived state.
-- `mutableArrayAtom`, `mutableMapAtom`, `mutableObjectAtom`: Perf-focused mutable helpers.
-- `map` (v1): Object atom with `setKey`.
-- `deepMap` (v1): Deeply nested object atom with `setKey`.
-- `task`: Async operation state management.
-- **Lifecycle Events (v1):** `onMount`, `onStart`, `onStop`, `onSet`, `onNotify` implemented. (Debounce for `onMount`/`onStop` and batch support for events pending).
+- `atom`: Core state container (Simplified).
+- `computed`: Derived state (Simplified).
+- `mutableArrayAtom`, `mutableMapAtom`, `mutableObjectAtom`: Perf-focused mutable helpers (Untouched by recent optimization, may need review).
+- `map` (v1 - Simplified): Object atom with `setKey`.
+- `deepMap` (v1 - Simplified): Deeply nested object atom with `setKey`.
+- `task`: Async operation state management (Simplified internal usage).
+- **REMOVED:** Lifecycle Events (`onMount`, `onStart`, `onStop`, `onSet`, `onNotify`).
+- **REMOVED:** Key Subscriptions (`subscribeKeys`, `listenKeys`).
 
-## Benchmark Highlights (Post map/task v1)
-- `zen` leads or is highly competitive in most core `atom`/`computed` operations (Set, Sub/Unsub, Creation, Update Propagation).
-- `zen` `map` operations (Creation, Get, SetKey) are significantly faster than Nanostores `map`.
-- Performance profile remains very strong.
+## Benchmark Highlights (Pre-Optimization - Needs Re-run)
+- `zen` led or was competitive in most core `atom`/`computed` operations.
+- `zen` `map` operations were faster than Nanostores.
+- **Expectation:** Performance *might* have improved slightly due to simpler code paths, but needs verification.
 
 ## Current Status
-- Core features + `map` (v1) + `deepMap` (v1) + `task` + Lifecycle Events (v1) implemented and tested.
-- All tests pass.
-- **Performance:** Code reverted to stable state (post-event-v1 implementation). Benchmarks match previous stable run. Event system overhead caused performance decrease; optimization needed. `deepMap` remains faster than Nanostores'.
-- **Size:** Code reverted to stable state (post-event-v1 implementation).
-    - `zen (atom only)`: **999 B** (brotlied)
-    - `zen (full)`: **1.28 kB** (brotlied)
-- Size reduction is the **absolute highest priority**, focusing on core `atom`, `computed`, and `events`.
+- Radical Optimization v1 complete: Event system and Key Subscription system removed.
+- Core (`atom`, `computed`, `core`) and helpers (`map`, `deepMap`, `task`) simplified.
+- Related helper files (`events.ts`, `keys.ts`) emptied.
+- All tests pass (`npm run test`).
+- **Performance:** Needs re-evaluation post-optimization (`npm run bench`).
+- **Size:** Significantly reduced but core `atom` (602 B) still exceeds target (265 B).
+- **Next:** Focus on micro-optimizations for `atom`/`core` to further reduce size.
 
 ## Known Issues/Next Steps (Refined)
-1.  ~~**Run Build & Size Checks (Post-Events)**: Execute `npm run build && npm run size`.~~ (Done - atom: 999 B, full: 1.28 kB)
-2.  ~~**Analyze Size Increase (Post-Events)**~~: Event system added ~330-340 B.
-3.  **Aggressive Size & Performance Optimization**: Focus on reducing core (`atom`, `computed`, `events`) size and recovering performance loss. Explore `tsup` minify options. Target < Nanostores `{ atom }` size for the core. (Optimization attempts with inlining/flags reverted).
-4.  **Performance Benchmarking (Post-Events)**: ~~Run `npm run bench`.~~ (Done). Impact observed.
-5.  **TODOs in Code**: Implement `onMount`/`onStop` debounce. Handle `oldValue`/`payload` in `_notifyBatch`.
-6.  **Feature Enhancements (Post-Optimization)**: Revisit `map`/`deepMap` v2 (`subscribeKey`), documentation, etc., only after achieving size goals.
+1.  ~~**Run Build & Size Checks (Post-Events)**~~
+2.  ~~**Analyze Size Increase (Post-Events)**~~
+3.  ~~**Aggressive Size & Performance Optimization (v1 - Radical Removal)**~~ (Done)
+4.  ~~**Performance Benchmarking (Post-Events)**~~ (Results noted, but now outdated).
+5.  ~~**TODOs in Code**: Implement `onMount`/`onStop` debounce. Handle `oldValue`/`payload` in `_notifyBatch`.~~ (Removed by optimization).
+6.  **Further Optimization (Micro-optimizations)**: Focus on `src/atom.ts` and `src/core.ts` for byte-level savings. Investigate Terser options.
+7.  **Performance Benchmarking (Post-Micro-Optimization)**: Run `npm run bench`.
+8.  **Feature Enhancements (Post-Size-Goal)**: Revisit advanced features only after achieving size targets.

@@ -1,4 +1,9 @@
-import { Path } from './core';
+// REMOVED: import { Path } from './core';
+
+// Define Path type locally and export it
+type PathString = string;
+type PathArray = (string | number)[];
+export type Path = PathString | PathArray;
 
 // Export getDeep helper function
 export const getDeep = (obj: any, path: Path, defaultValue: any = undefined): any => {

@@ -1,16 +1,18 @@
-import { Atom, Listener, Unsubscribe, Path, Keys, KeyListener } from './core'
-import { atom } from './atom'
-// Import key subscription functions AND normalizePath
-import { subscribeKeys as subscribeKeysFn, listenKeys as listenKeysFn, normalizePath } from './keys';
+// Minimal DeepMap Helper (Post-Optimization)
 
-// Import helpers from the internal file - Ensure this path is correct and file exports correctly
-import { getDeep, setDeep } from './deepMapInternal';
+import { Atom, Listener, Unsubscribe } from './core'; // Removed Path, Keys, KeyListener
+import { atom } from './atom';
+// REMOVED: import { subscribeKeys as subscribeKeysFn, listenKeys as listenKeysFn, normalizePath } from './keys';
 
+// Import helpers and Path type from the internal file
+import { getDeep, setDeep, Path } from './deepMapInternal'; // Add Path import here
+
+// Minimal DeepMap Interface
 export interface DeepMap<T extends object> extends Atom<T> {
-  setKey: (key: Path, value: any) => void;
-  // Key Subscriptions
-  subscribeKeys(keys: Keys, listener: Listener<T>): Unsubscribe;
-  listenKeys(keys: Keys, listener: Listener<T>): Unsubscribe;
+  setKey: (key: Path, value: any, forceNotify?: boolean) => void; // Added optional forceNotify
+  // REMOVED: Key Subscriptions
+  // subscribeKeys(keys: Keys, listener: Listener<T>): Unsubscribe;
+  // listenKeys(keys: Keys, listener: Listener<T>): Unsubscribe;
 }
 
 /**
@@ -24,24 +26,21 @@ export function deepMap<T extends object>(initialValue: T): DeepMap<T> {
   const store = atom(initialValue);
   const deepMapStore = store as DeepMap<T>;
 
-  deepMapStore.setKey = (key: Path, value: any): void => {
+  deepMapStore.setKey = (key: Path, value: any, forceNotify: boolean = false): void => {
     const current = store.get();
     const newValue = setDeep(current, key, value);
-    if (newValue !== current) {
-       const pathString = normalizePath(key);
-       // Pass the changed path in the third argument (payload)
-       store.set(newValue, false, { changedPath: pathString });
-       // Note: Fine-grained notification logic will be in atom.ts _notify
+    // Use simplified set if value changed
+    if (forceNotify || newValue !== current) {
+       // REMOVED: normalizePath call
+       // Use the simplified set method - no payload/changedPath
+       store.set(newValue, forceNotify);
     }
   };
 
-  deepMapStore.subscribeKeys = function (keys: Keys, listener: Listener<T>): Unsubscribe {
-      return subscribeKeysFn(this, keys, listener);
-  };
-
-  deepMapStore.listenKeys = function (keys: Keys, listener: Listener<T>): Unsubscribe {
-      return listenKeysFn(this, keys, listener);
-  };
+  // REMOVED: Key subscription methods
+  // deepMapStore.subscribeKeys = ...
+  // deepMapStore.listenKeys = ...
+  // REMOVED extra closing brace here
 
   return deepMapStore;
 }

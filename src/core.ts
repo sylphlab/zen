@@ -1,103 +1,58 @@
 // 极致优化的轻量级状态管理库 (怪兽性能版) - 核心类型定义
 
 // 基本类型定义
-export type Listener<T> = (value: T, oldValue?: T) => void; // Add oldValue
-export type Unsubscribe = () => void; // Define Unsubscribe type
+export type Listener<T> = (value: T, oldValue?: T) => void;
+export type Unsubscribe = () => void;
 
-// Event Payloads and Callbacks
-export interface EventPayload {
-    shared: Record<string | symbol, any>;
-}
-export interface SetPayload<T> extends EventPayload {
-    newValue: T;
-    abort: () => void;
-    changedPath?: PathString; // Optional path that changed in setKey
-}
-export interface NotifyPayload<T> extends EventPayload {
-    newValue: T;
-    abort: () => void;
-    changedPath?: PathString; // Optional path that changed
-}
+// REMOVED: Event Payloads and Callbacks
+// REMOVED: Key subscription types
 
-export type EventCallback = (payload: EventPayload) => void | (() => void); // Mount/Start/Stop can return cleanup
-export type SetEventCallback<T> = (payload: SetPayload<T>) => void;
-export type NotifyEventCallback<T> = (payload: NotifyPayload<T>) => void;
-
-// Key subscription types
-export type PathString = string; // For deep paths like 'a.b.0.c'
-export type PathArray = (string | number)[]; // For deep paths like ['a', 'b', 0, 'c']
-export type Path = PathString | PathArray; // Union type for paths
-export type Keys = PathString[]; // Array of path strings to listen to
-
-// Listener for a specific key/path
-export type KeyListener<V = any> = Listener<V>; // Simple alias for now
-
-// 核心接口定义
+// Minimal Atom Interface
 export interface Atom<T = any> {
-  // Internal Event Listener Sets (using any for simplicity, refine later if needed)
-  _onMount?: Set<EventCallback>;
-  _onStart?: Set<EventCallback>;
-  _onStop?: Set<EventCallback>;
-  _onSet?: Set<SetEventCallback<any>>;
-  _onNotify?: Set<NotifyEventCallback<any>>;
-  // Mount state
-  _mountCleanups?: Set<Unsubscribe>;
-  _active?: boolean;
-  // Key listeners map (path string -> Set<Listener>) - Added
-  _keyListeners?: Map<PathString, Set<KeyListener<any>>>;
+  // REMOVED: Internal Event Listeners, Mount State, Key Listeners
 
   get(): T;
-  set(newValue: T, forceNotify?: boolean, payload?: Partial<SetPayload<T>>): void; // Add optional payload
-  subscribe(listener: Listener<T>): Unsubscribe; // Use Unsubscribe type
+  set(newValue: T, forceNotify?: boolean): void; // Simplified set signature
+  subscribe(listener: Listener<T>): Unsubscribe;
   readonly value: T;
-  readonly listeners: ReadonlySet<Listener<T>>;
-  _notify(value: T, oldValue?: T, payloadFromSet?: EventPayload): void; // Add payloadFromSet
+  // REMOVED: readonly listeners: ReadonlySet<Listener<T>>;
+  _notify(value: T, oldValue?: T): void; // Simplified notify signature
   _notifyBatch(): void;
   _value: T;
   _listeners: Set<Listener<T>> | undefined;
+  // Internal property used in simplified batching
+  _batchValue?: T;
 }
 
+// Minimal Readonly Atom Interface (e.g., for computed)
 export interface ReadonlyAtom<T = any> {
-  // Internal Event Listener Sets (copy from Atom)
-  _onMount?: Set<EventCallback>;
-  _onStart?: Set<EventCallback>;
-  _onStop?: Set<EventCallback>;
-  _onSet?: Set<SetEventCallback<any>>; // Although readonly, computed might trigger internal set
-  _onNotify?: Set<NotifyEventCallback<any>>;
-  // Mount state (copy from Atom)
-  _mountCleanups?: Set<Unsubscribe>;
-  _active?: boolean;
-  // Key listeners map (path string -> Set<Listener>) - Added
-  _keyListeners?: Map<PathString, Set<KeyListener<any>>>;
+  // REMOVED: Internal Event Listeners, Mount State, Key Listeners
 
   get(): T;
-  subscribe(listener: Listener<T>): Unsubscribe; // Use Unsubscribe type
+  subscribe(listener: Listener<T>): Unsubscribe;
   readonly value: T;
-  readonly listeners: ReadonlySet<Listener<T>>;
-  _notify(value: T, oldValue?: T, payloadFromSet?: EventPayload): void; // Add payloadFromSet
+  // REMOVED: readonly listeners: ReadonlySet<Listener<T>>;
+  _notify(value: T, oldValue?: T): void; // Simplified notify signature
   _notifyBatch(): void;
   _value: T;
   _listeners?: Set<Listener<T>>;
-  // Computed specific properties (make internal explicit)
-  _dirty?: boolean;
-  _sources?: ReadonlyArray<Atom<any> | ReadonlyAtom<any>>;
-  _sourceValues?: any[];
-  _calculation?: Function;
-  _equalityFn?: (a: T, b: T) => boolean;
-  _unsubscribers?: (() => void)[] | null;
-  _onChangeHandler?: () => void;
-  _onChange?(): void;
-  _update?(triggeredBySourceChange?: boolean): void; // Add optional parameter
-  _subscribeToSources?(): void;
-  _unsubscribeFromSources?(): void;
+  // Internal property used in simplified batching
+  _batchValue?: T;
+  // Keep computed specific properties
+  _dirty?: boolean; // Indicates if the computed value needs recalculation
+  _sources?: ReadonlyArray<Atom<any> | ReadonlyAtom<any>>; // Source atoms
+  _sourceValues?: any[]; // Last known values of sources
+  _calculation?: Function; // The function to compute the value
+  _equalityFn?: (a: T, b: T) => boolean; // Optional equality check
+  _unsubscribers?: (() => void)[]; // Array of unsubscribe functions for sources
+  _onChangeHandler?: () => void; // Bound handler for source changes
+  _onChange?(): void; // Internal method called on source change
+  _update?(): void; // Internal method to update value if dirty
+  _subscribeToSources?(): void; // Internal method to subscribe to sources
+  _unsubscribeFromSources?(): void; // Internal method to unsubscribe
 }
 
-// 共享的空集合常量 - 使用类型断言确保正确的类型
-export const EMPTY_SET = (() => {
-  const set = new Set<Listener<any>>();
-  if (Object.freeze) Object.freeze(set);
-  return set as unknown as ReadonlySet<Listener<any>>;
-})();
+// REMOVED: EMPTY_SET Constant
 
 // 批处理系统
 export let batchDepth = 0;

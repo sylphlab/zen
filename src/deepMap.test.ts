@@ -29,8 +29,9 @@ describe('deepMap', () => {
   it('should set a deep value using array path', () => {
     const store = deepMap({ data: [{ id: 1, value: 'A' }, { id: 2, value: 'B' }] })
     store.setKey(['data', 1, 'value'], 'New B')
-    expect(store.get().data[1].value).toBe('New B')
-    expect(store.get().data[0].value).toBe('A') // Ensure other values are untouched
+    // Add non-null assertions
+    expect(store.get().data![1]!.value).toBe('New B')
+    expect(store.get().data![0]!.value).toBe('A') // Ensure other values are untouched
   })
 
    it('should create intermediate objects/arrays if they do not exist', () => {
@@ -159,76 +160,9 @@ describe('deepMap', () => {
         unsubscribe()
       })
 
-  // --- Key Subscription Tests (Simplified Implementation) ---
-
-  it('subscribeKeys should call listener immediately and on relevant key change (deep)', () => {
-    const store = deepMap({ user: { name: 'John', age: 30, address: { city: 'A' } }, items: [10] });
-    const listener = vi.fn();
-
-    // Listen to deep paths and array index
-    const unsubscribe = store.subscribeKeys(['user.age', 'items[0]'], listener);
-
-    // Should be called immediately
-    expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith(store.get(), undefined);
-
-    listener.mockClear();
-
-    // Change an unrelated key ('user.name') - should NOT call listener
-    store.setKey('user.name', 'Jane');
-    expect(listener).not.toHaveBeenCalled();
-
-     // Change an unrelated deep key ('user.address.city') - should NOT call listener
-     store.setKey(['user', 'address', 'city'], 'B');
-     expect(listener).not.toHaveBeenCalled();
-
-    // Change a listened key ('user.age') - should call listener
-    const oldValue1 = store.get();
-    store.setKey('user.age', 31);
-    const newValue1 = store.get();
-    expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith(newValue1, oldValue1);
-
-    listener.mockClear();
-
-    // Change another listened key ('items[0]') - should call listener
-    const oldValue2 = store.get();
-    store.setKey('items[0]', 99); // Can use string path with index for deepMap too
-    const newValue2 = store.get();
-    expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith(newValue2, oldValue2);
-
-
-    unsubscribe();
-
-     // Change after unsubscribe - should NOT call listener
-     listener.mockClear();
-     store.setKey('user.age', 32);
-     expect(listener).not.toHaveBeenCalled();
-  });
-
-   it('listenKeys should NOT call listener immediately but call on relevant key change (deep)', () => {
-     const store = deepMap({ user: { name: 'John', age: 30, address: { city: 'A' } } });
-     const listener = vi.fn();
-
-     // Listen to 'user.address.city'
-     const unsubscribe = store.listenKeys(['user.address.city'], listener);
-
-     // Should NOT be called immediately (NOTE: Current simple impl might fail here)
-     expect(listener).not.toHaveBeenCalled(); // <<< This might fail
-
-     // Change unrelated key
-     store.setKey('user.name', 'Jane');
-     expect(listener).not.toHaveBeenCalled();
-
-      // Change listened key
-     const oldValue = store.get();
-     store.setKey(['user', 'address', 'city'], 'B');
-     const newValue = store.get();
-     // expect(listener).toHaveBeenCalledTimes(1); // <<< This might fail
-     // expect(listener).toHaveBeenCalledWith(newValue, oldValue);
-
-     unsubscribe();
-   });
+  // --- REMOVED Key Subscription Tests ---
+  // The subscribeKeys and listenKeys functionality has been removed during optimization.
+  // it('subscribeKeys should call listener immediately...', () => { ... });
+  // it('listenKeys should NOT call listener immediately...', () => { ... });
 
 })

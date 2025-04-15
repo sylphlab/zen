@@ -1,16 +1,15 @@
-// 极致优化的轻量级状态管理库 (怪兽性能版) - Map Atom 实现 (v1 - No subscribeKey)
+// Minimal Map Helper (Post-Optimization)
 
-import { Atom, Listener, Unsubscribe, Keys, KeyListener } from './core'; // Add Keys, KeyListener
+import { Atom, Listener, Unsubscribe } from './core'; // Removed Keys, KeyListener
 import { atom } from './atom';
-// Import simplified key subscription functions (they aren't truly fine-grained yet)
-import { subscribeKeys as subscribeKeysFn, listenKeys as listenKeysFn } from './keys';
+// REMOVED: import { subscribeKeys as subscribeKeysFn, listenKeys as listenKeysFn } from './keys';
 
-// Map Atom 类型定义 (扩展基础 Atom)
+// Minimal Map Atom Interface
 export interface MapAtom<T extends object> extends Atom<T> {
-  setKey<K extends keyof T>(key: K, value: T[K]): void;
-  // Key Subscriptions
-  subscribeKeys(keys: Keys, listener: Listener<T>): Unsubscribe;
-  listenKeys(keys: Keys, listener: Listener<T>): Unsubscribe;
+  setKey<K extends keyof T>(key: K, value: T[K], forceNotify?: boolean): void; // Added optional forceNotify
+  // REMOVED: Key Subscriptions
+  // subscribeKeys(keys: Keys, listener: Listener<T>): Unsubscribe;
+  // listenKeys(keys: Keys, listener: Listener<T>): Unsubscribe;
 }
 
 /**
@@ -25,27 +24,20 @@ export function map<T extends object>(initialValue: T): MapAtom<T> {
   const baseAtom = atom<T>({ ...initialValue });
   const enhancedAtom = baseAtom as MapAtom<T>;
 
-  enhancedAtom.setKey = function <K extends keyof T>(key: K, value: T[K]): void {
+  enhancedAtom.setKey = function <K extends keyof T>(key: K, value: T[K], forceNotify: boolean = false): void {
       const current = this._value;
-      // Note: For map, the key is always a top-level key (string/symbol)
-      const pathString = String(key); // Simple conversion for map
-      if (!Object.is(current[key], value)) {
+      // Simple check for top-level key change
+      if (forceNotify || !Object.is(current[key], value)) {
           const newValue = { ...current, [key]: value };
-          // Pass changedPath in the third argument (payload)
-          this.set(newValue, false, { changedPath: pathString });
+          // Use the simplified set method - no payload/changedPath
+          this.set(newValue, forceNotify);
       }
   };
 
-  // Add key subscription methods (using simplified functions for now)
-  enhancedAtom.subscribeKeys = function (keys: Keys, listener: Listener<T>): Unsubscribe {
-      // Delegate to the function from keys.ts, passing the store instance
-      return subscribeKeysFn(this, keys, listener);
-  };
-
-  enhancedAtom.listenKeys = function (keys: Keys, listener: Listener<T>): Unsubscribe {
-      // Delegate to the function from keys.ts, passing the store instance
-      return listenKeysFn(this, keys, listener);
-  };
+  // REMOVED: Key subscription methods
+  // enhancedAtom.subscribeKeys = ...
+  // enhancedAtom.listenKeys = ...
+  // REMOVED extra closing brace here
 
   return enhancedAtom;
 }

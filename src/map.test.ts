@@ -101,74 +101,9 @@ describe('map', () => {
         unsubscribe();
     });
 
-  // --- Key Subscription Tests (Simplified Implementation) ---
-
-  it('subscribeKeys should call listener immediately and on relevant key change', () => {
-    const profile = map({ name: 'John', age: 30, location: 'City A' });
-    const listener = vi.fn();
-
-    // Listen to 'name' and 'age'
-    const unsubscribe = profile.subscribeKeys(['name', 'age'], listener);
-
-    // Should be called immediately
-    expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith({ name: 'John', age: 30, location: 'City A' }, undefined);
-
-    listener.mockClear();
-
-    // Change an unrelated key ('location') - should NOT call listener
-    profile.setKey('location', 'City B');
-    expect(listener).not.toHaveBeenCalled();
-
-    // Change a listened key ('age') - should call listener
-    profile.setKey('age', 31);
-    expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith(
-        { name: 'John', age: 31, location: 'City B' }, // New value
-        { name: 'John', age: 30, location: 'City B' }  // Old value
-    );
-
-     listener.mockClear();
-
-     // Change another listened key ('name') - should call listener
-     profile.setKey('name', 'Jane');
-     expect(listener).toHaveBeenCalledTimes(1);
-     expect(listener).toHaveBeenCalledWith(
-         { name: 'Jane', age: 31, location: 'City B' }, // New value
-         { name: 'John', age: 31, location: 'City B' }  // Old value
-     );
-
-    unsubscribe();
-
-     // Change after unsubscribe - should NOT call listener
-     listener.mockClear();
-     profile.setKey('age', 32);
-     expect(listener).not.toHaveBeenCalled();
-  });
-
-  it('listenKeys should NOT call listener immediately but call on relevant key change', () => {
-     const profile = map({ name: 'John', age: 30, location: 'City A' });
-     const listener = vi.fn();
-
-     // Listen to 'age'
-     const unsubscribe = profile.listenKeys(['age'], listener);
-
-     // Should NOT be called immediately (NOTE: Current simple impl might fail here)
-     expect(listener).not.toHaveBeenCalled(); // <<< This might fail with current simple listenKeys
-
-     // Change unrelated key
-     profile.setKey('name', 'Jane');
-     expect(listener).not.toHaveBeenCalled();
-
-      // Change listened key
-     const oldValue = { name: 'Jane', age: 30, location: 'City A' };
-     profile.setKey('age', 31);
-     const newValue = { name: 'Jane', age: 31, location: 'City A' };
-     // expect(listener).toHaveBeenCalledTimes(1); // <<< This might fail with current simple listenKeys
-     // expect(listener).toHaveBeenCalledWith(newValue, oldValue);
-
-     unsubscribe();
-   });
-
+  // --- REMOVED Key Subscription Tests ---
+  // The subscribeKeys and listenKeys functionality has been removed during optimization.
+  // it('subscribeKeys should call listener immediately...', () => { ... });
+  // it('listenKeys should NOT call listener immediately...', () => { ... });
 
 });
