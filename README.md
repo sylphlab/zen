@@ -182,6 +182,70 @@ unsub();
 unsubName();
 ```
 
+### Mutable Helpers (Use with Caution!)
+
+These helpers provide atoms for arrays, maps, and objects where mutations are performed directly on the internal value for potentially higher performance in specific scenarios. **Warning:** Direct mutation breaks the usual immutability guarantees and can lead to unexpected behavior if not handled carefully.
+
+#### `mutableArrayAtom(initialItems)`
+
+```typescript
+import { mutableArrayAtom } from 'zen';
+
+const list = mutableArrayAtom([1, 2, 3]);
+
+list.subscribe(items => console.log('List:', items));
+// Output: List: [ 1, 2, 3 ]
+
+list.push(4);
+// Output: List: [ 1, 2, 3, 4 ]
+
+list.update(1, value => value * 10); // Update item at index 1
+// Output: List: [ 1, 20, 3, 4 ]
+
+list.filter(n => n > 10); // Filter in place (replaces internal array)
+// Output: List: [ 20 ]
+```
+
+#### `mutableMapAtom(initialMap)`
+
+```typescript
+import { mutableMapAtom } from 'zen';
+
+const userMap = mutableMapAtom(new Map([['id', 1], ['status', 'active']]));
+
+userMap.subscribe(map => console.log('Map:', map));
+// Output: Map: Map(2) { 'id' => 1, 'status' => 'active' }
+
+userMap.set('status', 'inactive');
+// Output: Map: Map(2) { 'id' => 1, 'status' => 'inactive' }
+
+userMap.delete('id');
+// Output: Map: Map(1) { 'status' => 'inactive' }
+```
+
+#### `mutableObjectAtom(initialObject)`
+
+```typescript
+import { mutableObjectAtom } from 'zen';
+
+const config = mutableObjectAtom({ theme: 'dark', fontSize: 14 });
+
+config.subscribe(obj => console.log('Config:', obj));
+// Output: Config: { theme: 'dark', fontSize: 14 }
+
+config.setKey('fontSize', 16);
+// Output: Config: { theme: 'dark', fontSize: 16 }
+
+config.update(current => {
+  current.notifications = true; // Mutate directly
+});
+// Output: Config: { theme: 'dark', fontSize: 16, notifications: true }
+
+config.deleteKey('theme');
+// Output: Config: { fontSize: 16, notifications: true }
+```
+
+
 ## Benchmarks
 
 Run `npm run bench` to see performance comparisons (requires dev dependencies).
