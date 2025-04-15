@@ -84,13 +84,13 @@
 
 **Performance Analysis (Post Revert):** Reverting to prototype-based implementation successfully restored performance to previous high levels, confirming this is the optimal approach given the priority on speed.
 
-## Size (`size-limit`, brotlied - 2025-04-15 Post-Revert)
+## Size (`size-limit`, brotlied - 2025-04-15 Post-Feature-Restore)
 - `jotai` (atom): 170 B
 - `nanostores` (atom): **265 B** (Original Target - Not Met)
 - `zustand` (core): 461 B
-- **`zen (atom only)`**: **588 B**
+- **`zen (atom only)`**: **786 B**
 - `valtio`: 903 B
-- **`zen (full)`**: **881 B**
+- **`zen (full)`**: **1.45 kB**
 - `effector`: 5.27 kB
 - `@reduxjs/toolkit`: 6.99 kB
 - **Size Analysis**: Size reverted to ~588 B for the core atom, sacrificing the sub-300 B goal for the sake of performance.
@@ -115,10 +115,10 @@
 - Lifecycle Events and Key/Path Subscriptions have been restored based on user feedback.
 - Associated tests have been restored and updated.
 - All tests pass (`npm run test`).
-- Size confirmed (`npm run size`): `atom only` 588 B, `full` 881 B (Note: Size expected to increase after feature restoration; new check needed).
-- Benchmarks run (`npm run bench`) confirming performance recovery *before* feature restoration.
-- Checks (`tsc`, `test`) passed after restoring features.
-- **Next:** Commit restored features, update Memory Bank, re-run build/size check.
+- Size confirmed (`npm run size`): `atom only` 786 B, `full` 1.45 kB after restoring features.
+- Benchmarks run (`npm run bench`) confirming performance recovery *before* feature restoration. (Need re-run).
+- Checks (`tsc`, `test`, `build`) passed after restoring features.
+- **Next:** Commit Memory Bank, review mutable helpers, update docs.
 
 ## Known Issues/Next Steps (Refined)
 1.  ~~Run Build & Size Checks (Post-Events)~~
@@ -141,8 +141,11 @@
 18. ~~Commit Changes~~: Commit revert to prototype implementation.
 19. ~~Review `mutable*` Helpers~~ (Done - Confirmed compatibility before feature restore).
 20. ~~Documentation & Examples~~ (Done - Needs update for restored features).
-21. **Commit restored features & Memory Bank updates.**
-22. **Run Build & Size checks:** Verify build and get new size after feature restoration.
-23. **Review `mutable*` Helpers**: Confirm compatibility *with restored* features.
+21. ~~Commit restored features & Memory Bank updates.~~ (Done)
+22. ~~Run Build & Size checks:~~ Verify build and get new size after feature restoration. (Done - 1.45 kB)
+23. **Commit Memory Bank update.**
+24. **Review `mutable*` Helpers**: Confirm compatibility *with restored* features.
+25. **Documentation & Examples**: Update README with restored API (`listen`, `listenKeys`, `listenPaths`) and examples.
+26. **Consider Feature Enhancements**: Re-evaluate next steps.
 24. **Documentation & Examples**: Update README with restored API (`listen`, `listenKeys`, `listenPaths`) and examples.
 25. **Consider Feature Enhancements**: Re-evaluate next steps.
