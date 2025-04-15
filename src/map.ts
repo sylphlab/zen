@@ -27,10 +27,12 @@ export function map<T extends object>(initialValue: T): MapAtom<T> {
 
   enhancedAtom.setKey = function <K extends keyof T>(key: K, value: T[K]): void {
       const current = this._value;
+      // Note: For map, the key is always a top-level key (string/symbol)
+      const pathString = String(key); // Simple conversion for map
       if (!Object.is(current[key], value)) {
           const newValue = { ...current, [key]: value };
-          // Use base atom's set method
-          this.set(newValue); // 'this' correctly refers to the atom instance
+          // Pass changedPath in the third argument (payload)
+          this.set(newValue, false, { changedPath: pathString });
       }
   };
 

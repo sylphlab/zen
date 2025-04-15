@@ -11,10 +11,12 @@ export interface EventPayload {
 export interface SetPayload<T> extends EventPayload {
     newValue: T;
     abort: () => void;
+    changedPath?: PathString; // Optional path that changed in setKey
 }
 export interface NotifyPayload<T> extends EventPayload {
-    newValue: T; // Or should it just be the current value? Let's stick with current value for notify
+    newValue: T;
     abort: () => void;
+    changedPath?: PathString; // Optional path that changed
 }
 
 export type EventCallback = (payload: EventPayload) => void | (() => void); // Mount/Start/Stop can return cleanup
@@ -45,7 +47,7 @@ export interface Atom<T = any> {
   _keyListeners?: Map<PathString, Set<KeyListener<any>>>;
 
   get(): T;
-  set(newValue: T, forceNotify?: boolean): void;
+  set(newValue: T, forceNotify?: boolean, payload?: Partial<SetPayload<T>>): void; // Add optional payload
   subscribe(listener: Listener<T>): Unsubscribe; // Use Unsubscribe type
   readonly value: T;
   readonly listeners: ReadonlySet<Listener<T>>;
