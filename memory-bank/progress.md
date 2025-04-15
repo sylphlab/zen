@@ -1,11 +1,11 @@
-# Latest Benchmark & Size Results (Post Revert to Prototype - 2025-04-15)
+# Latest Benchmark & Size Results (Post Feature Restoration - 2025-04-15)
 
-## Performance (`npm run bench` Results - 2025-04-15 - Post Revert)
+## Performance (`npm run bench` Results - 2025-04-15 - Post Feature Restoration)
 
 **(Note:** Ops/sec (hz) can vary between runs. Focus on relative performance.)
 
 **Atom Creation:**
-- `zen`: **~15.2M ops/s** (Performance Recovered!)
+- `zen`: **~11.5M ops/s** (Slight decrease post-events)
 - `zustand (vanilla)`: ~13.2M ops/s
 - `jotai`: ~8.7M ops/s
 - `nanostores`: ~2.8M ops/s
@@ -14,14 +14,14 @@
 
 **Atom Get:**
 - `zustand (vanilla)`: **~17.9M ops/s** (Fastest)
-- `zen`: ~17.9M ops/s (Performance Recovered!)
+- `zen`: ~15.6M ops/s (Slight decrease post-events)
 - `effector`: ~17.8M ops/s
 - `jotai (via hook)`: ~14.3M ops/s
 - `valtio (vanilla)`: ~13.7M ops/s
 - `nanostores`: ~6.2M ops/s (Slowest)
 
 **Atom Set (No Listeners):**
-- `zen`: **~14.5M ops/s** (Performance Recovered!)
+- `zen`: ~8.7M ops/s (Decrease post-events, slower than nanostores)
 - `nanostores`: ~8.8M ops/s
 - `zustand (vanilla)`: ~5.4M ops/s
 - `valtio (vanilla)`: ~2.7M ops/s
@@ -29,7 +29,7 @@
 - `jotai (via hook)`: ~0.7M ops/s (Slowest)
 
 **Atom Subscribe/Unsubscribe:**
-- `zen`: **~5.2M ops/s** (Performance Recovered!)
+- `zen`: **~4.3M ops/s** (Decrease post-events, still fastest)
 - `zustand (vanilla)`: ~3.4M ops/s
 - `nanostores`: ~2.3M ops/s
 - `valtio (vanilla)`: ~0.3M ops/s
@@ -37,7 +37,7 @@
 - `effector`: ~12k ops/s (Slowest)
 
 **Computed Creation (1 dependency):**
-- `zen`: **~15.7M ops/s** (Performance Recovered!)
+- `zen`: ~11.9M ops/s (Decrease post-events, slower than jotai)
 - `jotai`: ~12.6M ops/s
 - `nanostores`: ~0.6M ops/s
 - `effector (derived store)`: ~7.8k ops/s (Slowest)
@@ -45,13 +45,13 @@
 **Computed Get (1 dependency):**
 - `jotai (via hook)`: **~18.6M ops/s** (Fastest)
 - `zustand (selector)`: ~18.0M ops/s
-- `zen`: ~17.2M ops/s (Performance Recovered!)
+- `zen`: ~15.0M ops/s (Decrease post-events)
 - `effector (derived store)`: ~15.2M ops/s
 - `valtio (getter)`: ~13.3M ops/s
 - `nanostores`: ~1.8M ops/s (Slowest)
 
 **Computed Update Propagation (1 dependency):**
-- `zen`: **~8.7M ops/s** (Performance Recovered!)
+- `zen`: ~1.2M ops/s (**Significant decrease post-events**, slower than most)
 - `zustand (vanilla update + select)`: ~7.6M ops/s
 - `nanostores`: ~4.9M ops/s
 - `valtio (vanilla update + getter)`: ~2.0M ops/s
@@ -59,41 +59,41 @@
 - `jotai (via hook update)`: ~0.1M ops/s (Slowest)
 
 **Map Creation:**
-- `zen`: **~11.6M ops/s** (Performance Recovered!)
+- `zen`: **~11.0M ops/s** (Slight decrease post-events)
 - `nanostores`: ~2.8M ops/s
 
 **Map Get:**
-- `zen`: **~18.2M ops/s** (Performance Recovered!)
+- `zen`: **~17.1M ops/s** (Slight decrease post-events)
 - `nanostores`: ~7.2M ops/s
 
 **Map Set Key (No Listeners):**
-- `zen`: **~11.5M ops/s** (Performance Recovered!)
+- `zen`: ~4.6M ops/s (**Significant decrease post-events**, slower than nanostores)
 - `nanostores`: ~8.8M ops/s
 
 **Map Set Full Object (No Listeners):**
-- `zen`: **~12.0M ops/s** (Performance Recovered!)
+- `zen`: ~4.1M ops/s (**Significant decrease post-events**)
 - *(Nanostores has no direct equivalent)*
 
 **Task Creation:**
-- `zen`: **~1.6M ops/s** (Performance Recovered!)
+- `zen`: **~1.6M ops/s** (No change)
 
 **Task Run (Resolve/Reject):**
-- `zen (resolve)`: ~150 ops/s (Performance Recovered!)
-- `zen (reject)`: ~215 ops/s (Performance Recovered!)
-- *(Low ops/sec due to async nature, confirms functionality)*
+- `zen (resolve)`: ~66 ops/s (**Significant decrease post-events**)
+- `zen (reject)`: ~68 ops/s (**Significant decrease post-events**)
+- *(Low ops/sec due to async nature, confirms functionality. Decrease needs investigation)*
 
 **Performance Analysis (Post Revert):** Reverting to prototype-based implementation successfully restored performance to previous high levels, confirming this is the optimal approach given the priority on speed.
 
-## Size (`size-limit`, brotlied - 2025-04-15 Post-Mutable-Removal)
+## Size (`size-limit`, brotlied - 2025-04-15 Post-Feature-Restoration)
 - `jotai` (atom): 170 B
 - `nanostores` (atom): **265 B** (Original Target - Not Met)
 - `zustand` (core): 461 B
-- **`zen (atom only)`**: **783 B**
+- **`zen (atom only)`**: **786 B** (Slight increase)
 - `valtio`: 903 B
 - **`zen (full)`**: **1.45 kB**
 - `effector`: 5.27 kB
 - `@reduxjs/toolkit`: 6.99 kB
-- **Size Analysis**: Size reverted to ~588 B for the core atom, sacrificing the sub-300 B goal for the sake of performance.
+- **Size Analysis**: Full size increased to 1.45 kB after restoring features. Core atom size slightly increased. Acceptable trade-off for features.
 
 ## Features Implemented
 - `atom`: Core state container (Minimal - Prototype).
@@ -106,7 +106,7 @@
 - **REMOVED:** `mutableArrayAtom`, `mutableMapAtom`, `mutableObjectAtom`.
 
 ## Benchmark Highlights (Post Revert - 2025-04-15)
-- Performance restored to previous high levels after reverting optimizations. (Note: New benchmarks still needed after feature restoration).
+- Performance generally decreased after restoring features, significantly in some areas (Computed Update, Map/DeepMap Set, Task Run).
 - Zen remains highly competitive or leads in many categories (Atom Creation/Set/Sub, Computed Creation/Update, Map/DeepMap ops).
 
 ## Current Status
@@ -114,10 +114,10 @@
 - Lifecycle Events and Key/Path Subscriptions have been restored based on user feedback.
 - Associated tests have been restored and updated.
 - All checks (`tsc`, `test`, `build`, `size`) passed after removing mutable helpers.
-- Final Size (`npm run size`): `atom only` 783 B, `full` 1.45 kB.
-- Benchmarks run (`npm run bench`) confirming performance recovery *before* feature restoration. (Need re-run).
+- Final Size (`npm run size`): `atom only` 786 B, `full` 1.45 kB.
+- Benchmarks run (`npm run bench`) confirming performance impact *after* feature restoration.
 - **Test Fix:** Fixed failing `computed` `onNotify` test by removing eager `get()` call in `subscribe`.
-- **Next:** Commit final Memory Bank update, review docs, consider enhancements.
+- **Next:** Investigate performance regressions (Computed Update, Map/DeepMap Set, Task Run) and attempt optimization.
 
 ## Known Issues/Next Steps (Refined)
 1.  ~~Run Build & Size Checks (Post-Events)~~
@@ -145,6 +145,8 @@
 23. ~~Remove Mutable Helpers:~~ Removed code, exports, and docs. (Done)
 24. ~~Commit Memory Bank update.~~ (Done)
 25. ~~Run Checks:~~ `tsc --noEmit && npm run test && npm run build && npm run size` passed. (Done)
-26. **Commit final Memory Bank update.** (Current step)
+26. ~~**Commit final Memory Bank update.**~~ (Done)
 27. ~~**Documentation & Examples**: Review README for accuracy after removals.~~ (Done - README is up-to-date)
-28. **Consider Feature Enhancements**: Re-evaluate next steps (e.g., re-run benchmarks).
+28. ~~**Consider Feature Enhancements**: Re-evaluate next steps (e.g., re-run benchmarks).~~ (Done - Benchmarks run)
+29. **Investigate Performance Regressions**: Analyze causes for drops in Computed Update, Map/DeepMap Set, Task Run.
+30. **Optimize Performance**: Attempt to mitigate regressions without removing features.
