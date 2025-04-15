@@ -34,39 +34,33 @@
     {
       "name": "nanostores",
       "path": "node_modules/nanostores/index.js",
-      "import": "{ atom }",
-      "limit": "1 kB"
+      "import": "{ atom }"
     },
     {
       "name": "jotai",
       "path": "node_modules/jotai/esm/index.mjs",
-      "import": "{ atom }",
-      "limit": "2 kB"
+      "import": "{ atom }"
     },
     {
       "name": "zustand",
       "path": "node_modules/zustand/esm/index.mjs",
       "import": "{ create }",
-      "limit": "2 kB",
-      "ignore": ["react"] 
+      "ignore": ["react"]
     },
     {
       "name": "valtio",
       "path": "node_modules/valtio/esm/index.mjs",
-      "import": "{ proxy }",
-      "limit": "5 kB" 
+      "import": "{ proxy }"
     },
     {
       "name": "redux-toolkit",
       "path": "node_modules/@reduxjs/toolkit/dist/redux-toolkit.modern.mjs",
-      "import": "{ configureStore, createSlice }",
-      "limit": "15 kB" 
+      "import": "{ configureStore, createSlice }"
     },
     {
       "name": "effector",
       "path": "node_modules/effector/effector.mjs",
-      "import": "{ createStore, createEvent }",
-      "limit": "8 kB" 
+      "import": "{ createStore, createEvent }"
     }
   ],
   "keywords": [
