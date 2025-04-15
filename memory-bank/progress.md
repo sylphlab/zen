@@ -84,11 +84,11 @@
 
 **Performance Analysis (Post Revert):** Reverting to prototype-based implementation successfully restored performance to previous high levels, confirming this is the optimal approach given the priority on speed.
 
-## Size (`size-limit`, brotlied - 2025-04-15 Post-Feature-Restore)
+## Size (`size-limit`, brotlied - 2025-04-15 Post-Mutable-Removal)
 - `jotai` (atom): 170 B
 - `nanostores` (atom): **265 B** (Original Target - Not Met)
 - `zustand` (core): 461 B
-- **`zen (atom only)`**: **786 B**
+- **`zen (atom only)`**: **783 B**
 - `valtio`: 903 B
 - **`zen (full)`**: **1.45 kB**
 - `effector`: 5.27 kB
@@ -106,18 +106,17 @@
 - **REMOVED:** `mutableArrayAtom`, `mutableMapAtom`, `mutableObjectAtom`.
 
 ## Benchmark Highlights (Post Revert - 2025-04-15)
-- Performance restored to previous high levels after reverting optimizations. (Note: New benchmarks needed after feature restoration).
+- Performance restored to previous high levels after reverting optimizations. (Note: New benchmarks still needed after feature restoration).
 - Zen remains highly competitive or leads in many categories (Atom Creation/Set/Sub, Computed Creation/Update, Map/DeepMap ops).
 
 ## Current Status
 - Core implementation (`atom`, `computed`) remains prototype-based for performance.
 - Lifecycle Events and Key/Path Subscriptions have been restored based on user feedback.
 - Associated tests have been restored and updated.
-- All tests pass (`npm run test`).
-- Size confirmed (`npm run size`): `atom only` 786 B, `full` 1.45 kB after restoring features.
+- All checks (`tsc`, `test`, `build`, `size`) passed after removing mutable helpers.
+- Final Size (`npm run size`): `atom only` 783 B, `full` 1.45 kB.
 - Benchmarks run (`npm run bench`) confirming performance recovery *before* feature restoration. (Need re-run).
-- Checks (`tsc`, `test`, `build`) passed after restoring features.
-- **Next:** Commit Memory Bank update, run checks.
+- **Next:** Commit final Memory Bank update, review docs, consider enhancements.
 
 ## Known Issues/Next Steps (Refined)
 1.  ~~Run Build & Size Checks (Post-Events)~~
@@ -142,10 +141,11 @@
 20. ~~Documentation & Examples~~ (Done - Needs update for restored features).
 21. ~~Commit restored features & Memory Bank updates.~~ (Done)
 22. ~~Run Build & Size checks:~~ Verified build and got new size after feature restoration (1.45 kB).
-23. ~~Remove Mutable Helpers:~~ Removed code, exports, and docs.
-24. **Commit Memory Bank update.** (Current step)
-25. **Run Checks:** `tsc --noEmit && npm run test && npm run build && npm run size`.
-26. **Documentation & Examples**: Review README for accuracy after removals.
-27. **Consider Feature Enhancements**: Re-evaluate next steps.
+23. ~~Remove Mutable Helpers:~~ Removed code, exports, and docs. (Done)
+24. ~~Commit Memory Bank update.~~ (Done)
+25. ~~Run Checks:~~ `tsc --noEmit && npm run test && npm run build && npm run size` passed. (Done)
+26. **Commit final Memory Bank update.** (Current step)
+27. **Documentation & Examples**: Review README for accuracy after removals.
+28. **Consider Feature Enhancements**: Re-evaluate next steps (e.g., re-run benchmarks).
 24. **Documentation & Examples**: Update README with restored API (`listen`, `listenKeys`, `listenPaths`) and examples.
 25. **Consider Feature Enhancements**: Re-evaluate next steps.

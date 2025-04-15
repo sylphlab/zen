@@ -53,14 +53,16 @@
     - Modified `src/core.ts`, `src/atom.ts`, `src/computed.ts`, `src/map.ts`, `src/deepMap.ts` to integrate features and handle batching correctly.
     - Restored/Updated tests in `src/events.test.ts`, `src/map.test.ts`, `src/deepMap.test.ts`. Fixed related issues.
     - Updated benchmarks in `src/deepMap.bench.ts` (`setKey` -> `setPath`).
-19. **Run Checks:** `tsc --noEmit && npm run test` passed after restoring features.
-20. **Git Commit:** Committed restored features and Memory Bank updates.
-21. **Remove Mutable Helpers:** Removed `mutable*` functions, deleted `src/mutable.ts`, removed from `src/index.ts` export, updated README.
-22. **Update Memory Bank:** Reflect removal of mutable helpers.
-23. **Git Commit:** Commit removal of mutable helpers and docs update.
-24. **Run Checks:** `tsc --noEmit && npm run test && npm run build && npm run size`.
-25. **Documentation & Examples**: Review README for accuracy after removals.
-26. **Feature Enhancements**: Re-evaluate next steps.
+19. ~~**Run Checks:**~~ `tsc --noEmit && npm run test` passed after restoring features.
+20. ~~**Git Commit:**~~ Committed restored features and Memory Bank updates.
+21. ~~**Remove Mutable Helpers:**~~ Removed `mutable*` functions, deleted `src/mutable.ts`, removed from `src/index.ts` export, updated README.
+22. ~~**Update Memory Bank:**~~ Reflected removal of mutable helpers.
+23. ~~**Git Commit:**~~ Committed removal of mutable helpers and docs update.
+24. **Run Checks:** `tsc --noEmit && npm run test && npm run build && npm run size` passed after fixes. Final size: 1.45 kB.
+25. **Update Memory Bank:** Reflect final status and size. (Current step)
+26. **Git Commit:** Commit final Memory Bank update.
+27. **Documentation & Examples**: Review README for accuracy after removals. (Done, minor review needed).
+28. **Feature Enhancements**: Re-evaluate next steps.
 
 ## Active Decisions
 - Using TypeScript for the library development.
