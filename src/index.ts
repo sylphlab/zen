@@ -9,4 +9,5 @@ export * from './map';
 export * from './deepMap';
 export * from './task';
 export * from './mutable';
-export * from './events'; // Export event functions
+export * from './events';
+export * from './keys'; // Export key subscription functions

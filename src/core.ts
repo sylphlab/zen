@@ -21,6 +21,14 @@ export type EventCallback = (payload: EventPayload) => void | (() => void); // M
 export type SetEventCallback<T> = (payload: SetPayload<T>) => void;
 export type NotifyEventCallback<T> = (payload: NotifyPayload<T>) => void;
 
+// Key subscription types
+export type PathString = string; // For deep paths like 'a.b.0.c'
+export type PathArray = (string | number)[]; // For deep paths like ['a', 'b', 0, 'c']
+export type Path = PathString | PathArray; // Union type for paths
+export type Keys = PathString[]; // Array of path strings to listen to
+
+// Listener for a specific key/path
+export type KeyListener<V = any> = Listener<V>; // Simple alias for now
 
 // 核心接口定义
 export interface Atom<T = any> {
@@ -32,7 +40,9 @@ export interface Atom<T = any> {
   _onNotify?: Set<NotifyEventCallback<any>>;
   // Mount state
   _mountCleanups?: Set<Unsubscribe>;
-  _active?: boolean; // Track if the store is active (has listeners)
+  _active?: boolean;
+  // Key listeners map (path string -> Set<Listener>) - Added
+  _keyListeners?: Map<PathString, Set<KeyListener<any>>>;
 
   get(): T;
   set(newValue: T, forceNotify?: boolean): void;
@@ -54,7 +64,9 @@ export interface ReadonlyAtom<T = any> {
   _onNotify?: Set<NotifyEventCallback<any>>;
   // Mount state (copy from Atom)
   _mountCleanups?: Set<Unsubscribe>;
-  _active?: boolean; // Track if the store is active (has listeners)
+  _active?: boolean;
+  // Key listeners map (path string -> Set<Listener>) - Added
+  _keyListeners?: Map<PathString, Set<KeyListener<any>>>;
 
   get(): T;
   subscribe(listener: Listener<T>): Unsubscribe; // Use Unsubscribe type
