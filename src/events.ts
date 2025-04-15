@@ -86,7 +86,7 @@ export type PathListener<T> = (
 ) => void;
 
 /** Internal storage for path listeners */
-const pathListenersRegistry = new WeakMap<Atom<any>, Map<string, Set<PathListener<any>>>>(); // Use stringified path as key for Map
+const pathListenersRegistry = new WeakMap<Atom<any>, Map<string, Set<PathListener<any>>>>(); // Use joined path string as key
 
 /** Adds a path-specific listener to a DeepMap atom. */
 export function baseListenPaths<T extends object>(
@@ -105,7 +105,8 @@ export function baseListenPaths<T extends object>(
         pathListenersRegistry.set(atom, atomListeners);
     }
 
-    const pathStrings = paths.map(p => JSON.stringify(p)); // Use JSON stringify for complex path keys
+    // Use joined string as key, assuming paths are arrays of strings/numbers
+    const pathStrings = paths.map(p => Array.isArray(p) ? p.join('\u0000') : String(p));
 
     pathStrings.forEach(pathStr => {
         let listenersForPath = atomListeners!.get(pathStr);
@@ -136,82 +137,94 @@ export function baseListenPaths<T extends object>(
 }
 
 
-/** Emits updates to path-specific listeners. */
+/** Emits updates to path-specific listeners. Optimized approach. */
 export function emitPaths<T extends object>(
     atom: Atom<T>,
-    changedPaths: Readonly<Path[]>, // Array of paths that changed
+    changedPaths: Readonly<Path[]>, // Array of original Path arrays
     fullValue: T
 ): void {
-    const atomListeners = pathListenersRegistry.get(atom);
-    if (!atomListeners) return;
+    const atomListeners = pathListenersRegistry.get(atom); // Map<string, Set<PathListener<any>>> using joined strings
+    if (!atomListeners || atomListeners.size === 0 || changedPaths.length === 0) return;
 
-    const listenersToNotify = new Set<PathListener<any>>();
-    const changedPathStrings = changedPaths.map(p => JSON.stringify(p));
+    // Map to store which listener needs to be called with which changed paths
+    const notifications = new Map<PathListener<any>, Path[]>();
 
-    // Find listeners for exact paths or parent paths that changed
-    atomListeners.forEach((listenersSet, registeredPathStr) => {
-        // Check if the registered path IS one of the changed paths
-        if (changedPathStrings.includes(registeredPathStr)) {
-            listenersSet.forEach(listener => listenersToNotify.add(listener));
-        } else {
-            // Check if the registered path is a PARENT of any changed path
-            const registeredPath = JSON.parse(registeredPathStr) as Path;
-            if (Array.isArray(registeredPath)) { // Only makes sense for array paths
-                 changedPaths.forEach(changedPath => {
-                     if (Array.isArray(changedPath) && changedPath.length > registeredPath.length) {
-                         let isParent = true;
-                         for(let i = 0; i < registeredPath.length; i++) {
-                             if (changedPath[i] !== registeredPath[i]) {
-                                 isParent = false;
-                                 break;
-                             }
-                         }
-                         if (isParent) {
-                             listenersSet.forEach(listener => listenersToNotify.add(listener));
-                         }
-                     }
-                 });
+    // Precompute joined strings for changed paths for efficient lookup
+    const changedPathStringsSet = new Set(changedPaths.map(p => Array.isArray(p) ? p.join('\u0000') : String(p)));
+
+    // Iterate through all registered listeners ONCE
+    atomListeners.forEach((listenersSet, registeredPathString) => {
+        // Find changed paths that match this registration (exact or parent)
+        const matchingChangedPaths: Path[] = [];
+
+        for (let i = 0; i < changedPaths.length; i++) {
+            const changedPath = changedPaths[i]; // Keep original Path array
+            const changedPathStr = Array.isArray(changedPath) ? changedPath.join('\u0000') : String(changedPath);
+
+            // 1. Exact match: Check if the changed path string is the registered path string
+            if (registeredPathString === changedPathStr) {
+                if (changedPath) { // Add check for undefined
+                    matchingChangedPaths.push(changedPath);
+                }
+                continue; // Found exact match, no need to check parent for this changedPath
             }
+
+            // 2. Parent match: Check if the changed path starts with the registered path (as a parent)
+            // Ensure registeredPathString is actually a parent by checking separator
+            if (changedPathStr.startsWith(registeredPathString + '\u0000')) {
+                 if (changedPath) { // Add check for undefined
+                    matchingChangedPaths.push(changedPath);
+                 }
+                 // Continue checking other changed paths in case this listener matches multiple
+            }
+            // Note: We don't explicitly handle the case where the changed path is a parent
+            // of the registered path here. We assume the diff generation (`changedPaths`)
+            // is comprehensive enough. If ['a'] changes, and someone listens to ['a', 'b'],
+            // the diff *should* ideally include ['a', 'b'] if its value changed,
+            // or the listener for ['a', 'b'] should handle potentially undefined values if ['a'] was deleted.
+            // This optimization focuses on the emit logic based on the provided `changedPaths`.
+        }
+
+
+        // If this registered path matched any changed paths (exact or parent)
+        if (matchingChangedPaths.length > 0) {
+            listenersSet.forEach(listener => {
+                let pathsForListener = notifications.get(listener);
+                if (!pathsForListener) {
+                    pathsForListener = [];
+                    notifications.set(listener, pathsForListener);
+                }
+                // Add only unique paths (reference equality works for original Path arrays)
+                matchingChangedPaths.forEach(p => {
+                    // Simple linear scan for uniqueness check, usually small number of paths per listener
+                    let found = false;
+                    for(let k=0; k < pathsForListener!.length; k++) {
+                        if (pathsForListener![k] === p) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                         pathsForListener!.push(p);
+                    }
+                });
+            });
         }
     });
 
-
-    // Notify unique listeners
-    listenersToNotify.forEach(listener => {
-         // Find which changed paths this listener is interested in (directly或via parent)
-         const interestedChangedPaths = changedPaths.filter(cp => {
-             const cpStr = JSON.stringify(cp);
-             // Is it a direct match?
-             if (atomListeners.get(cpStr)?.has(listener)) return true;
-             // Is it a child of a listened parent path?
-             for (const [listenedPathStr, listenersSet] of atomListeners.entries()) {
-                 if (listenersSet.has(listener)) {
-                    const listenedPath = JSON.parse(listenedPathStr) as Path;
-                    if (Array.isArray(listenedPath) && Array.isArray(cp) && cp.length > listenedPath.length) {
-                         let isParent = true;
-                         for(let i = 0; i < listenedPath.length; i++) {
-                             if (cp[i] !== listenedPath[i]) {
-                                 isParent = false;
-                                 break;
-                             }
-                         }
-                         if (isParent) return true;
-                    }
-                 }
-             }
-             return false;
-         });
-
-         // Call listener for each relevant changed path
-         interestedChangedPaths.forEach(path => {
-             try {
-                 // Retrieve the actual value at the changed path
-                 const valueAtPath = getDeep(fullValue, path as PathArray); // Assuming Path is PathArray internally for getDeep
-                 listener(valueAtPath, path, fullValue);
-             } catch (error) {
-                 console.error('Error in path listener:', error);
-             }
-         });
+    // Notify listeners
+    notifications.forEach((paths, listener) => {
+        paths.forEach(path => {
+            try {
+                // Retrieve the actual value at the changed path
+                // Ensure path is PathArray for getDeep if necessary, though Path should be PathArray from deepMap
+                const valueAtPath = getDeep(fullValue, path as PathArray);
+                listener(valueAtPath, path, fullValue);
+            } catch (error) {
+                // Avoid crashing the notification loop for other listeners
+                console.error('Error in path listener:', error);
+            }
+        });
     });
 }
 

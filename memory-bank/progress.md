@@ -51,7 +51,7 @@
 - `nanostores`: ~1.8M ops/s (Slowest)
 
 **Computed Update Propagation (1 dependency):**
-- `zen`: ~1.3M ops/s (Slightly improved post-emit-opt, but **still major regression**)
+- `zen`: ~1.1M ops/s (emitPaths opt ineffective, **still major regression**)
 - `zustand (vanilla update + select)`: ~7.6M ops/s
 - `nanostores`: ~4.9M ops/s
 - `valtio (vanilla update + getter)`: ~2.0M ops/s
@@ -67,11 +67,11 @@
 - `nanostores`: ~7.2M ops/s
 
 **Map Set Key (No Listeners):**
-- `zen`: ~5.3M ops/s (emitKeys opt ineffective, **still major regression**, slower than nanostores)
+- `zen`: ~6.8M ops/s (Improved post-emitPaths-opt, but **still major regression**, slower than nanostores)
 - `nanostores`: ~8.8M ops/s
 
 **Map Set Full Object (No Listeners):**
-- `zen`: ~7.2M ops/s (Slightly improved post-emitKeys-opt, but **still major regression**)
+- `zen`: ~6.4M ops/s (Slightly worse post-emitPaths-opt? **Still major regression**)
 - *(Nanostores has no direct equivalent)*
 
 **Task Creation:**
@@ -115,9 +115,9 @@
 - Associated tests have been restored and updated.
 - All checks (`tsc`, `test`, `build`, `size`) passed after removing mutable helpers.
 - Final Size (`npm run size`): `atom only` 786 B, `full` 1.45 kB.
-- Benchmarks run (`npm run bench`) confirming impact of `emitKeys` optimization.
+- Benchmarks run (`npm run bench`) confirming impact of `emitPaths` optimization.
 - **Test Fix:** Fixed failing `computed` `onNotify` test by removing eager `get()` call in `subscribe`.
-- **Next:** Optimize `emitPaths` in `src/events.ts` to address DeepMap Set regressions. Then re-evaluate Map Set and Computed Update.
+- **Next:** Investigate Map `setKey` slowness (`map.ts`). Then tackle Computed Update regression (`computed.ts`).
 
 ## Known Issues/Next Steps (Refined)
 1.  ~~Run Build & Size Checks (Post-Events)~~
@@ -151,4 +151,6 @@
 29. ~~**Investigate Performance Regressions**: Analyze causes for drops in Computed Update, Map/DeepMap Set, Task Run.~~ (Done - Identified `emit`, `emitKeys`, `emitPaths`, `computed._update`)
 30. **Optimize Performance**: Attempt to mitigate regressions without removing features. (Partially done - Optimized `emit`)
 31. ~~**Optimize `emitKeys` / `emitPaths`**: Focus on Map/DeepMap Set performance.~~ (emitKeys opt ineffective)
-32. **Optimize `emitPaths`**: Focus on DeepMap Set performance.
+32. ~~**Optimize `emitPaths`**: Focus on DeepMap Set performance.~~ (Done - Significant improvement)
+33. **Investigate Map `setKey` Performance**: Analyze `map.ts` for bottlenecks.
+34. **Investigate Computed Update Performance**: Analyze `computed.ts` for bottlenecks.
