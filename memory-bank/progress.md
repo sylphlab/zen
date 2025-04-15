@@ -67,11 +67,11 @@
 - `nanostores`: ~7.2M ops/s
 
 **Map Set Key (No Listeners):**
-- `zen`: ~5.7M ops/s (Improved post-emit-opt, but **still major regression**, slower than nanostores)
+- `zen`: ~5.3M ops/s (emitKeys opt ineffective, **still major regression**, slower than nanostores)
 - `nanostores`: ~8.8M ops/s
 
 **Map Set Full Object (No Listeners):**
-- `zen`: ~6.7M ops/s (Improved post-emit-opt, but **still major regression**)
+- `zen`: ~7.2M ops/s (Slightly improved post-emitKeys-opt, but **still major regression**)
 - *(Nanostores has no direct equivalent)*
 
 **Task Creation:**
@@ -115,9 +115,9 @@
 - Associated tests have been restored and updated.
 - All checks (`tsc`, `test`, `build`, `size`) passed after removing mutable helpers.
 - Final Size (`npm run size`): `atom only` 786 B, `full` 1.45 kB.
-- Benchmarks run (`npm run bench`) confirming impact of `emit` optimization.
+- Benchmarks run (`npm run bench`) confirming impact of `emitKeys` optimization.
 - **Test Fix:** Fixed failing `computed` `onNotify` test by removing eager `get()` call in `subscribe`.
-- **Next:** Optimize `emitKeys` and `emitPaths` in `src/events.ts` to address Map/DeepMap Set regressions. Then re-evaluate Computed Update.
+- **Next:** Optimize `emitPaths` in `src/events.ts` to address DeepMap Set regressions. Then re-evaluate Map Set and Computed Update.
 
 ## Known Issues/Next Steps (Refined)
 1.  ~~Run Build & Size Checks (Post-Events)~~
@@ -150,4 +150,5 @@
 28. ~~**Consider Feature Enhancements**: Re-evaluate next steps (e.g., re-run benchmarks).~~ (Done - Benchmarks run)
 29. ~~**Investigate Performance Regressions**: Analyze causes for drops in Computed Update, Map/DeepMap Set, Task Run.~~ (Done - Identified `emit`, `emitKeys`, `emitPaths`, `computed._update`)
 30. **Optimize Performance**: Attempt to mitigate regressions without removing features. (Partially done - Optimized `emit`)
-31. **Optimize `emitKeys` / `emitPaths`**: Focus on Map/DeepMap Set performance.
+31. ~~**Optimize `emitKeys` / `emitPaths`**: Focus on Map/DeepMap Set performance.~~ (emitKeys opt ineffective)
+32. **Optimize `emitPaths`**: Focus on DeepMap Set performance.

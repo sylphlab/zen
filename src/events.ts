@@ -313,36 +313,19 @@ export function emitKeys<T extends object>(
     const atomListeners = keyListenersRegistry.get(atom);
     if (!atomListeners) return;
 
-    // Use Set<any> internally
-    const listenersToNotify = new Set<KeyListener<any>>();
-
-    changedKeys.forEach(key => {
-        // Use 'any' for internal retrieval
-        const listenersForKey = atomListeners.get(key);
+    // Iterate changed keys directly and notify listeners for each key
+    for (const key of changedKeys) {
+        const listenersForKey = atomListeners.get(key); // Get listeners for this specific changed key
         if (listenersForKey) {
-            // Add listeners (which are KeyListener<any>) to the Set
-            listenersForKey.forEach(listener => listenersToNotify.add(listener));
-        }
-    });
-
-    // Notify unique listeners (which are KeyListener<any>)
-    listenersToNotify.forEach(listener => {
-        // Find which of the changed keys this listener is subscribed to (using 'any' key)
-        const subscribedKeys = Array.from(atomListeners.keys()).filter(k => atomListeners.get(k)?.has(listener));
-        const relevantChangedKeys = changedKeys.filter(ck => subscribedKeys.includes(ck));
-
-        // Call listener once for each relevant changed key
-        relevantChangedKeys.forEach(key => {
-            try {
-                // The listener expects KeyListener<T, K>, but we stored KeyListener<any>.
-                // We rely on the external listenKeys signature providing the correct K.
-                // Here, 'key' is one of the original changedKeys, so its type is correct.
-                // The listener itself needs to handle the type casting internally if necessary,
-                // or we assume the original provided K matches the key.
-                (listener as KeyListener<T, typeof key>)(fullValue[key], key, fullValue);
-            } catch (error) {
-                console.error('Error in key listener:', error);
+            // Call each listener registered for this key
+            for (const listener of listenersForKey) {
+                 try {
+                    // Pass the value for the specific key that changed
+                    (listener as KeyListener<T, typeof key>)(fullValue[key], key, fullValue);
+                } catch (error) {
+                    console.error('Error in key listener:', error);
+                }
             }
-        });
-    });
+        }
+    }
 }
