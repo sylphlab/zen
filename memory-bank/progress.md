@@ -9,10 +9,15 @@
 - **Computed Get (1 dep):** `zen` 21.6M ops/s (1.08x slower than Jotai, 6.83x faster than Nanostores)
 - **Computed Update Propagation (1 dep):** `zen` 16.0M ops/s (1.91x faster than Nanostores, 13.91x faster than Jotai hook)
 
-## Size (`size-limit`, brotlied, `atom` import only)
-- **`zen`**: 660 B
-- **`nanostores`**: 265 B
-- **Note**: `zen` is currently larger than `nanostores` for the basic `atom` import according to `size-limit`. Previous `gzip-size` measurement on the full bundle was 422B, methodology differs.
+## Size (`size-limit`, brotlied, core import cost)
+- **`jotai`**: 170 B (`{ atom }`)
+- **`nanostores`**: 265 B (`{ atom }`)
+- **`zustand` (core)**: 461 B (`{ create }`, excluding React)
+- **`zen`**: 660 B (`{ atom }`)
+- **`valtio`**: 903 B (`{ proxy }`)
+- **`effector`**: 5.27 kB (`{ createStore, createEvent }`)
+- **`@reduxjs/toolkit`**: 6.99 kB (`{ configureStore, createSlice }`)
+- **Note**: `zen` (660 B) is currently larger than `nanostores` (265 B), `jotai` (170 B), and `zustand` (461 B) for the basic core import according to `size-limit` (brotli compressed). Achieving smaller size than `nanostores` remains a core goal.
 
 ## Extreme Optimizations Applied (Previous Rounds)
 1. Direct property access via `this`

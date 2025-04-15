@@ -29,13 +29,44 @@
       "name": "zen",
       "path": "dist/index.js",
       "import": "{ atom }",
-      "limit": "1 kB" 
+      "limit": "1 kB"
     },
     {
       "name": "nanostores",
       "path": "node_modules/nanostores/index.js",
       "import": "{ atom }",
-      "limit": "1 kB" 
+      "limit": "1 kB"
+    },
+    {
+      "name": "jotai",
+      "path": "node_modules/jotai/esm/index.mjs",
+      "import": "{ atom }",
+      "limit": "2 kB"
+    },
+    {
+      "name": "zustand",
+      "path": "node_modules/zustand/esm/index.mjs",
+      "import": "{ create }",
+      "limit": "2 kB",
+      "ignore": ["react"] 
+    },
+    {
+      "name": "valtio",
+      "path": "node_modules/valtio/esm/index.mjs",
+      "import": "{ proxy }",
+      "limit": "5 kB" 
+    },
+    {
+      "name": "redux-toolkit",
+      "path": "node_modules/@reduxjs/toolkit/dist/redux-toolkit.modern.mjs",
+      "import": "{ configureStore, createSlice }",
+      "limit": "15 kB" 
+    },
+    {
+      "name": "effector",
+      "path": "node_modules/effector/effector.mjs",
+      "import": "{ createStore, createEvent }",
+      "limit": "8 kB" 
     }
   ],
   "keywords": [
@@ -51,9 +82,11 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@reduxjs/toolkit": "^2.6.1",
     "@size-limit/preset-small-lib": "^11.2.0",
     "@testing-library/react": "^16.3.0",
     "@types/react": "^19.1.2",
+    "effector": "^23.3.0",
     "esbuild": "^0.25.2",
     "gzip-size-cli": "^5.1.0",
     "jotai": "^2.12.3",
@@ -63,6 +96,8 @@
     "size-limit": "^11.2.0",
     "tsup": "^8.4.0",
     "typescript": "^5.8.3",
-    "vitest": "^3.1.1"
+    "valtio": "^2.1.4",
+    "vitest": "^3.1.1",
+    "zustand": "^5.0.3"
   }
 }
