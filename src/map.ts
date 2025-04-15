@@ -29,27 +29,50 @@ export function map<T extends object>(initialValue: T): MapAtom<T> {
   // Mark the atom for key listeners
   enhancedAtom[STORE_MAP_KEY_SET] = true;
 
-  // Override setKey: Calculate new value and call the overridden set method
+  let isCalledBySetKey = false; // Flag to differentiate calls
+
+  // Override setKey: Directly call originalSet and manually emitKeys for the single key
   enhancedAtom.setKey = function <K extends keyof T>(key: K, value: T[K], forceNotify: boolean = false): void {
       const current = this._value;
-      // Simple check for top-level key change
       if (forceNotify || !Object.is(current[key], value)) {
+          // Create the new value *only* for the originalSet call
           const newValue = { ...current, [key]: value };
-          // Call the overridden set method, which handles batching, onSet, _notify, onNotify, and emitKeys via _notifyBatch
-          this.set(newValue, forceNotify);
+          isCalledBySetKey = true; // Set flag
+          try {
+              // Call the *original* atom set logic (handles batching, onSet, _notify, onNotify)
+              // We bypass the overridden set's key emission logic
+              (baseAtom.set as Function).call(this, newValue, forceNotify); // Use baseAtom.set
+
+              // Manually emitKeys for the single changed key *if not batching*
+              // If batching, the overridden _notifyBatch will handle it
+              if (batchDepth === 0) {
+                  emitKeys(this, [key], newValue);
+              }
+          } finally {
+              isCalledBySetKey = false; // Reset flag
+          }
       }
   };
 
-  // Override the base 'set' method to handle key emission for full object updates
-  const originalSet = enhancedAtom.set; // Keep reference to original prototype set
+  // Override the base 'set' method to handle key emission *only* for full object updates
+  const originalSet = baseAtom.set; // Keep reference to original prototype set
   enhancedAtom.set = function (newValue: T, forceNotify: boolean = false): void {
+    // If called by setKey, just call the original set and return
+    if (isCalledBySetKey) {
+        originalSet.call(this, newValue, forceNotify);
+        return;
+    }
+
+    // Otherwise, proceed with full object update logic
     const oldValue = this._value;
     if (forceNotify || !Object.is(newValue, oldValue)) {
         // Call original set logic (handles batching, onSet, _notify, onNotify)
         originalSet.call(this, newValue, forceNotify);
 
-        // After original set logic (which includes _notify), emit key changes if not batching
+        // After original set logic, emit key changes *only if not batching*
+        // and *only if not called by setKey*
         if (batchDepth === 0) {
+            // Calculate changed keys ONLY for full set calls
             const changedKeys = Object.keys(newValue).filter(
                 k => !Object.is(newValue[k as keyof T], oldValue?.[k as keyof T])
             ) as (keyof T)[];
@@ -57,7 +80,6 @@ export function map<T extends object>(initialValue: T): MapAtom<T> {
                 emitKeys(this, changedKeys, newValue);
             }
         }
-        // TODO: Handle key emission correctly during batching (maybe in _notifyBatch override?)
     }
   };
 
@@ -68,16 +90,18 @@ export function map<T extends object>(initialValue: T): MapAtom<T> {
   };
 
   // Override _notifyBatch to handle emitKeys correctly after batch completes
-  const originalNotifyBatch = enhancedAtom._notifyBatch;
+  const originalNotifyBatch = baseAtom._notifyBatch; // Use base atom's notifyBatch
   enhancedAtom._notifyBatch = function() {
-    const oldValue = this._oldValueBeforeBatch; // Get stored old value
+    const oldValue = this._oldValueBeforeBatch; // Get stored old value before original call clears it
+
     // Call original batch notify (handles listeners and clears _oldValueBeforeBatch)
     originalNotifyBatch.call(this);
-    // Now oldValue is defined (if a change occurred in the batch) and _oldValueBeforeBatch is cleared
 
-    // If oldValue exists (meaning a change happened), calculate and emit changed keys
+    // If oldValue exists (meaning a change happened in the batch), calculate and emit changed keys
+    // This handles both setKey and full set calls within a batch
     if (oldValue !== undefined) {
       const newValue = this._value;
+      // Still need to calculate diff here for batch scenario
       const changedKeys = Object.keys(newValue).filter(
           k => !Object.is(newValue[k as keyof T], oldValue[k as keyof T])
       ) as (keyof T)[];
