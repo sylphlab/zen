@@ -111,16 +111,16 @@
 ## Current Status
 - Core features + `map` (v1) + `deepMap` (v1) + `task` + Lifecycle Events (v1) implemented and tested.
 - All tests pass.
-- **Performance:** Re-ran benchmarks after implementing v1 lifecycle events. **Observed noticeable performance decrease** across most operations due to event system overhead. Optimization needed. `deepMap` remains faster than Nanostores'.
-- **Size:** Size measured after adding events:
-    - `zen (atom only)`: **999 B** (brotlied) - Significant increase (+339 B)
-    - `zen (full)`: **1.28 kB** (brotlied) - Significant increase (+330 B)
+- **Performance:** Code reverted to stable state (post-event-v1 implementation). Benchmarks match previous stable run. Event system overhead caused performance decrease; optimization needed. `deepMap` remains faster than Nanostores'.
+- **Size:** Code reverted to stable state (post-event-v1 implementation).
+    - `zen (atom only)`: **999 B** (brotlied)
+    - `zen (full)`: **1.28 kB** (brotlied)
 - Size reduction is the **absolute highest priority**, focusing on core `atom`, `computed`, and `events`.
 
 ## Known Issues/Next Steps (Refined)
 1.  ~~**Run Build & Size Checks (Post-Events)**: Execute `npm run build && npm run size`.~~ (Done - atom: 999 B, full: 1.28 kB)
 2.  ~~**Analyze Size Increase (Post-Events)**~~: Event system added ~330-340 B.
-3.  **Aggressive Size & Performance Optimization**: Focus on reducing core (`atom`, `computed`, `events`) size and recovering performance loss. Explore `tsup` minify options. Target < Nanostores `{ atom }` size for the core.
+3.  **Aggressive Size & Performance Optimization**: Focus on reducing core (`atom`, `computed`, `events`) size and recovering performance loss. Explore `tsup` minify options. Target < Nanostores `{ atom }` size for the core. (Optimization attempts with inlining/flags reverted).
 4.  **Performance Benchmarking (Post-Events)**: ~~Run `npm run bench`.~~ (Done). Impact observed.
 5.  **TODOs in Code**: Implement `onMount`/`onStop` debounce. Handle `oldValue`/`payload` in `_notifyBatch`.
 6.  **Feature Enhancements (Post-Optimization)**: Revisit `map`/`deepMap` v2 (`subscribeKey`), documentation, etc., only after achieving size goals.
