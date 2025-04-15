@@ -51,7 +51,9 @@
     *   **Review `tsup` config**: Check minify options (`terser` options if used implicitly by `tsup --minify`) for potential improvements (e.g., `mangle`, `compress` options).
     *   **Code Review (`atom.ts`, `computed.ts`)**: Look for possibilities to shorten code, reduce helper functions, or use alternative patterns with smaller footprint, without sacrificing significant performance. (e.g., Can `AtomProto` and `ComputedAtomProto` be simplified? Can `subscribe` logic be smaller?)
     *   **Target**: Aim to drastically reduce the `zen (atom only)` size first, ideally below Nanostores (265 B).
+12. **Refactor Tests & Benchmarks**: Split `index.test.ts` and `index.bench.ts` into feature-specific files (`atom.test.ts`, `computed.test.ts`, etc.). Completed.
 
 ## Active Decisions
 - Using TypeScript for the library development.
 - Initial `map` implementation excluded `subscribeKey` for size reasons.
+- Tests and benchmarks are now organized by feature (`atom`, `computed`, `map`, `task`).
