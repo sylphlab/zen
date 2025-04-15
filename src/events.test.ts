@@ -213,15 +213,32 @@ describe('Lifecycle Events', () => {
 
         const unsubNotify = listen(derived, LIFECYCLE.onNotify, notifyListener);
         const unsubSub = derived.subscribe(subListener);
-        subListener.mockClear(); // Clear initial
 
+        // Assert that listeners are NOT called immediately on subscribe
+        expect(notifyListener).not.toHaveBeenCalled();
+        expect(subListener).not.toHaveBeenCalled();
+
+        // Trigger initial calculation and notification by calling get()
+        expect(derived.get()).toBe(0);
+        expect(notifyListener).toHaveBeenCalledTimes(1); // First notification from get()->_update()->set()->_notify()
+        expect(notifyListener).toHaveBeenCalledWith(0);
+        expect(subListener).toHaveBeenCalledTimes(1);    // First notification from get()->_update()->set()->_notify()
+        expect(subListener).toHaveBeenCalledWith(0, undefined);
+
+        // Clear mocks AFTER initial calculation/notification
+        notifyListener.mockClear();
+        subListener.mockClear();
+
+        // Trigger update by changing the source
         source.set(1);
 
+        // Assert update happened and listeners were called exactly ONCE more
+        // We need get() here to trigger the update calculation if it hasn't happened passively
         expect(derived.get()).toBe(2);
-        expect(subListener).toHaveBeenCalledTimes(1);
-        expect(subListener).toHaveBeenCalledWith(2, 0); // Computed passes oldValue
-        expect(notifyListener).toHaveBeenCalledTimes(1);
-        expect(notifyListener).toHaveBeenCalledWith(2); // Notify gets new value
+        expect(subListener).toHaveBeenCalledTimes(1); // Called once *after* mockClear
+        expect(subListener).toHaveBeenCalledWith(2, 0);
+        expect(notifyListener).toHaveBeenCalledTimes(1); // Called once *after* mockClear
+        expect(notifyListener).toHaveBeenCalledWith(2);
 
         unsubSub();
         unsubNotify();

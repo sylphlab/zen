@@ -51,7 +51,7 @@ export interface ReadonlyAtom<T = any> {
   _unsubscribers?: (() => void)[]; // Array of unsubscribe functions for sources
   _onChangeHandler?: () => void; // Bound handler for source changes
   _onChange?(): void; // Internal method called on source change
-  _update?(): void; // Internal method to update value if dirty
+  _update?(): boolean; // Internal method to update value if dirty, returns true if value changed
   _subscribeToSources?(): void; // Internal method to subscribe to sources
   _unsubscribeFromSources?(): void; // Internal method to unsubscribe
 }
