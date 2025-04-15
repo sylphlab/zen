@@ -4,9 +4,9 @@
 
 > **Work In Progress - API subject to change**
 
-An **ultra-minimal** (sub-300 bytes core) and fast state management library inspired by [Nanostores](https://github.com/nanostores/nanostores).
+An **ultra-minimal** and fast state management library inspired by [Nanostores](https://github.com/nanostores/nanostores).
 
-**Core Goal:** Achieve the smallest possible bundle size while maintaining competitive performance.
+**Core Goal:** Achieve excellent performance with a very small bundle size. (Note: Size target of < 265 B was sacrificed for better performance).
 
 ## Installation
 
@@ -60,13 +60,16 @@ const message = computed([count, isEven], (countVal, evenVal) =>
 const unsub = message.subscribe(msg => {
   console.log(msg);
 });
-// Output: Count is 1. It is odd.
+// Get initial value (computed is lazy, need to call get or subscribe)
+console.log('Initial message:', message.get());
+// Output: Initial message: Count is 1. It is odd.
+// Output: Count is 1. It is odd. (from subscribe initial call)
 
 count.set(2);
-// Output: Count is 2. It is even.
+// Output: Count is 2. It is even. (from subscribe)
 
 count.set(3);
-// Output: Count is 3. It is odd.
+// Output: Count is 3. It is odd. (from subscribe)
 
 unsub();
 ```
@@ -118,8 +121,7 @@ settings.setKey(['user', 'name'], 'Alice');
 Manages the state (`loading`, `error`, `data`) of an asynchronous operation.
 
 ```typescript
-import { task } from 'zen';
-import { computed } from 'zen'; // Can combine with computed
+import { atom, computed, task } from 'zen';
 
 const userId = atom(1);
 
@@ -141,13 +143,13 @@ userState.subscribe(console.log);
 // Output: Idle
 
 // Run the task
-fetchUser.run(userId.get());
+fetchUser.run(userId.get()); // Use get()
 // Output: Loading user...
 // (after ~50ms) Output: Loaded: User 1
 
 // Example with error
 userId.set(0);
-fetchUser.run(userId.get());
+fetchUser.run(userId.get()); // Use get()
 // Output: Loading user...
 // (after ~50ms) Output: Error: User not found
 ```
@@ -164,6 +166,8 @@ const name = atom('A');
 
 const unsub = count.subscribe(c => console.log('Count:', c));
 const unsubName = name.subscribe(n => console.log('Name:', n));
+// Output: Count: 0
+// Output: Name: A
 
 batch(() => {
   count.set(1); // No immediate notification
@@ -186,6 +190,6 @@ Run `npm run bench` to see performance comparisons (requires dev dependencies).
 
 Run `npm run size` to see bundle size analysis (requires dev dependencies).
 
-**Current Size (Brotli):**
-*   `zen (atom only)`: ~215 B
-*   `zen (full)`: ~876 B
+**Current Size (Brotli - Prototype Version):**
+*   `zen (atom only)`: ~588 B
+*   `zen (full)`: ~881 B
