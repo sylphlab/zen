@@ -20,7 +20,7 @@
     "build": "tsup src/index.ts --format esm,cjs --dts --minify --sourcemap",
     "test": "vitest run",
     "test:watch": "vitest",
-    "bench": "vitest bench --run",
+    "bench": "vitest bench --run --pool=threads",
     "bench:watch": "vitest bench",
     "size": "size-limit"
   },
