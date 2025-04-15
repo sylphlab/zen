@@ -5,4 +5,6 @@
 export * from './core';
 export * from './atom';
 export * from './computed';
+export * from './map';
+export * from './task'; // Add task export
 export * from './mutable';

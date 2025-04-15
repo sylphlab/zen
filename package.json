@@ -26,15 +26,26 @@
   },
   "size-limit": [
     {
-      "name": "zen",
+      "name": "zen (atom only)"
       "path": "dist/index.js",
       "import": "{ atom }",
-      "limit": "1 kB"
+      "limit": "1 kB",
     },
     {
-      "name": "nanostores",
+      "name": "zen (full)",
+      "path": "dist/index.js",
+      "import": "{ atom, computed, map, task }",
+      "limit": "1.5 kB"
+    },
+    {
+      "name": "nanostores (atom only)",
       "path": "node_modules/nanostores/index.js",
       "import": "{ atom }"
+    },
+    {
+      "name": "nanostores (map)",
+      "path": "node_modules/nanostores/index.js",
+      "import": "{ map }"
     },
     {
       "name": "jotai",

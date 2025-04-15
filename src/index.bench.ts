@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { bench, describe } from 'vitest';
-import { atom as zenAtom, computed as zenComputed } from './index';
-import { atom as nanoAtom, computed as nanoComputed } from 'nanostores';
+import { atom as zenAtom, computed as zenComputed, map as zenMap, task as zenTask } from './index'; // Import map and task
+import { atom as nanoAtom, computed as nanoComputed, map as nanoMap } from 'nanostores'; // Import nano map
 import { atom as jotaiAtom, useAtomValue, useSetAtom, Provider, createStore as createJotaiStore, Atom, WritableAtom, SetStateAction } from 'jotai'; // Import Atom types
 import { createStore as createZustandVanillaStore } from 'zustand/vanilla'; // Correct import for vanilla zustand
 import type { StoreApi, UseBoundStore } from 'zustand'; // Import types for Zustand
@@ -336,3 +336,91 @@ describe('Computed Update Propagation (1 dependency)', () => {
 // Note: Benchmarks involving hooks (Jotai, potentially Zustand usage) add overhead.
 // Vanilla benchmarks aim for core comparisons but might not reflect typical framework usage.
 // Effector/Valtio/Zustand derived state patterns differ significantly, making direct 'computed' comparisons complex.
+
+// --- Map Benchmarks ---
+
+describe('Map Creation', () => {
+    bench('zen', () => {
+        zenMap({ name: 'John', age: 30 });
+    });
+
+    bench('nanostores', () => {
+        nanoMap({ name: 'John', age: 30 });
+    });
+
+    // Other libs handle objects differently, direct map comparison less applicable
+});
+
+describe('Map Get', () => {
+    const zMap = zenMap({ name: 'John', age: 30 });
+    const nMap = nanoMap({ name: 'John', age: 30 });
+
+    bench('zen', () => {
+        zMap.get();
+    });
+
+    bench('nanostores', () => {
+        nMap.get();
+    });
+});
+
+describe('Map Set Key (No Listeners)', () => {
+    const zMap = zenMap({ name: 'John', age: 30 });
+    const nMap = nanoMap({ name: 'John', age: 30 });
+    let i = 0;
+
+    bench('zen', () => {
+        zMap.setKey('age', ++i);
+    });
+
+    bench('nanostores', () => {
+        nMap.setKey('age', ++i);
+    });
+});
+
+describe('Map Set Full Object (No Listeners)', () => {
+    const zMap = zenMap({ name: 'John', age: 30 });
+    const nMap = nanoMap({ name: 'John', age: 30 });
+    let i = 0;
+
+    bench('zen', () => {
+        zMap.set({ name: 'Jane', age: ++i });
+    });
+
+    // Nanostores map doesn't have a direct full 'set' method, it uses setKey
+    // bench('nanostores', () => { ... });
+});
+
+
+// --- Task Benchmarks ---
+
+describe('Task Creation', () => {
+    const asyncFn = async () => { await new Promise(r => setTimeout(r, 0)); return 'done'; };
+    bench('zen', () => {
+        zenTask(asyncFn);
+    });
+    // No direct equivalents in other libs for simple creation bench
+});
+
+describe('Task Run (Resolve)', () => {
+    const asyncFnResolve = async () => { await new Promise(r => setTimeout(r, 0)); return 'done'; };
+    const zTaskResolve = zenTask(asyncFnResolve);
+
+    bench('zen (resolve)', async () => {
+        // Run and await completion, but the benchmark measures the time to initiate and settle
+        await zTaskResolve.run();
+    });
+});
+
+describe('Task Run (Reject)', () => {
+    const asyncFnReject = async () => { await new Promise(r => setTimeout(r, 0)); throw new Error('fail'); };
+    const zTaskReject = zenTask(asyncFnReject);
+
+    bench('zen (reject)', async () => {
+        try {
+            await zTaskReject.run();
+        } catch {
+            // ignore error for benchmark
+        }
+    });
+});
