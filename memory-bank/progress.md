@@ -98,13 +98,12 @@
 ## Features Implemented
 - `atom`: Core state container (Minimal - Prototype).
 - `computed`: Derived state (Minimal - Prototype).
-- `mutableArrayAtom`, `mutableMapAtom`, `mutableObjectAtom`: Perf-focused mutable helpers.
-- `map` (v1 - Simplified): Object atom with `setKey`.
 - `map` (v1 - Restored): Object atom with `setKey` and `listenKeys`.
 - `deepMap` (v1 - Restored): Deeply nested object atom with `setPath` and `listenPaths`.
 - `task`: Async operation state management (Minimal).
 - **RESTORED:** Lifecycle Events (`onMount`, `onStart`, `onStop`, `onSet`, `onNotify`). Implemented via `listen` in `src/events.ts`. Integrated into core atoms.
 - **RESTORED:** Key/Path Subscriptions (`listenKeys`, `listenPaths`). Implemented in `src/events.ts`. Integrated into `map`/`deepMap`.
+- **REMOVED:** `mutableArrayAtom`, `mutableMapAtom`, `mutableObjectAtom`.
 
 ## Benchmark Highlights (Post Revert - 2025-04-15)
 - Performance restored to previous high levels after reverting optimizations. (Note: New benchmarks needed after feature restoration).
@@ -118,7 +117,7 @@
 - Size confirmed (`npm run size`): `atom only` 786 B, `full` 1.45 kB after restoring features.
 - Benchmarks run (`npm run bench`) confirming performance recovery *before* feature restoration. (Need re-run).
 - Checks (`tsc`, `test`, `build`) passed after restoring features.
-- **Next:** Commit Memory Bank, review mutable helpers, update docs.
+- **Next:** Commit Memory Bank update, run checks.
 
 ## Known Issues/Next Steps (Refined)
 1.  ~~Run Build & Size Checks (Post-Events)~~
@@ -142,10 +141,11 @@
 19. ~~Review `mutable*` Helpers~~ (Done - Confirmed compatibility before feature restore).
 20. ~~Documentation & Examples~~ (Done - Needs update for restored features).
 21. ~~Commit restored features & Memory Bank updates.~~ (Done)
-22. ~~Run Build & Size checks:~~ Verify build and get new size after feature restoration. (Done - 1.45 kB)
-23. **Commit Memory Bank update.**
-24. **Review `mutable*` Helpers**: Confirm compatibility *with restored* features.
-25. **Documentation & Examples**: Update README with restored API (`listen`, `listenKeys`, `listenPaths`) and examples.
-26. **Consider Feature Enhancements**: Re-evaluate next steps.
+22. ~~Run Build & Size checks:~~ Verified build and got new size after feature restoration (1.45 kB).
+23. ~~Remove Mutable Helpers:~~ Removed code, exports, and docs.
+24. **Commit Memory Bank update.** (Current step)
+25. **Run Checks:** `tsc --noEmit && npm run test && npm run build && npm run size`.
+26. **Documentation & Examples**: Review README for accuracy after removals.
+27. **Consider Feature Enhancements**: Re-evaluate next steps.
 24. **Documentation & Examples**: Update README with restored API (`listen`, `listenKeys`, `listenPaths`) and examples.
 25. **Consider Feature Enhancements**: Re-evaluate next steps.

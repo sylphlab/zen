@@ -1,4 +1,5 @@
-# zen Library
+-[pyt]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         \nm;.l////////////////p;looooooooooooooooooo\=]\0999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999?""""""""""""
+ zen Library
 
 [![size](https://img.shields.io/bundlephobia/minzip/zen)](https://bundlephobia.com/package/zen)
 
@@ -179,70 +180,114 @@ batch(() => {
 // (Listeners are notified only once after the batch completes, with the final values)
 
 unsub();
+unsub();
 unsubName();
 ```
 
-### Mutable Helpers (Use with Caution!)
+### `listen(atom, event, listener)`
 
-These helpers provide atoms for arrays, maps, and objects where mutations are performed directly on the internal value for potentially higher performance in specific scenarios. **Warning:** Direct mutation breaks the usual immutability guarantees and can lead to unexpected behavior if not handled carefully.
-
-#### `mutableArrayAtom(initialItems)`
+Listens to specific lifecycle events on an atom or computed atom.
 
 ```typescript
-import { mutableArrayAtom } from 'zen';
+import { atom, listen, LIFECYCLE } from 'zen';
 
-const list = mutableArrayAtom([1, 2, 3]);
+const count = atom(0);
 
-list.subscribe(items => console.log('List:', items));
-// Output: List: [ 1, 2, 3 ]
-
-list.push(4);
-// Output: List: [ 1, 2, 3, 4 ]
-
-list.update(1, value => value * 10); // Update item at index 1
-// Output: List: [ 1, 20, 3, 4 ]
-
-list.filter(n => n > 10); // Filter in place (replaces internal array)
-// Output: List: [ 20 ]
-```
-
-#### `mutableMapAtom(initialMap)`
-
-```typescript
-import { mutableMapAtom } from 'zen';
-
-const userMap = mutableMapAtom(new Map([['id', 1], ['status', 'active']]));
-
-userMap.subscribe(map => console.log('Map:', map));
-// Output: Map: Map(2) { 'id' => 1, 'status' => 'active' }
-
-userMap.set('status', 'inactive');
-// Output: Map: Map(2) { 'id' => 1, 'status' => 'inactive' }
-
-userMap.delete('id');
-// Output: Map: Map(1) { 'status' => 'inactive' }
-```
-
-#### `mutableObjectAtom(initialObject)`
-
-```typescript
-import { mutableObjectAtom } from 'zen';
-
-const config = mutableObjectAtom({ theme: 'dark', fontSize: 14 });
-
-config.subscribe(obj => console.log('Config:', obj));
-// Output: Config: { theme: 'dark', fontSize: 14 }
-
-config.setKey('fontSize', 16);
-// Output: Config: { theme: 'dark', fontSize: 16 }
-
-config.update(current => {
-  current.notifications = true; // Mutate directly
+// Listen for the 'onSet' event (called *before* the value is updated)
+const unsubSet = listen(count, LIFECYCLE.onSet, (newValue) => {
+  console.log(`Setting value to: ${newValue}`);
 });
-// Output: Config: { theme: 'dark', fontSize: 16, notifications: true }
 
-config.deleteKey('theme');
-// Output: Config: { fontSize: 16, notifications: true }
+// Listen for the 'onNotify' event (called *after* listeners are notified)
+const unsubNotify = listen(count, LIFECYCLE.onNotify, (newValue) => {
+    console.log(`Value finished updating to: ${newValue}`);
+});
+
+// Listen for 'onStart' (first subscriber) and 'onStop' (last unsubscriber)
+const unsubStart = listen(count, LIFECYCLE.onStart, () => console.log('First listener!'));
+const unsubStop = listen(count, LIFECYCLE.onStop, () => console.log('Last listener gone.'));
+
+
+const sub1 = count.subscribe(val => console.log(`Subscriber 1: ${val}`));
+// Output: First listener!
+// Output: Subscriber 1: 0
+
+count.set(1);
+// Output: Setting value to: 1
+// Output: Subscriber 1: 1
+// Output: Value finished updating to: 1
+
+sub1();
+// Output: Last listener gone.
+
+unsubSet();
+unsubNotify();
+unsubStart();
+unsubStop();
+```
+
+Available `LIFECYCLE` events:
+*   `onMount`: Called immediately when `listen` is called for this event.
+*   `onStart`: Called when the *first* regular subscriber (`.subscribe()`) is added.
+*   `onStop`: Called when the *last* regular subscriber unsubscribes.
+*   `onSet`: Called *before* a new value is set (receives the incoming value).
+*   `onNotify`: Called *after* all regular subscribers have been notified of a change (receives the new value).
+
+
+### `mapAtom.listenKeys(keys, listener)`
+
+Listens for changes to specific top-level keys within a `map` atom.
+
+```typescript
+import { map } from 'zen';
+
+const profile = map({ name: 'John', age: 30, city: 'NY' });
+
+// Listen only to 'name' and 'age' changes
+const unsubKeys = profile.listenKeys(['name', 'age'], (value, key, fullObject) => {
+  console.log(`Key '${key}' changed to: ${value}`);
+  // console.log('Full object:', fullObject);
+});
+
+profile.setKey('age', 31);
+// Output: Key 'age' changed to: 31
+
+profile.setKey('city', 'London');
+// No output (not listening to 'city')
+
+profile.set({ name: 'Jane', age: 32, city: 'London' });
+// Output: Key 'name' changed to: Jane
+// Output: Key 'age' changed to: 32
+
+unsubKeys();
+```
+
+### `deepMapAtom.listenPaths(paths, listener)`
+
+Listens for changes occurring at specific deep paths within a `deepMap` atom. Also triggers if a parent path changes.
+
+```typescript
+import { deepMap } from 'zen';
+
+const settings = deepMap({ user: { name: 'Anon', prefs: { theme: 'light', notify: true } } });
+
+// Listen to changes at 'user.prefs.theme'
+const unsubPath = settings.listenPaths([['user', 'prefs', 'theme']], (value, path, fullObject) => {
+  console.log(`Path '${path.join('.')}' changed to: ${value}`);
+});
+
+settings.setPath(['user', 'prefs', 'theme'], 'dark');
+// Output: Path 'user.prefs.theme' changed to: dark
+
+settings.setPath(['user', 'prefs', 'notify'], false);
+// No output (not listening to 'notify')
+
+// Setting a parent path also triggers listeners for descendants (if the descendant value changes)
+// Note: The listener receives the specific path that changed ('user.prefs') and its new value.
+settings.setPath(['user', 'prefs'], { theme: 'system', notify: true });
+// Output: Path 'user.prefs.theme' changed to: system
+
+unsubPath();
 ```
 
 
@@ -254,6 +299,6 @@ Run `npm run bench` to see performance comparisons (requires dev dependencies).
 
 Run `npm run size` to see bundle size analysis (requires dev dependencies).
 
-**Current Size (Brotli - Prototype Version):**
-*   `zen (atom only)`: ~588 B
-*   `zen (full)`: ~881 B
+**Current Size (Brotli - Post-Feature-Restore):**
+*   `zen (atom only)`: **786 B**
+*   `zen (full)`: **1.45 kB**

@@ -6,9 +6,9 @@
 ## Recent Changes
 - **Build Tool:** Switched to `tsup`.
 - **Benchmarking Setup:** Installed necessary dependencies for comparisons.
-- **Core Features Implemented:** `atom`, `computed`, `map` (v1), `task` (v1), `deepMap` (v1).
-- **Mutable Helpers Added:** `mutableArrayAtom`, `mutableMapAtom`, `mutableObjectAtom`.
-- **Lifecycle Events (v1 - Removed then Restored):** Implemented `onMount`, `onStart`, `onStop`, `onSet`, `onNotify`. Integrated into `atom`, `computed`, `map`, `deepMap`. Handled batching.
+- **Core Features Implemented:** `atom`, `computed`, `map` (v1 - Restored), `task` (v1), `deepMap` (v1 - Restored).
+- **Mutable Helpers Removed:** `mutableArrayAtom`, `mutableMapAtom`, `mutableObjectAtom` removed as requested.
+- **Lifecycle Events Restored:** Implemented `onMount`, `onStart`, `onStop`, `onSet`, `onNotify`. Integrated into `atom`, `computed`, `map`, `deepMap`. Handled batching.
 - **Key/Path Subscription API (v1 - Removed then Restored):** Implemented `listenKeys` (for `map`), `listenPaths` (for `deepMap`). Integrated into `map`, `deepMap`. Handled batching.
 - **Radical Optimization (v1):**
     - Removed Event System and Key Subscription system.
@@ -53,15 +53,19 @@
     - Modified `src/core.ts`, `src/atom.ts`, `src/computed.ts`, `src/map.ts`, `src/deepMap.ts` to integrate features and handle batching correctly.
     - Restored/Updated tests in `src/events.test.ts`, `src/map.test.ts`, `src/deepMap.test.ts`. Fixed related issues.
     - Updated benchmarks in `src/deepMap.bench.ts` (`setKey` -> `setPath`).
-19. **Run Checks:** `tsc --noEmit && npm run test` passed. (Build/size check pending commit).
-20. **Git Commit:** Commit restored features and Memory Bank updates.
-21. **Review `mutable*` Helpers**: Confirm compatibility with restored features.
-22. **Documentation & Examples**: Update README with restored API and examples.
-23. **Feature Enhancements**: Re-evaluate next steps (e.g., optional event module, framework integrations).
+19. **Run Checks:** `tsc --noEmit && npm run test` passed after restoring features.
+20. **Git Commit:** Committed restored features and Memory Bank updates.
+21. **Remove Mutable Helpers:** Removed `mutable*` functions, deleted `src/mutable.ts`, removed from `src/index.ts` export, updated README.
+22. **Update Memory Bank:** Reflect removal of mutable helpers.
+23. **Git Commit:** Commit removal of mutable helpers and docs update.
+24. **Run Checks:** `tsc --noEmit && npm run test && npm run build && npm run size`.
+25. **Documentation & Examples**: Review README for accuracy after removals.
+26. **Feature Enhancements**: Re-evaluate next steps.
 
 ## Active Decisions
 - Using TypeScript for the library development.
 - V1 implementations of map/deepMap exclude fine-grained key notification.
 - Tests and benchmarks organized by feature.
-- **Decision:** Reverted factory function pattern back to prototype-based implementation to prioritize performance over absolute minimum size. Accepted size ~588 B for core atom.
-- **Decision:** Restored Lifecycle Events and Key/Path Subscriptions based on user feedback prioritizing functionality over minimal size.
+- **Decision:** Reverted factory function pattern back to prototype-based implementation to prioritize performance over absolute minimum size.
+- **Decision:** Restored Lifecycle Events and Key/Path Subscriptions based on user feedback prioritizing functionality.
+- **Decision:** Removed `mutable*` helpers as they were deemed unnecessary for external use.
