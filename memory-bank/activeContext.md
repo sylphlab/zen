@@ -29,6 +29,10 @@
     - **`zen (atom only)`: 588 B** (brotlied) - Confirmed revert to prototype size.
     - **`zen (full)`: 881 B** (brotlied) - Confirmed revert to prototype size.
     - **Analysis:** Code reverted successfully to the faster prototype-based version. Size target (< 265 B) is sacrificed for performance.
+- **Test Fix (Computed `onNotify`):** Fixed failing test `src/events.test.ts > Lifecycle Events > should trigger onNotify for computed atoms`. The issue was that `computed.subscribe` called `get()`, triggering an immediate `onNotify`. Removed the `get()` call from `subscribe` in `src/computed.ts` to make initial calculation lazy.
+
+## Guideline Verification Issues
+- Failed to fetch `guidelines/typescript/style_quality.md` from `sylphlab/Playbook` (GitHub API error: Not Found). Proceeding without guideline verification for now.
 
 ## Next Steps (Immediate)
 1.  ~~Implement `map` helper (v1).~~

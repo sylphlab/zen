@@ -116,6 +116,7 @@
 - All checks (`tsc`, `test`, `build`, `size`) passed after removing mutable helpers.
 - Final Size (`npm run size`): `atom only` 783 B, `full` 1.45 kB.
 - Benchmarks run (`npm run bench`) confirming performance recovery *before* feature restoration. (Need re-run).
+- **Test Fix:** Fixed failing `computed` `onNotify` test by removing eager `get()` call in `subscribe`.
 - **Next:** Commit final Memory Bank update, review docs, consider enhancements.
 
 ## Known Issues/Next Steps (Refined)
@@ -147,5 +148,3 @@
 26. **Commit final Memory Bank update.** (Current step)
 27. **Documentation & Examples**: Review README for accuracy after removals.
 28. **Consider Feature Enhancements**: Re-evaluate next steps (e.g., re-run benchmarks).
-24. **Documentation & Examples**: Update README with restored API (`listen`, `listenKeys`, `listenPaths`) and examples.
-25. **Consider Feature Enhancements**: Re-evaluate next steps.
