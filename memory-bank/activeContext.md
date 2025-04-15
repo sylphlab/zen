@@ -32,27 +32,40 @@
     - Ran `npx tsc --noEmit`: Passed.
     - Ran `npm run test`: All tests passed.
     - Ran `npm run build && npm run size`: Build successful.
-    - **`zen (atom only)`: 219 B** (brotlied) - **SUCCESS! Below 265 B target.**
+    - **`zen (atom only)`: 219 B** (brotlied) - SUCCESS! Below 265 B target.
     - **`zen (full)`: 879 B** (brotlied) - Further reduction.
-    - **Analysis:** Factory function pattern was highly effective for size reduction, achieving the core goal.
+    - **Analysis:** Factory function pattern achieved size target but caused performance regressions.
+- **Hybrid Factory Refactor (Optimization v3):**
+    - Modified factory functions (`atom`, `computed`) to use a shared methods object within closure to potentially improve performance.
+    - Fixed resulting scope errors.
+- **Checks & Size Measurement (Post-Hybrid-Refactor):**
+    - Ran `npx tsc --noEmit`: Passed.
+    - Ran `npm run test`: All tests passed.
+    - Ran `npm run build && npm run size`: Build successful.
+    - **`zen (atom only)`: 215 B** (brotlied) - **IMPROVED! Even smaller.**
+    - **`zen (full)`: 876 B** (brotlied) - **IMPROVED!**
+    - **Analysis:** Hybrid factory pattern maintained/improved size and likely recovered some performance (based on previous benchmark run before size check). This is the current best approach.
 
 ## Next Steps (Immediate)
 1.  ~~Implement `map` helper (v1).~~
 2.  ~~Implement `task` helper (v1).~~
 3.  ~~Implement `deepMap` helper (v1) & Add Benchmarks.~~
-4.  ~~Implement Lifecycle Events (v1).~~ (Removed)
-5.  ~~Implement Key Subscription API (v1 - Simplified).~~ (Removed)
+4.  ~~Implement Lifecycle Events (v1).~~
+5.  ~~Implement Key Subscription API (v1 - Simplified).~~
 6.  ~~Run checks & benchmarks post-features.~~
 7.  ~~**Plan & Implement Optimizations (v1 - Radical Removal)**~~
 8.  ~~**Git Commit:** Commit key subscription and latest checks.~~
 9.  ~~**Git Commit:** Commit radical optimization changes.~~
-10. ~~**Further Optimization (Micro-optimizations v1 & v2)**~~ (Done - minimal impact).
-11. ~~**Run Benchmarks:** Re-run `npm run bench` after micro-optimizations.~~ (Done - mostly stable).
-12. ~~**Further Optimization (v2 - Factory Function Refactor)**~~ (Done - SUCCESS!).
-13. **Git Commit:** Commit factory function refactor and successful size results.
-14. **Performance Benchmarking (Post-Factory Refactor):** Run `npm run bench` to assess performance impact of factory pattern.
-15. **Review `mutable*` Helpers**: Check if `mutableArrayAtom`, `mutableMapAtom`, `mutableObjectAtom` need adjustments after core changes.
-16. **Feature Enhancements (Post-Size-Goal)**: Consider next steps like documentation or revisiting optional features.
+10. ~~**Further Optimization (Micro-optimizations v1 & v2)**~~
+11. ~~**Run Benchmarks:** Post micro-optimizations.~~
+12. ~~**Further Optimization (v2 - Factory Function Refactor)**~~
+13. ~~**Git Commit:** Commit factory function refactor.~~
+14. ~~**Performance Benchmarking (Post-Factory Refactor):**~~ (Done - regressions found).
+15. ~~**Analyze & Address Performance Regressions (v3 - Hybrid Factory)**~~ (Done - Size improved, perf likely partially recovered).
+16. **Git Commit:** Commit hybrid factory refactor and latest results.
+17. **Performance Benchmarking (Post-Hybrid Refactor):** Re-run `npm run bench` for definitive performance numbers.
+18. **Review `mutable*` Helpers**: Check if `mutableArrayAtom`, `mutableMapAtom`, `mutableObjectAtom` need adjustments.
+19. **Feature Enhancements (Post-Size-Goal)**: Consider documentation, examples, etc.
 
 ## Active Decisions
 - Using TypeScript for the library development.
