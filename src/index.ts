@@ -165,68 +165,7 @@ export function computed<T, S extends Stores>(
   calculation: (...values: StoreValues<S>) => T,
   equalityFn: (a: T, b: T) => boolean = Object.is
 ): ReadonlyAtom<T> {
-  const sourceCount = stores.length;
-
-  // 优化路径分发
-  if (sourceCount === 0) {
-     // Handle zero dependencies case if needed (e.g., constant value)
-     // This example assumes at least one dependency for computed
-     console.warn("Computed atom created with zero dependencies.");
-     const constantAtom = atom(calculation(...([] as any as StoreValues<S>)));
-     // Make it readonly-like (or create a specific readonly constant atom type)
-     return {
-         ...constantAtom,
-         _notify: constantAtom._notify.bind(constantAtom),
-         _notifyBatch: constantAtom._notifyBatch.bind(constantAtom),
-         // no sources, no updates needed
-         _dirty: false,
-         _onChange: () => {},
-         _update: () => {}
-     };
-  } else if (sourceCount === 1) {
-    const source = stores[0];
-    if (!source) throw new Error('Source atom cannot be undefined');
-    return createSingleSourceComputed(
-      source,
-      (value: any) => calculation(...[value] as StoreValues<S>),
-      equalityFn
-    );
-  } else if (sourceCount === 2) {
-    const [s1, s2] = stores;
-    if (!s1 || !s2) throw new Error('Source atoms cannot be undefined');
-    return createTwoSourceComputed(
-      s1, s2,
-      (a: any, b: any) => calculation(...[a, b] as StoreValues<S>),
-      equalityFn
-    );
-  } else if (sourceCount === 3) {
-    const [s1, s2, s3] = stores;
-    if (!s1 || !s2 || !s3) throw new Error('Source atoms cannot be undefined');
-    return createThreeSourceComputed(
-      s1, s2, s3,
-      (a: any, b: any, c: any) => calculation(...[a, b, c] as StoreValues<S>),
-      equalityFn
-    );
-  } else if (sourceCount === 4) {
-     const [s1, s2, s3, s4] = stores;
-     if (!s1 || !s2 || !s3 || !s4) throw new Error('Source atoms cannot be undefined');
-     return createFourSourceComputed(
-      s1, s2, s3, s4,
-      (a: any, b: any, c: any, d: any) => calculation(...[a, b, c, d] as StoreValues<S>),
-      equalityFn
-    );
-  } else if (sourceCount === 5) {
-     const [s1, s2, s3, s4, s5] = stores;
-     if (!s1 || !s2 || !s3 || !s4 || !s5) throw new Error('Source atoms cannot be undefined');
-     return createFiveSourceComputed(
-      s1, s2, s3, s4, s5,
-      (a: any, b: any, c: any, d: any, e: any) => calculation(...[a, b, c, d, e] as StoreValues<S>),
-      equalityFn
-    );
-  } else {
-    // 一般情况：多依赖 (回退到 apply)
-    return createMultiSourceComputed(stores, calculation, equalityFn);
-  }
+  return createMultiSourceComputed(stores, calculation, equalityFn);
 }
 
 // --- Specialized Computed Atom Creators ---
@@ -352,46 +291,13 @@ const ComputedAtomProto: ReadonlyAtom<any> = {
     const calculation = this._calculation!;
     const sourceCount = sources.length;
 
-    let hasChanged = false;
-    // Micro-optimization: Check if any source value *actually* changed if needed
-    // This adds overhead, only useful if source.get() is cheap and calculation is expensive.
-    // Sticking to recalculating is often simpler and faster overall.
-
     // 根据依赖数量优化收集源值并计算
     let newValue;
-    if (sourceCount === 1) {
-      sourceValues[0] = sources[0]!.get();
-      newValue = calculation(sourceValues[0] as any);
-    } else if (sourceCount === 2) {
-      sourceValues[0] = sources[0]!.get();
-      sourceValues[1] = sources[1]!.get();
-      newValue = calculation(sourceValues[0] as any, sourceValues[1] as any);
-    } else if (sourceCount === 3) {
-      sourceValues[0] = sources[0]!.get();
-      sourceValues[1] = sources[1]!.get();
-      sourceValues[2] = sources[2]!.get();
-      newValue = calculation(sourceValues[0] as any, sourceValues[1] as any, sourceValues[2] as any);
-    } else if (sourceCount === 4) {
-       sourceValues[0] = sources[0]!.get();
-       sourceValues[1] = sources[1]!.get();
-       sourceValues[2] = sources[2]!.get();
-       sourceValues[3] = sources[3]!.get();
-       newValue = calculation(sourceValues[0] as any, sourceValues[1] as any, sourceValues[2] as any, sourceValues[3] as any);
-    } else if (sourceCount === 5) {
-       sourceValues[0] = sources[0]!.get();
-       sourceValues[1] = sources[1]!.get();
-       sourceValues[2] = sources[2]!.get();
-       sourceValues[3] = sources[3]!.get();
-       sourceValues[4] = sources[4]!.get();
-       newValue = calculation(sourceValues[0] as any, sourceValues[1] as any, sourceValues[2] as any, sourceValues[3] as any, sourceValues[4] as any);
+    // General case: Collect all values first
+    for (let i = 0; i < sourceCount; i++) {
+      sourceValues[i] = sources[i]!.get();
     }
-    else {
-      // General case: Collect all values first
-      for (let i = 0; i < sourceCount; i++) {
-        sourceValues[i] = sources[i]!.get();
-      }
-      newValue = calculation.apply(null, sourceValues as any);
-    }
+    newValue = calculation.apply(null, sourceValues as any);
 
     // Mark as clean *before* notifying listeners
     this._dirty = false;
