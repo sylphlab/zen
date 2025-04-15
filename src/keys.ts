@@ -1,7 +1,12 @@
 // src/keys.ts
-// This file previously contained logic for key-based subscriptions (subscribeKeys, listenKeys, checkPaths, normalizePath).
-// This functionality has been removed from the core library as part of aggressive size optimization
-// focusing on the minimal atom primitive.
-// This file is now effectively unused and can be deleted later if confirmed.
 
-export {}; // Ensure this file is treated as a module
+/**
+ * Symbol used internally by `map` and `deepMap` to mark atoms
+ * that support key-specific listeners (`listenKeys`).
+ * This helps prevent misuse of `listenKeys` on standard atoms.
+ */
+export const STORE_MAP_KEY_SET = Symbol('store_map_key_set');
+
+// Keep export {} for now in case other keys are added later,
+// ensures it's treated as a module.
+export {};

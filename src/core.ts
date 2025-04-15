@@ -9,6 +9,7 @@ export type Unsubscribe = () => void;
 
 // Minimal Atom Interface
 export interface Atom<T = any> {
+  [key: symbol]: any; // Allow symbol indexing for lifecycle listeners
   // REMOVED: Internal Event Listeners, Mount State, Key Listeners
 
   get(): T;
@@ -21,11 +22,13 @@ export interface Atom<T = any> {
   _value: T;
   _listeners: Set<Listener<T>> | undefined;
   // Internal property used in simplified batching
-  _batchValue?: T;
+  _batchValue?: T; // Note: This might be redundant/removable now? Check AtomProto.
+  _oldValueBeforeBatch?: T; // Store old value for batch key/path emission
 }
 
 // Minimal Readonly Atom Interface (e.g., for computed)
 export interface ReadonlyAtom<T = any> {
+  [key: symbol]: any; // Allow symbol indexing for lifecycle listeners
   // REMOVED: Internal Event Listeners, Mount State, Key Listeners
 
   get(): T;
@@ -37,7 +40,8 @@ export interface ReadonlyAtom<T = any> {
   _value: T;
   _listeners?: Set<Listener<T>>;
   // Internal property used in simplified batching
-  _batchValue?: T;
+  _batchValue?: T; // Note: This might be redundant/removable now? Check AtomProto.
+  _oldValueBeforeBatch?: T; // Store old value for batch key/path emission
   // Keep computed specific properties
   _dirty?: boolean; // Indicates if the computed value needs recalculation
   _sources?: ReadonlyArray<Atom<any> | ReadonlyAtom<any>>; // Source atoms

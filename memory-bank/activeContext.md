@@ -8,8 +8,8 @@
 - **Benchmarking Setup:** Installed necessary dependencies for comparisons.
 - **Core Features Implemented:** `atom`, `computed`, `map` (v1), `task` (v1), `deepMap` (v1).
 - **Mutable Helpers Added:** `mutableArrayAtom`, `mutableMapAtom`, `mutableObjectAtom`.
-- **Lifecycle Events (v1):** Implemented then removed.
-- **Key Subscription API (v1 - Simplified):** Implemented then removed.
+- **Lifecycle Events (v1 - Removed then Restored):** Implemented `onMount`, `onStart`, `onStop`, `onSet`, `onNotify`. Integrated into `atom`, `computed`, `map`, `deepMap`. Handled batching.
+- **Key/Path Subscription API (v1 - Removed then Restored):** Implemented `listenKeys` (for `map`), `listenPaths` (for `deepMap`). Integrated into `map`, `deepMap`. Handled batching.
 - **Radical Optimization (v1):**
     - Removed Event System and Key Subscription system.
     - Simplified core methods and helpers.
@@ -48,14 +48,20 @@
 15. ~~**Analyze & Address Performance Regressions (v3 - Hybrid Factory)**~~ (Minor recovery, still slow)
 16. ~~**Git Commit:** Commit hybrid factory refactor.~~
 17. ~~**Revert to Prototype Implementation**~~ (Done - Prioritizing performance).
-18. **Git Commit:** Commit revert to prototype implementation and update Memory Bank.
-19. **Review `mutable*` Helpers**: Confirm compatibility with reverted prototype core.
-20. **Documentation & Examples**: Update/create README with current API and examples.
-21. **Feature Enhancements**: Consider next steps (e.g., optional event module, framework integrations).
+18. **Restore Features:** Re-implemented Lifecycle Events and Key/Path Subscriptions based on user feedback.
+    - Restored/Updated `src/events.ts`, `src/keys.ts`, `src/deepMapInternal.ts`.
+    - Modified `src/core.ts`, `src/atom.ts`, `src/computed.ts`, `src/map.ts`, `src/deepMap.ts` to integrate features and handle batching correctly.
+    - Restored/Updated tests in `src/events.test.ts`, `src/map.test.ts`, `src/deepMap.test.ts`. Fixed related issues.
+    - Updated benchmarks in `src/deepMap.bench.ts` (`setKey` -> `setPath`).
+19. **Run Checks:** `tsc --noEmit && npm run test` passed. (Build/size check pending commit).
+20. **Git Commit:** Commit restored features and Memory Bank updates.
+21. **Review `mutable*` Helpers**: Confirm compatibility with restored features.
+22. **Documentation & Examples**: Update README with restored API and examples.
+23. **Feature Enhancements**: Re-evaluate next steps (e.g., optional event module, framework integrations).
 
 ## Active Decisions
 - Using TypeScript for the library development.
 - V1 implementations of map/deepMap exclude fine-grained key notification.
 - Tests and benchmarks organized by feature.
-- **Decision:** Removed event system and key subscription entirely initially.
 - **Decision:** Reverted factory function pattern back to prototype-based implementation to prioritize performance over absolute minimum size. Accepted size ~588 B for core atom.
+- **Decision:** Restored Lifecycle Events and Key/Path Subscriptions based on user feedback prioritizing functionality over minimal size.

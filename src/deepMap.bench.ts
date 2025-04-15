@@ -29,10 +29,10 @@ describe('deepMap benchmark', () => {
 
 
   const initialShallowData = { name: 'test', age: 1 }
-  describe('setKey (shallow)', () => {
+  describe('setPath (shallow)', () => { // Renamed describe block
       bench('zen', () => {
         const store = deepMap(initialShallowData)
-        store.setKey('age', 2)
+        store.setPath('age', 2) // Use setPath
       })
       bench('nanostores', () => {
         const store = nanostoresDeepMap(initialShallowData)
@@ -44,10 +44,10 @@ describe('deepMap benchmark', () => {
 
 
   const initial1LevelData = { user: { profile: { name: 'test' } } }
-  describe('setKey (1 level deep - name)', () => {
+  describe('setPath (1 level deep - name)', () => { // Renamed describe block
       bench('zen', () => {
         const store = deepMap(initial1LevelData)
-        store.setKey('user.profile.name', 'new') // Note: Zen uses dot notation or array path
+        store.setPath('user.profile.name', 'new') // Use setPath
       })
       bench('nanostores', () => {
         const store = nanostoresDeepMap(initial1LevelData)
@@ -59,10 +59,10 @@ describe('deepMap benchmark', () => {
 
 
   const initial2LevelData = { user: { profile: { name: 'test', age: 1 } } }
-   describe('setKey (2 levels deep - age)', () => {
+   describe('setPath (2 levels deep - age)', () => { // Renamed describe block
        bench('zen', () => {
          const store = deepMap(initial2LevelData)
-         store.setKey('user.profile.age', 2)
+         store.setPath('user.profile.age', 2) // Use setPath
        })
        bench('nanostores', () => {
          const store = nanostoresDeepMap(initial2LevelData)
@@ -74,10 +74,10 @@ describe('deepMap benchmark', () => {
 
 
    const initialArrayData = { items: [1, 2, 3] }
-    describe('setKey (array index)', () => {
+    describe('setPath (array index)', () => { // Renamed describe block
         bench('zen', () => {
           const store = deepMap(initialArrayData)
-          store.setKey(['items', 1], 99) // Zen uses array path for index
+          store.setPath(['items', 1], 99) // Use setPath
         })
         bench('nanostores', () => {
           const store = nanostoresDeepMap(initialArrayData)
@@ -89,10 +89,10 @@ describe('deepMap benchmark', () => {
 
 
     const initialEmptyData = {}
-    describe('setKey (creating path)', () => {
+    describe('setPath (creating path)', () => { // Renamed describe block
         bench('zen', () => {
           const store = deepMap<DeepTestData>(initialEmptyData)
-          store.setKey('user.profile.name', 'created')
+          store.setPath('user.profile.name', 'created') // Use setPath
         })
         bench('nanostores', () => {
           const store = nanostoresDeepMap<DeepTestData>(initialEmptyData)

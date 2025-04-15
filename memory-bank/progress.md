@@ -100,22 +100,25 @@
 - `computed`: Derived state (Minimal - Prototype).
 - `mutableArrayAtom`, `mutableMapAtom`, `mutableObjectAtom`: Perf-focused mutable helpers.
 - `map` (v1 - Simplified): Object atom with `setKey`.
-- `deepMap` (v1 - Simplified): Deeply nested object atom with `setKey`.
+- `map` (v1 - Restored): Object atom with `setKey` and `listenKeys`.
+- `deepMap` (v1 - Restored): Deeply nested object atom with `setPath` and `listenPaths`.
 - `task`: Async operation state management (Minimal).
-- **REMOVED:** Lifecycle Events (`onMount`, `onStart`, `onStop`, `onSet`, `onNotify`).
-- **REMOVED:** Key Subscriptions (`subscribeKeys`, `listenKeys`).
+- **RESTORED:** Lifecycle Events (`onMount`, `onStart`, `onStop`, `onSet`, `onNotify`). Implemented via `listen` in `src/events.ts`. Integrated into core atoms.
+- **RESTORED:** Key/Path Subscriptions (`listenKeys`, `listenPaths`). Implemented in `src/events.ts`. Integrated into `map`/`deepMap`.
 
 ## Benchmark Highlights (Post Revert - 2025-04-15)
-- Performance successfully restored to previous high levels across most benchmarks.
+- Performance restored to previous high levels after reverting optimizations. (Note: New benchmarks needed after feature restoration).
 - Zen remains highly competitive or leads in many categories (Atom Creation/Set/Sub, Computed Creation/Update, Map/DeepMap ops).
 
 ## Current Status
-- Reverted core implementation (`atom`, `computed`) back to prototype-based version.
-- Performance restored, size sacrifice accepted.
+- Core implementation (`atom`, `computed`) remains prototype-based for performance.
+- Lifecycle Events and Key/Path Subscriptions have been restored based on user feedback.
+- Associated tests have been restored and updated.
 - All tests pass (`npm run test`).
-- Size confirmed (`npm run size`): `atom only` 588 B, `full` 881 B.
-- Benchmarks run (`npm run bench`), confirming performance recovery.
-- **Next:** Commit final state, review mutable helpers, update documentation.
+- Size confirmed (`npm run size`): `atom only` 588 B, `full` 881 B (Note: Size expected to increase after feature restoration; new check needed).
+- Benchmarks run (`npm run bench`) confirming performance recovery *before* feature restoration.
+- Checks (`tsc`, `test`) passed after restoring features.
+- **Next:** Commit restored features, update Memory Bank, re-run build/size check.
 
 ## Known Issues/Next Steps (Refined)
 1.  ~~Run Build & Size Checks (Post-Events)~~
@@ -136,7 +139,10 @@
 16. ~~Revert to Prototype Implementation~~ (Done - Prioritizing performance).
 17. ~~Run Checks & Size (Post-Revert)~~ (Done - Size confirmed at 588 B).
 18. ~~Commit Changes~~: Commit revert to prototype implementation.
-19. ~~Review `mutable*` Helpers~~ (Done - Confirmed compatibility).
-20. ~~Documentation & Examples~~ (Done - README updated).
-21. **Commit final Memory Bank / README updates.**
-22. **Consider Feature Enhancements**: Next steps could include more docs, examples, or optional modules.
+19. ~~Review `mutable*` Helpers~~ (Done - Confirmed compatibility before feature restore).
+20. ~~Documentation & Examples~~ (Done - Needs update for restored features).
+21. **Commit restored features & Memory Bank updates.**
+22. **Run Build & Size checks:** Verify build and get new size after feature restoration.
+23. **Review `mutable*` Helpers**: Confirm compatibility *with restored* features.
+24. **Documentation & Examples**: Update README with restored API (`listen`, `listenKeys`, `listenPaths`) and examples.
+25. **Consider Feature Enhancements**: Re-evaluate next steps.

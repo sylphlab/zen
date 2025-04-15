@@ -12,6 +12,8 @@ import {
   // PathString, // Removed
   // KeyListener // Removed
 } from './core';
+import { LIFECYCLE, emit } from './events'; // Import lifecycle events
+
 // Import checkPaths helper - REMOVED
 // import { checkPaths } from './keys';
 
@@ -35,17 +37,19 @@ export const AtomProto: Atom<any> = {
     return this._value;
   },
 
-  // Simplified set - no payload, no events
+  // Modified set - includes onSet event
   set(newValue: any, forceNotify: boolean = false) {
     const oldValue = this._value;
 
     // Perform the actual set if value changed
     if (forceNotify || !Object.is(newValue, oldValue)) {
+      emit(this, LIFECYCLE.onSet, newValue); // Emit onSet before setting
       this._value = newValue;
 
       if (batchDepth > 0) {
         // Only add to queue if not already present
         if (!batchQueue.has(this)) {
+           this._oldValueBeforeBatch = oldValue; // Store old value for batch
            batchQueue.add(this);
            // REMOVED: _batchValue logic
         }
@@ -65,18 +69,33 @@ export const AtomProto: Atom<any> = {
         listener(value, oldValue);
       }
     };
+    emit(this, LIFECYCLE.onNotify, value); // Emit onNotify after notifying listeners
   },
 
-  // Simplified batch notify - sends the current value, oldValue is undefined
+  // Modified batch notify - uses stored old value and checks for change
   _notifyBatch() {
-      this._notify(this._value, undefined);
+      const oldValue = this._oldValueBeforeBatch;
+      const newValue = this._value;
+      delete this._oldValueBeforeBatch; // Clear stored old value immediately
+
+      // Only call _notify if the value actually changed compared to before the batch
+      if (!Object.is(newValue, oldValue)) {
+          this._notify(newValue, oldValue);
+      }
       // REMOVED: delete (this as any)._batchValue;
   },
 
-  // Simplified subscribe - no events, no mount/start/stop
+  // Modified subscribe - includes onMount, onStart events
   subscribe(listener: Listener<any>): Unsubscribe {
+    const isFirstListener = !this._listeners || this._listeners.size === 0;
+
     // Optimized listener set initialization and addition
     (this._listeners = this._listeners || new Set()).add(listener);
+
+    if (isFirstListener) {
+      emit(this, LIFECYCLE.onStart); // Emit onStart for the first listener
+    }
+    emit(this, LIFECYCLE.onMount, listener); // Emit onMount for every listener
 
     listener(this._value, undefined); // Immediate notification with current value
 
@@ -91,7 +110,10 @@ export const AtomProto: Atom<any> = {
       const currentListeners = self._listeners;
       if (currentListeners) {
         currentListeners.delete(listener);
-        // No need to check for empty or trigger lifecycle events
+        if (currentListeners.size === 0) {
+          // delete self._listeners; // Optional: Clean up empty set
+          emit(self, LIFECYCLE.onStop); // Emit onStop when the last listener unsubscribes
+        }
       }
     };
   },

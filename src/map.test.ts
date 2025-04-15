@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { map } from './map'; // Assuming map is exported from map.ts
+import { map } from './map';
+import { batch } from './core'; // Import batch
 
 describe('map', () => {
   it('should create a map atom with initial value', () => {
@@ -101,9 +102,143 @@ describe('map', () => {
         unsubscribe();
     });
 
-  // --- REMOVED Key Subscription Tests ---
-  // The subscribeKeys and listenKeys functionality has been removed during optimization.
-  // it('subscribeKeys should call listener immediately...', () => { ... });
-  // it('listenKeys should NOT call listener immediately...', () => { ... });
+  // --- Key Subscription Tests ---
+
+  it('listenKeys should be called when a specified key is changed via setKey', () => {
+    const store = map({ name: 'John', age: 30, city: 'New York' });
+    const keyListener = vi.fn();
+    const unsubscribe = store.listenKeys(['age'], keyListener);
+
+    store.setKey('age', 31);
+    expect(keyListener).toHaveBeenCalledTimes(1);
+    expect(keyListener).toHaveBeenCalledWith(31, 'age', { name: 'John', age: 31, city: 'New York' });
+
+    keyListener.mockClear();
+    store.setKey('name', 'Jane'); // Change unrelated key
+    expect(keyListener).not.toHaveBeenCalled();
+
+    unsubscribe();
+  });
+
+  it('listenKeys should be called when a specified key is changed via set', () => {
+    const store = map({ name: 'John', age: 30 });
+    const keyListener = vi.fn();
+    const unsubscribe = store.listenKeys(['name'], keyListener);
+
+    const newValue = { name: 'Jane', age: 30 };
+    store.set(newValue);
+    expect(keyListener).toHaveBeenCalledTimes(1);
+    expect(keyListener).toHaveBeenCalledWith('Jane', 'name', newValue);
+
+    unsubscribe();
+  });
+
+   it('listenKeys should handle multiple keys', () => {
+    const store = map({ name: 'John', age: 30, city: 'New York' });
+    const keyListener = vi.fn();
+    const unsubscribe = store.listenKeys(['name', 'age'], keyListener);
+
+    // Change 'age'
+    store.setKey('age', 31);
+    expect(keyListener).toHaveBeenCalledTimes(1);
+    expect(keyListener).toHaveBeenCalledWith(31, 'age', { name: 'John', age: 31, city: 'New York' });
+
+    keyListener.mockClear();
+
+    // Change 'name'
+    store.setKey('name', 'Jane');
+    expect(keyListener).toHaveBeenCalledTimes(1);
+    expect(keyListener).toHaveBeenCalledWith('Jane', 'name', { name: 'Jane', age: 31, city: 'New York' });
+
+     keyListener.mockClear();
+
+    // Change 'city' (not listened to)
+    store.setKey('city', 'London');
+     expect(keyListener).not.toHaveBeenCalled();
+
+     keyListener.mockClear();
+
+     // Change both 'name' and 'age' via set()
+     const newValue = { name: 'Peter', age: 40, city: 'London' };
+     store.set(newValue);
+     // Listener should be called twice, once for each changed key it listens to
+     expect(keyListener).toHaveBeenCalledTimes(2);
+     expect(keyListener).toHaveBeenCalledWith('Peter', 'name', newValue);
+     expect(keyListener).toHaveBeenCalledWith(40, 'age', newValue);
+
+
+    unsubscribe();
+  });
+
+   it('listenKeys should not be called after unsubscribing', () => {
+    const store = map({ name: 'John', age: 30 });
+    const keyListener = vi.fn();
+    const unsubscribe = store.listenKeys(['age'], keyListener);
+
+    unsubscribe(); // Unsubscribe immediately
+
+    store.setKey('age', 31);
+    expect(keyListener).not.toHaveBeenCalled();
+  });
+
+  it('listenKeys should handle multiple listeners for the same key', () => {
+    const store = map({ name: 'John', age: 30 });
+    const listener1 = vi.fn();
+    const listener2 = vi.fn();
+
+    const unsub1 = store.listenKeys(['age'], listener1);
+    const unsub2 = store.listenKeys(['age'], listener2);
+
+    store.setKey('age', 31);
+    expect(listener1).toHaveBeenCalledTimes(1);
+    expect(listener2).toHaveBeenCalledTimes(1);
+    expect(listener1).toHaveBeenCalledWith(31, 'age', { name: 'John', age: 31 });
+    expect(listener2).toHaveBeenCalledWith(31, 'age', { name: 'John', age: 31 });
+
+    unsub1();
+
+    listener1.mockClear();
+    listener2.mockClear();
+
+    store.setKey('age', 32);
+    expect(listener1).not.toHaveBeenCalled();
+    expect(listener2).toHaveBeenCalledTimes(1);
+
+    unsub2();
+  });
+
+    it('listenKeys should work correctly with batching', () => {
+        const store = map({ a: 1, b: 2, c: 3 });
+        const listenerA = vi.fn();
+        const listenerB = vi.fn();
+        const listenerAB = vi.fn();
+
+        const unsubA = store.listenKeys(['a'], listenerA);
+        const unsubB = store.listenKeys(['b'], listenerB);
+        const unsubAB = store.listenKeys(['a', 'b'], listenerAB);
+
+        batch(() => {
+            store.setKey('a', 10); // Change a
+            store.set({a: 10, b: 20, c: 3}); // Change b
+        });
+
+        const finalValue = { a: 10, b: 20, c: 3 };
+
+        // Each listener should be called once after the batch
+        expect(listenerA).toHaveBeenCalledTimes(1);
+        expect(listenerA).toHaveBeenCalledWith(10, 'a', finalValue);
+
+        expect(listenerB).toHaveBeenCalledTimes(1);
+        expect(listenerB).toHaveBeenCalledWith(20, 'b', finalValue);
+
+        // listenerAB should be called for each key it subscribed to that changed
+        expect(listenerAB).toHaveBeenCalledTimes(2);
+        expect(listenerAB).toHaveBeenCalledWith(10, 'a', finalValue);
+        expect(listenerAB).toHaveBeenCalledWith(20, 'b', finalValue);
+
+        unsubA();
+        unsubB();
+        unsubAB();
+    });
 
 });
