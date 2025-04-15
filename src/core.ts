@@ -54,27 +54,40 @@ export interface ReadonlyAtom<T = any> {
   _update?(): boolean; // Internal method to update value if dirty, returns true if value changed
   _subscribeToSources?(): void; // Internal method to subscribe to sources
   _unsubscribeFromSources?(): void; // Internal method to unsubscribe
+  _isSubscribing?: boolean; // Flag to suppress initial onNotify during subscribe
 }
 
 // REMOVED: EMPTY_SET Constant
 
-// 批处理系统
+// 批处理系统 (Optimized Batching System)
 export let batchDepth = 0;
 export const batchQueue = new Set<Atom<any> | ReadonlyAtom<any>>(); // Ensure correct type
 
-// 批处理API
+// 批处理API (Optimized for performance)
 export function batch<T>(fn: () => T): T {
+  // Increment depth counter
   batchDepth++;
+  
   try {
+    // Execute the batch function
     return fn();
   } finally {
-    if (--batchDepth === 0 && batchQueue.size > 0) {
-      // Create a copy before iterating, in case notifications trigger more batching
+    // Decrement depth counter
+    batchDepth--;
+    
+    // Process the queue only when exiting the outermost batch
+    if (batchDepth === 0 && batchQueue.size > 0) {
+      // Capture the current queue
       const queue = Array.from(batchQueue);
+      // Clear the queue early to avoid nested batch issues
       batchQueue.clear();
-      for (const atom of queue) {
-        // Use internal method directly
-        atom._notifyBatch();
+      
+      // Minimize property lookups in hot loop
+      const len = queue.length;
+      
+      // Fast loop for better performance
+      for (let i = 0; i < len; i++) {
+        queue[i]!._notifyBatch();
       }
     }
   }

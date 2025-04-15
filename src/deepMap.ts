@@ -57,7 +57,6 @@ export function deepMap<T extends object>(initialValue: T): DeepMap<T> {
                 emitPaths(this, changedPaths, newValue); // Emit changed paths
             }
         }
-        // TODO: Handle path emission correctly during batching (maybe in _notifyBatch override?)
     }
   };
 

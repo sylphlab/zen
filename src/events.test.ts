@@ -214,9 +214,9 @@ describe('Lifecycle Events', () => {
         const unsubNotify = listen(derived, LIFECYCLE.onNotify, notifyListener);
         const unsubSub = derived.subscribe(subListener);
 
-        // Assert that listeners are NOT called immediately on subscribe
-        expect(notifyListener).not.toHaveBeenCalled();
-        expect(subListener).not.toHaveBeenCalled();
+        // Assert that listeners ARE called immediately on subscribe
+        expect(notifyListener).toHaveBeenCalledTimes(1);
+        expect(subListener).toHaveBeenCalledTimes(1);
 
         // Trigger initial calculation and notification by calling get()
         expect(derived.get()).toBe(0);

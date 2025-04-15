@@ -31,7 +31,7 @@ export const ComputedAtomProto: ReadonlyAtom<any> = {
   _unsubscribers: undefined,
   _onChangeHandler: undefined,
   _dirty: true,
-
+  // _isSubscribing: false, // Removed flag to suppress initial onNotify
   // --- Overrides ---
 
   // Override _notify specific to Computed: ONLY notify listeners.
@@ -55,6 +55,7 @@ export const ComputedAtomProto: ReadonlyAtom<any> = {
         // Call the base _notify implementation from AtomProto just to iterate listeners
         (AtomProto._notify as Function).call(this, newValue, oldValue);
         // Emit onNotify *after* batch listeners are notified
+        // Emit onNotify *after* batch listeners are notified
         emit(this, LIFECYCLE.onNotify, newValue);
     }
   },
@@ -71,51 +72,69 @@ export const ComputedAtomProto: ReadonlyAtom<any> = {
     return this._value;
   },
 
-  _update() {
+  _update(): boolean {
+    // Cache frequently accessed properties to avoid repeated property lookups
     const sources = this._sources!;
     const sourceValues = this._sourceValues!;
     const calculation = this._calculation!;
     const sourceCount = sources.length;
 
-    let newValue;
+    // Fast path: Read all source values
     for (let i = 0; i < sourceCount; i++) {
       sourceValues[i] = sources[i]!.get();
     }
-    newValue = calculation.apply(null, sourceValues as any);
-
+    
+    // Calculate new value
+    const newValue = calculation.apply(null, sourceValues as any);
     const oldValue = this._value;
+    
+    // Mark as up-to-date immediately to avoid redundant updates
     this._dirty = false;
 
-    if (!this._equalityFn!(newValue, oldValue)) {
-      this._value = newValue;
-
-      if (batchDepth > 0) {
-        if (!batchQueue.has(this)) {
-           this._oldValueBeforeBatch = oldValue;
-           batchQueue.add(this);
-        }
-      } else {
-        // Use the overridden _notify (calls listeners only)
-        this._notify(newValue, oldValue);
-        // Emit onNotify *after* listeners for non-batched updates
-        emit(this, LIFECYCLE.onNotify, newValue);
-      }
+    // Fast equality check
+    if (this._equalityFn!(newValue, oldValue)) {
+      return false; // No change
     }
+    
+    // Update value
+    this._value = newValue;
+
+    // Handle notifications
+    if (batchDepth > 0) {
+      if (!batchQueue.has(this)) {
+        this._oldValueBeforeBatch = oldValue;
+        batchQueue.add(this);
+      }
+    } else {
+      // Single notification for both listeners and lifecycle event
+      this._notify(newValue, oldValue);
+      // Only emit onNotify once per update
+      emit(this, LIFECYCLE.onNotify, newValue);
+    }
+    
+    return true; // Value changed
   },
 
   _onChange() {
-    if (!this._dirty) {
-      this._dirty = true;
-      if (this._listeners && this._listeners.size > 0) {
-        if (batchDepth > 0) {
-          if (!batchQueue.has(this)) {
-             this._oldValueBeforeBatch = this._value;
-             batchQueue.add(this);
-          }
-        } else {
-          this._update!();
-        }
+    // Skip if already dirty to avoid redundant work
+    if (this._dirty) return;
+    
+    // Mark as dirty
+    this._dirty = true;
+    
+    // Only update if there are listeners
+    if (!this._listeners || this._listeners.size === 0) return;
+    
+    // Handle batched or immediate updates
+    if (batchDepth > 0) {
+      // Add to batch queue if not already queued
+      if (!batchQueue.has(this)) {
+        this._oldValueBeforeBatch = this._value;
+        batchQueue.add(this);
       }
+    } else {
+      // Immediate update
+      this._update!();
     }
   },
 
@@ -154,8 +173,8 @@ export const ComputedAtomProto: ReadonlyAtom<any> = {
     }
     emit(this, LIFECYCLE.onMount, listener);
 
+    // Removed _isSubscribing flag usage
     this.get(); // Ensures calculation if dirty and notifies if value changed initially
-
     const self = this;
     return function unsubscribe(): void {
       const currentListeners = self._listeners;
