@@ -17,8 +17,8 @@ import {
   // SetEventCallback, // Removed
   // NotifyEventCallback // Removed
 } from './core';
-// REMOVED: import { AtomProto } from './atom';
-import { atom } from './atom'; // Import atom factory
+// Import only AtomProto from atom.ts
+import { AtomProto } from './atom'; // Removed triggerEvent triggerLifecycleEvent
 
 // Computed related types
 type Stores = ReadonlyArray<Atom<any> | ReadonlyAtom<any>>;
@@ -26,173 +26,171 @@ type StoreValues<S extends Stores> = {
   [K in keyof S]: S[K] extends Atom<infer V> | ReadonlyAtom<infer V> ? V : never
 };
 
-// REMOVED: ComputedAtomProto definition
+// Minimal Computed Atom Prototype
+export const ComputedAtomProto: ReadonlyAtom<any> = {
+  // Inherit simplified properties and methods from AtomProto
+  ...AtomProto, // Includes _value _listeners get set (noop) _notify _notifyBatch value getter
 
-// Factory function for computed (ReadonlyAtom)
+  // Computed-specific properties
+  _sources: undefined, // Array of source atoms
+  _sourceValues: undefined, // Array to store last known values of sources
+  _calculation: undefined, // The function to compute the value
+  _equalityFn: undefined, // Function to compare new/old values
+  _unsubscribers: undefined, // Array of unsubscribe functions for sources
+  _onChangeHandler: undefined, // Cached handler for source changes
+  _dirty: true, // Flag indicating if recalculation is needed
+  // REMOVED: Event/state properties (_onMount _onStart _onStop _onSet _onNotify _mountCleanups _active)
+
+  // Simplified get
+  get(): any {
+    // Subscribe to sources only if we have listeners but haven't subscribed yet
+    if (!this._unsubscribers && this._listeners && this._listeners.size > 0) {
+        this._subscribeToSources!(); // Use non-null assertion
+    }
+    // Calculate value if dirty
+    if (this._dirty) {
+       this._update!(); // Use non-null assertion
+    }
+    return this._value;
+  },
+
+  // Simplified _update - no event triggering
+  _update() {
+    const sources = this._sources!; // Use non-null assertion
+    const sourceValues = this._sourceValues!; // Use non-null assertion
+    const calculation = this._calculation!;
+    const sourceCount = sources.length;
+
+    let newValue;
+    for (let i = 0; i < sourceCount; i++) {
+      sourceValues[i] = sources[i]!.get();
+    }
+    newValue = calculation.apply(null, sourceValues as any);
+
+    const oldValue = this._value;
+    this._dirty = false; // Mark as clean
+
+    if (!this._equalityFn!(newValue, oldValue)) {
+      // REMOVED: onSet triggering and payload logic
+
+      this._value = newValue;
+
+      if (batchDepth > 0) {
+        // Simplified batching - uses AtomProto's _batchValue logic
+        if (!batchQueue.has(this)) {
+           (this as any)._batchValue = this._value;
+           batchQueue.add(this);
+        }
+      } else {
+        // Notify immediately using simplified _notify
+        this._notify(newValue, oldValue);
+      }
+    }
+  },
+
+  // Simplified _onChange
+  _onChange() {
+    if (!this._dirty) {
+      this._dirty = true;
+      // If there are listeners schedule an update (batched or immediate)
+      if (this._listeners && this._listeners.size > 0) {
+        if (batchDepth > 0) {
+          // Add to batch queue _notifyBatch will handle update if needed
+          if (!batchQueue.has(this)) {
+             (this as any)._batchValue = this._value; // Store pre-change value? Or let _update handle final? Let _update handle.
+             batchQueue.add(this);
+          }
+        } else {
+          // Update immediately if not batching
+          this._update!();
+        }
+      }
+    }
+  },
+
+  // Simplified _subscribeToSources
+  _subscribeToSources() {
+      if (this._unsubscribers) return; // Already subscribed
+      const sources = this._sources!;
+      const sourceCount = sources.length;
+      this._unsubscribers = new Array(sourceCount);
+
+      // Create handler if it doesn't exist
+      if (!this._onChangeHandler) {
+          const self = this;
+          this._onChangeHandler = () => { self._onChange!(); };
+      }
+
+      // Subscribe to each source
+      for (let i = 0; i < sourceCount; i++) {
+          this._unsubscribers[i] = sources[i]!.subscribe(this._onChangeHandler!);
+      }
+  },
+
+  // Simplified _unsubscribeFromSources
+  _unsubscribeFromSources() {
+      if (!this._unsubscribers) return; // Nothing to unsubscribe from
+      for (const unsubscribe of this._unsubscribers) {
+          unsubscribe(); // Call each unsubscribe function
+      }
+      this._unsubscribers = undefined; // Reset the array
+      // We might become dirty again now that we aren't listening
+      this._dirty = true;
+  },
+
+  // Simplified subscribe - no events manages source subscription
+  subscribe(listener: Listener<any>): Unsubscribe {
+    const isFirstListener = !this._listeners || this._listeners.size === 0;
+
+    // Ensure listener set exists
+    if (!this._listeners) {
+      this._listeners = new Set();
+    }
+    this._listeners.add(listener);
+
+    // Subscribe to sources ONLY when the first listener is added
+    if (isFirstListener) {
+      this._subscribeToSources!();
+    }
+
+    // Ensure the value is calculated. The potential notification from get()
+    // serves as the initial notification if the value changed from undefined.
+    this.get(); // Ensures calculation if dirty
+    // REMOVED: Explicit listener call: listener(this._value undefined);
+
+    const self = this; // Capture 'this' for the unsubscribe closure
+    return function unsubscribe(): void {
+      const currentListeners = self._listeners;
+      if (currentListeners) {
+        currentListeners.delete(listener);
+        // Unsubscribe from sources ONLY when the last listener is removed
+        if (currentListeners.size === 0) {
+          self._unsubscribeFromSources!();
+        }
+      }
+    };
+  },
+
+  // _notify and _notifyBatch are inherited directly from simplified AtomProto
+
+  // REMOVED: value getter
+  // get value(): any {
+  //   return this.get();
+  // }
+  // REMOVED: listeners getter
+};
+
+// Factory function
 export function computed<T, S extends Stores>(
   stores: S,
   calculation: (...values: StoreValues<S>) => T,
   equalityFn: (a: T, b: T) => boolean = Object.is
 ): ReadonlyAtom<T> {
-  let _value: T | undefined = undefined;
-  let _listeners: Set<Listener<T>> | undefined = undefined;
-  const _sources: ReadonlyArray<Atom<any> | ReadonlyAtom<any>> = stores;
-  // Correctly declare variables within the closure
-  let _sourceValues: any[] | undefined = undefined; // Initialize as undefined
-  let _unsubscribers: Unsubscribe[] | undefined = undefined;
-  let _onChangeHandler: (() => void) | undefined = undefined;
-  let _dirty: boolean = true;
-  const _calculationFn = calculation; // Assign calculation to a closure variable
-  const _equalityFn = equalityFn; // Assign equalityFn to a closure variable
-
-
-  // Define _notify function within closure
-  const _notify = (value: T, oldValue?: T): void => {
-    if (_listeners && _listeners.size > 0) {
-      for (const listener of _listeners) {
-        listener(value, oldValue);
-      }
-    }
-  };
-
-  // Define _notifyBatch function within closure
-  const _notifyBatch = (): void => {
-    // Need to recompute if dirty before notifying
-    if (_dirty) {
-      _update(); // Ensure value is current
-    }
-    _notify(_value!, undefined); // Use computed _value
-  };
-
-  // Define _update function within closure
-  const _update = (): void => {
-    const sourceCount = _sources.length;
-    let changed = false;
-    let newSourceValues: any[] = Array(sourceCount);
-
-    // Get current source values and check if they changed
-    for (let i = 0; i < sourceCount; i++) {
-      const source = _sources[i]!;
-      newSourceValues[i] = source.get();
-      if (_sourceValues === undefined || !Object.is(newSourceValues[i], _sourceValues[i])) {
-        changed = true;
-      }
-    }
-
-    // Only recalculate if a source changed or it's the first run
-    if (changed || _dirty) { // Also recalculate if marked dirty explicitly
-      const oldValue = _value;
-      _sourceValues = newSourceValues; // Store new source values
-      _value = calculation.apply(null, _sourceValues as any);
-      _dirty = false; // Mark as clean
-
-      // Notify if the computed value changed
-      if (oldValue === undefined || !equalityFn(_value!, oldValue)) {
-        // Need to handle batching correctly for computed as well
-        const self = computedAtom; // Capture instance for batching
-        if (batchDepth > 0) {
-           if (!batchQueue.has(self)) {
-               batchQueue.add(self);
-           }
-        } else {
-           _notify(_value!, oldValue);
-        }
-      }
-    }
-  };
-
-  // Define _onChange function (called by source subscriptions)
-  const _onChange = (): void => {
-    if (!_dirty) {
-      _dirty = true;
-      // If there are listeners, schedule an update
-      if (_listeners && _listeners.size > 0) {
-         const self = computedAtom; // Capture instance for batching
-         if (batchDepth > 0) {
-            if (!batchQueue.has(self)) {
-               batchQueue.add(self);
-            }
-         } else {
-            _update(); // Update immediately if not batching (this triggers notify if needed)
-         }
-      }
-    }
-  };
-
-  // Define _subscribeToSources within closure
-  const _subscribeToSources = (): void => {
-    if (_unsubscribers) return;
-    const sourceCount = _sources.length;
-    _unsubscribers = Array(sourceCount);
-    _onChangeHandler = _onChangeHandler || _onChange; // Use cached handler or create it
-
-    for (let i = 0; i < sourceCount; i++) {
-      _unsubscribers[i] = _sources[i]!.subscribe(_onChangeHandler);
-    }
-  };
-
-  // Define _unsubscribeFromSources within closure
-  const _unsubscribeFromSources = (): void => {
-    if (!_unsubscribers) return;
-    for (const unsubscribe of _unsubscribers) {
-      unsubscribe();
-    }
-    _unsubscribers = undefined;
-    _dirty = true; // Mark as dirty since we stopped listening
-  };
-
-
-  // Create the computed atom object directly
-  const computedAtom: ReadonlyAtom<T> = {
-     // Define methods within closure
-     get(): T {
-       // Subscribe only if needed
-       if (!_unsubscribers && _listeners && _listeners.size > 0) {
-         _subscribeToSources();
-       }
-       if (_dirty) {
-         _update(); // Recalculate if dirty
-       }
-       return _value!; // Assuming it's calculated by now
-     },
-     subscribe(listener: Listener<T>): Unsubscribe {
-       const isFirst = !_listeners || _listeners.size === 0;
-       (_listeners = _listeners || new Set()).add(listener);
-       if (isFirst) {
-         _subscribeToSources();
-       }
-       this.get(); // Ensure calculation and potential initial notify
-       // REMOVED explicit listener call
-       return (): void => {
-         if (_listeners) {
-           _listeners.delete(listener);
-           if (_listeners.size === 0) {
-             _unsubscribeFromSources();
-           }
-         }
-       };
-     },
-     // Assign internal methods needed by interface/batching
-     _notify,
-     _notifyBatch,
-     // Ensure _value getter always returns T by calling get() if needed
-     get _value(): T { return _value !== undefined ? _value : this.get() },
-     get _listeners() { return _listeners }, // Expose internal listeners
-
-     // Assign computed-specific internal methods/properties required by interface
-     _dirty,
-     _sources,
-     _sourceValues,
-     _calculation: calculation, // Store the function
-     _equalityFn: equalityFn,   // Store the function
-     _unsubscribers,
-     _onChangeHandler,
-     _onChange,
-     _update,
-     _subscribeToSources,
-     _unsubscribeFromSources,
-     // _batchValue is on the interface for batching, not explicitly managed here
-  };
-
+  const computedAtom = Object.create(ComputedAtomProto) as ReadonlyAtom<T>;
+  computedAtom._sources = stores;
+  computedAtom._sourceValues = Array(stores.length);
+  computedAtom._calculation = calculation;
+  computedAtom._equalityFn = equalityFn;
+  computedAtom._dirty = true;
   return computedAtom;
 }
