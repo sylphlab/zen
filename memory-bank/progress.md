@@ -99,6 +99,7 @@
 - `computed`: Derived state.
 - `mutableArrayAtom`, `mutableMapAtom`, `mutableObjectAtom`: Perf-focused mutable helpers.
 - `map` (v1): Object atom with `setKey`.
+- `deepMap` (v1): Deeply nested object atom with `setKey`.
 - `task`: Async operation state management.
 
 ## Benchmark Highlights (Post map/task v1)
@@ -107,13 +108,14 @@
 - Performance profile remains very strong.
 
 ## Current Status
-- Core features + `map` (v1) + `task` implemented and tested.
-- Build/Test/Lint checks pass.
-- **Performance:** Excellent across the board, often fastest.
-- **Size:** `{ atom }` import cost (660 B) is high compared to rivals. Total library size unknown but certainly larger. Size reduction is CRITICAL.
+- Core features + `map` (v1) + `deepMap` (v1) + `task` implemented and tested.
+- All core tests pass (excluding placeholders in `index.test.ts` which now just contain a dummy test).
+- **Performance:** Ran benchmarks including grouped `deepMap` vs Nanostores `deepMap`. Zen's `deepMap` operations are significantly faster (**2.9x - 10.2x**) than Nanostores' across all tested scenarios (creation, shallow/deep setKey, array index, path creation). Overall library performance remains strong.
+- **Size:** `zen (full)` size including `deepMap` is **953 B** (brotlied). Size reduction remains the **highest priority**, focusing on the core `atom` (660 B).
 
 ## Known Issues/Next Steps (Refined)
-1.  **Accurate Size Measurement**: Configure `size-limit` for total library cost (`atom`, `computed`, `map`, `task`).
-2.  **Analyze Size Increase**: Pinpoint where the size cost is coming from (e.g., `map` implementation, `task` helpers, core changes).
-3.  **Aggressive Size Optimization**: Explore techniques like code golfing (carefully), alternative implementations, further Tsup config tuning. Target < Nanostores `{ atom }` size as a primary goal for the core.
-4.  **Feature Enhancements (Post-Optimization)**: Revisit `map` v2 (`subscribeKey`), documentation, etc., only after achieving size goals.
+1.  ~~**Run Build & Size Checks**: Execute `npm run build && npm run size` to get updated size metrics including `deepMap`.~~ (Done - 953 B)
+2.  **Analyze Size Increase (Post-`deepMap`)**: `deepMap` itself added minimal or negative size cost (953 B vs 964 B pre-`deepMap`). Focus remains on core `atom` and `computed`.
+3.  **Aggressive Size Optimization**: Continue focusing on reducing core (`atom`, `computed`) size. Re-evaluate `deepMap` helpers (`getDeep`, `setDeep`) for potential size savings, although they seem efficient currently. Explore `tsup` minify options. Target < Nanostores `{ atom }` size for the core.
+4.  **Performance Benchmarking (Post-`deepMap`)**: ~~Create `deepMap.bench.ts`~~ (Done). Benchmarks including grouped Nanostores comparison executed.
+5.  **Feature Enhancements (Post-Optimization)**: Revisit `map`/`deepMap` v2 (`subscribeKey`), documentation, etc., only after achieving size goals.

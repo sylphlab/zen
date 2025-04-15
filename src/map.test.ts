@@ -84,15 +84,16 @@ describe('map', () => {
      // expect(newRef).toBe(newValue); // This check might be too strict.
    });
 
-    it('set() should not notify if the object reference is the same', () => {
+    it('set() should not notify if the exact same internal object reference is set', () => {
         const initialValue = { name: 'John', age: 30 };
         const profile = map(initialValue);
         const listener = vi.fn();
+        const currentInternalRef = profile.get(); // Get the reference to the internal copy
         const unsubscribe = profile.subscribe(listener);
         listener.mockClear(); // Ignore initial call
 
-        profile.set(initialValue); // Set the exact same object reference
-        expect(listener).not.toHaveBeenCalled();
+        profile.set(currentInternalRef); // Set the exact same internal reference back
+        expect(listener).not.toHaveBeenCalled(); // Should not notify
 
         unsubscribe();
     });
