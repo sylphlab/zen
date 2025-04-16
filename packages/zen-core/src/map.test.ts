@@ -1,73 +1,67 @@
 import { describe, it, expect, vi } from 'vitest';
-import { map } from './map';
+import { createMap, get, setKey, set, subscribe, listenKeys } from './map'; // Import updated functional API
 import { batch } from './batch'; // Import batch from batch.ts
 
-describe('map', () => {
+describe('map (functional)', () => {
   it('should create a map atom with initial value', () => {
     const initialData = { name: 'John', age: 30 };
-    const profile = map(initialData);
+    const profile = createMap(initialData); // Use createMap
     // Check if it's a copy initially
-    expect(profile.get()).toEqual(initialData);
-    expect(profile.get()).not.toBe(initialData); // map should create a copy
+    expect(get(profile)).toEqual(initialData); // Use get
+    expect(get(profile)).not.toBe(initialData); // map should create a copy
   });
 
   it('should update value using setKey and notify listeners', () => {
-    const profile = map({ name: 'John', age: 30 });
+    const profile = createMap({ name: 'John', age: 30 }); // Use createMap
     const listener = vi.fn();
-    const unsubscribe = profile.subscribe(listener);
+    const unsubscribe = subscribe(profile, listener); // Use subscribe
+    const oldValue = get(profile); // Use get
     listener.mockClear(); // Ignore initial call
 
-    const oldValue = { name: 'John', age: 30 };
-    profile.setKey('age', 31);
+    setKey(profile, 'age', 31); // Use setKey
     const newValue = { name: 'John', age: 31 };
-    expect(profile.get()).toEqual(newValue);
+    expect(get(profile)).toEqual(newValue); // Use get
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith(newValue, oldValue); // Add oldValue
+    expect(listener).toHaveBeenCalledWith(newValue, oldValue); // Check with correct oldValue
 
     unsubscribe();
   });
 
   it('should not notify listeners if setKey value is the same', () => {
-    const profile = map({ name: 'John', age: 30 });
+    const profile = createMap({ name: 'John', age: 30 }); // Use createMap
     const listener = vi.fn();
-    const unsubscribe = profile.subscribe(listener);
+    const unsubscribe = subscribe(profile, listener); // Use subscribe
     listener.mockClear(); // Ignore initial call
 
-    profile.setKey('age', 30); // Set same value
-    expect(profile.get()).toEqual({ name: 'John', age: 30 });
+    setKey(profile, 'age', 30); // Use setKey
+    expect(get(profile)).toEqual({ name: 'John', age: 30 }); // Use get
     expect(listener).not.toHaveBeenCalled();
 
     unsubscribe();
   });
 
   it('should update the whole object using set() and notify listeners', () => {
-    const profile = map({ name: 'John', age: 30 });
+    const profile = createMap({ name: 'John', age: 30 }); // Use createMap
     const listener = vi.fn();
-    const unsubscribe = profile.subscribe(listener);
+    const unsubscribe = subscribe(profile, listener); // Use subscribe
+    const oldValue = get(profile); // Use get
     listener.mockClear(); // Ignore initial call
 
     const newProfile = { name: 'Jane', age: 25 };
-    const oldValue = { name: 'John', age: 30 };
-    profile.set(newProfile);
-    expect(profile.get()).toEqual(newProfile);
-    // set() should replace the internal reference
-    // Update: Depending on implementation, set might also create a copy.
-    // Testing for direct reference equality might be too implementation-specific.
-    // Let's focus on the value and notification.
-    // expect(profile.get()).toBe(newProfile);
+    set(profile, newProfile); // Use set
+    expect(get(profile)).toEqual(newProfile); // Use get
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith(newProfile, oldValue); // Add oldValue
+    expect(listener).toHaveBeenCalledWith(newProfile, oldValue); // Check with correct oldValue
 
     unsubscribe();
   });
 
    it('setKey should create a new object reference', () => {
      const initialValue = { name: 'John', age: 30 };
-     const profile = map(initialValue);
-     const originalRef = profile.get(); // This is the initial *copy*
-
-     profile.setKey('age', 31);
-     const newRef = profile.get();
+     const profile = createMap(initialValue); // Use createMap
+     const originalRef = get(profile); // Use get
+     setKey(profile, 'age', 31); // Use setKey
+     const newRef = get(profile); // Use get
 
      expect(newRef).not.toBe(originalRef); // Reference should change after setKey
      expect(newRef).toEqual({ name: 'John', age: 31 });
@@ -75,28 +69,26 @@ describe('map', () => {
 
    it('set() should create a new object reference if the input is different', () => {
      const initialValue = { name: 'John', age: 30 };
-     const profile = map(initialValue);
-     const originalRef = profile.get(); // This is the initial *copy*
+     const profile = createMap(initialValue); // Use createMap
+     const originalRef = get(profile); // Use get
 
      const newValue = { name: 'Jane', age: 25 };
-     profile.set(newValue);
-     const newRef = profile.get();
+     set(profile, newValue); // Use set
+     const newRef = get(profile); // Use get
 
      expect(newRef).not.toBe(originalRef);
      expect(newRef).toEqual(newValue);
-     // It might or might not be the exact same reference as newValue depending on internal copying.
-     // expect(newRef).toBe(newValue); // This check might be too strict.
    });
 
     it('set() should not notify if the exact same internal object reference is set', () => {
         const initialValue = { name: 'John', age: 30 };
-        const profile = map(initialValue);
+        const profile = createMap(initialValue); // Use createMap
         const listener = vi.fn();
-        const currentInternalRef = profile.get(); // Get the reference to the internal copy
-        const unsubscribe = profile.subscribe(listener);
+        const currentInternalRef = get(profile); // Use get
+        const unsubscribe = subscribe(profile, listener); // Use subscribe
         listener.mockClear(); // Ignore initial call
 
-        profile.set(currentInternalRef); // Set the exact same internal reference back
+        set(profile, currentInternalRef); // Use set
         expect(listener).not.toHaveBeenCalled(); // Should not notify
 
         unsubscribe();
@@ -105,28 +97,28 @@ describe('map', () => {
   // --- Key Subscription Tests ---
 
   it('listenKeys should be called when a specified key is changed via setKey', () => {
-    const store = map({ name: 'John', age: 30, city: 'New York' });
+    const store = createMap({ name: 'John', age: 30, city: 'New York' }); // Use createMap
     const keyListener = vi.fn();
-    const unsubscribe = store.listenKeys(['age'], keyListener);
+    const unsubscribe = listenKeys(store, ['age'], keyListener); // Use listenKeys
 
-    store.setKey('age', 31);
+    setKey(store, 'age', 31); // Use setKey
     expect(keyListener).toHaveBeenCalledTimes(1);
     expect(keyListener).toHaveBeenCalledWith(31, 'age', { name: 'John', age: 31, city: 'New York' });
 
     keyListener.mockClear();
-    store.setKey('name', 'Jane'); // Change unrelated key
+    setKey(store, 'name', 'Jane'); // Use setKey
     expect(keyListener).not.toHaveBeenCalled();
 
     unsubscribe();
   });
 
   it('listenKeys should be called when a specified key is changed via set', () => {
-    const store = map({ name: 'John', age: 30 });
+    const store = createMap({ name: 'John', age: 30 }); // Use createMap
     const keyListener = vi.fn();
-    const unsubscribe = store.listenKeys(['name'], keyListener);
+    const unsubscribe = listenKeys(store, ['name'], keyListener); // Use listenKeys
 
     const newValue = { name: 'Jane', age: 30 };
-    store.set(newValue);
+    set(store, newValue); // Use set
     expect(keyListener).toHaveBeenCalledTimes(1);
     expect(keyListener).toHaveBeenCalledWith('Jane', 'name', newValue);
 
@@ -134,33 +126,33 @@ describe('map', () => {
   });
 
    it('listenKeys should handle multiple keys', () => {
-    const store = map({ name: 'John', age: 30, city: 'New York' });
+    const store = createMap({ name: 'John', age: 30, city: 'New York' }); // Use createMap
     const keyListener = vi.fn();
-    const unsubscribe = store.listenKeys(['name', 'age'], keyListener);
+    const unsubscribe = listenKeys(store, ['name', 'age'], keyListener); // Use listenKeys
 
     // Change 'age'
-    store.setKey('age', 31);
+    setKey(store, 'age', 31); // Use setKey
     expect(keyListener).toHaveBeenCalledTimes(1);
     expect(keyListener).toHaveBeenCalledWith(31, 'age', { name: 'John', age: 31, city: 'New York' });
 
     keyListener.mockClear();
 
     // Change 'name'
-    store.setKey('name', 'Jane');
+    setKey(store, 'name', 'Jane'); // Use setKey
     expect(keyListener).toHaveBeenCalledTimes(1);
     expect(keyListener).toHaveBeenCalledWith('Jane', 'name', { name: 'Jane', age: 31, city: 'New York' });
 
      keyListener.mockClear();
 
     // Change 'city' (not listened to)
-    store.setKey('city', 'London');
+    setKey(store, 'city', 'London'); // Use setKey
      expect(keyListener).not.toHaveBeenCalled();
 
      keyListener.mockClear();
 
      // Change both 'name' and 'age' via set()
      const newValue = { name: 'Peter', age: 40, city: 'London' };
-     store.set(newValue);
+     set(store, newValue); // Use set
      // Listener should be called twice, once for each changed key it listens to
      expect(keyListener).toHaveBeenCalledTimes(2);
      expect(keyListener).toHaveBeenCalledWith('Peter', 'name', newValue);
@@ -171,25 +163,25 @@ describe('map', () => {
   });
 
    it('listenKeys should not be called after unsubscribing', () => {
-    const store = map({ name: 'John', age: 30 });
+    const store = createMap({ name: 'John', age: 30 }); // Use createMap
     const keyListener = vi.fn();
-    const unsubscribe = store.listenKeys(['age'], keyListener);
+    const unsubscribe = listenKeys(store, ['age'], keyListener); // Use listenKeys
 
     unsubscribe(); // Unsubscribe immediately
 
-    store.setKey('age', 31);
+    setKey(store, 'age', 31); // Use setKey
     expect(keyListener).not.toHaveBeenCalled();
   });
 
   it('listenKeys should handle multiple listeners for the same key', () => {
-    const store = map({ name: 'John', age: 30 });
+    const store = createMap({ name: 'John', age: 30 }); // Use createMap
     const listener1 = vi.fn();
     const listener2 = vi.fn();
 
-    const unsub1 = store.listenKeys(['age'], listener1);
-    const unsub2 = store.listenKeys(['age'], listener2);
+    const unsub1 = listenKeys(store, ['age'], listener1); // Use listenKeys
+    const unsub2 = listenKeys(store, ['age'], listener2); // Use listenKeys
 
-    store.setKey('age', 31);
+    setKey(store, 'age', 31); // Use setKey
     expect(listener1).toHaveBeenCalledTimes(1);
     expect(listener2).toHaveBeenCalledTimes(1);
     expect(listener1).toHaveBeenCalledWith(31, 'age', { name: 'John', age: 31 });
@@ -200,16 +192,16 @@ describe('map', () => {
     listener1.mockClear();
     listener2.mockClear();
 
-    store.setKey('age', 32);
+    setKey(store, 'age', 32); // Use setKey
     expect(listener1).not.toHaveBeenCalled();
     expect(listener2).toHaveBeenCalledTimes(1);
 
     unsub2();
   });
 
-    // REMOVED batching test for listenKeys as map batching is currently disabled
+    // Batching tests for map need to be re-evaluated with functional API
     /*
-    it('listenKeys should work correctly with batching', () => { ... });
+    it('listenKeys should work correctly with batching', () => { ... }); // Use listenKeys
     */
 
 });

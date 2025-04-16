@@ -1,200 +1,151 @@
-// Core type definitions and base prototype for the zen state management library.
-import type { LifecycleListener } from './events';
-import { isInBatch, queueAtomForBatch } from './batch';
+// Core type definitions for the functional zen state management library.
+import type { LifecycleListener } from './events'; // Keep for event function signatures
 
 /** Callback function type for atom listeners. */
-export type Listener<T> = (value: T, oldValue?: T) => void;
+export type Listener<T> = (value: T, oldValue?: T | null) => void; // oldValue can be null initially
 /** Function to unsubscribe a listener. */
 export type Unsubscribe = () => void;
 
-// --- Core Types ---
+// --- Core Types (Functional Style) ---
 
-/**
- * Represents a writable atom, the basic unit of state.
- */
-export type Atom<T = any> = {
-  get(): T;
-  set(v: T, force?: boolean): void;
-  subscribe(fn: Listener<T>): Unsubscribe;
-  _value: T;
-  _listeners?: Set<Listener<T>>;
-  // --- Optional properties added by patching ---
-  _startListeners?: Set<LifecycleListener<T>>; // Added by events.ts
-  _stopListeners?: Set<LifecycleListener<T>>;  // Added by events.ts
-  _setListeners?: Set<LifecycleListener<T>>;   // Added by events.ts
-  _notifyListeners?: Set<LifecycleListener<T>>;// Added by events.ts
-  _mountListeners?: Set<LifecycleListener<T>>; // Added by events.ts
-  // _oldValueBeforeBatch is now managed internally by batch.ts's Map
-  _notify(value: T, oldValue?: T): void;      // Base implementation in AtomProto
-  // _notifyBatch is no longer needed
-  // _patchedForEvents is no longer needed
-  // _patchedForBatching is no longer needed
-  // --- End optional properties ---
+/** Internal flags for atom types */
+export const AtomTypes = {
+    Regular: 1,
+    Computed: 2,
+    Map: 3,
+    DeepMap: 4,
+} as const;
 
-  [key: symbol]: any; // Allow extending with symbols
+/** Base structure for atoms that directly hold value and listeners. */
+export type AtomWithValue<T> = { // Export AtomWithValue
+    /** Internal unique identifier or marker */
+    readonly $$id: symbol;
+    /** Type marker */
+    readonly $$type: number; // Use values from AtomTypes
+    /** Current value */
+    _value: T | null; // Allow null for computed initial state
+    /** Value listeners */
+    _listeners?: Set<Listener<T>>;
+    /** Lifecycle listeners */
+    _startListeners?: Set<LifecycleListener<T>>;
+    _stopListeners?: Set<LifecycleListener<T>>;
+    _setListeners?: Set<LifecycleListener<T>>; // Only applicable to writable atoms
+    _notifyListeners?: Set<LifecycleListener<T>>;
+    _mountListeners?: Set<LifecycleListener<T>>;
 };
 
-/**
- * Represents a read-only atom, often used for computed values.
- * It shares some properties with Atom but lacks the `set` method
- * and includes properties specific to derived state.
- */
-export type ReadonlyAtom<T = any> = {
-  get(): T;
-  subscribe(fn: Listener<T>): Unsubscribe;
-  _value: T | null; // Allow null for initial state of computed atoms
-  _listeners?: Set<Listener<T>>;
-  // --- Optional properties added by patching (Events) ---
-  _startListeners?: Set<LifecycleListener<T>>; // Added by events.ts
-  _stopListeners?: Set<LifecycleListener<T>>;  // Added by events.ts
-  _setListeners?: Set<LifecycleListener<T>>;   // Added by events.ts (though less common for readonly)
-  _notifyListeners?: Set<LifecycleListener<T>>;// Added by events.ts
-  _mountListeners?: Set<LifecycleListener<T>>; // Added by events.ts
-  _notify(value: T, oldValue?: T): void;      // Base implementation (often overridden by computed)
-  // _notifyBatch is no longer needed
-  // _patchedForEvents is no longer needed
-  // --- End optional event properties ---
-
-  // --- Properties specific to computed/derived atoms ---
-  _dirty?: boolean;                             // Is the current value outdated?
-  _sources?: ReadonlyArray<Atom<any> | ReadonlyAtom<any>>; // Source atoms
-  _sourceValues?: any[];                        // Last known values of sources
-  _calculation?: Function;                      // Function to compute the derived value
-  _equalityFn?: (a: T, b: T) => boolean;        // Custom equality check
-  _unsubscribers?: Unsubscribe[];               // Functions to unsubscribe from sources
-  _onChangeHandler?: Listener<any>;             // Bound handler for source changes
-  _onChange?(): void;                           // Method called when a source changes
-  _update?(): boolean;                          // Method to recompute the value if dirty
-  _subscribeToSources?(): void;                // Method to subscribe to all sources
-  _unsubscribeFromSources?(): void;            // Method to unsubscribe from all sources
-  _isSubscribing?: boolean;                     // Flag to prevent recursive subscriptions
-  // --- End computed properties ---
-
-  [key: symbol]: any; // Allow extending with symbols
+/** Represents a writable atom (functional style). */
+export type Atom<T = any> = AtomWithValue<T> & {
+    readonly $$type: typeof AtomTypes.Regular;
+    _value: T; // Regular atoms always have an initial value
 };
 
+/** Represents a read-only atom (functional style). */
+export type ReadonlyAtom<T = any> = AtomWithValue<T> & {
+    readonly $$type: typeof AtomTypes.Computed | number; // Allow extension
+    _value: T | null; // Readonly might start as null (computed)
+};
 
-// --- Base Atom Prototype ---
+/** Represents a computed atom's specific properties (functional style). */
+export type ComputedAtom<T = any> = ReadonlyAtom<T> & {
+    readonly $$type: typeof AtomTypes.Computed;
+    _value: T | null; // Computed starts as null
+    _dirty: boolean;
+    readonly _sources: ReadonlyArray<AnyAtom>; // Use AnyAtom recursively
+    _sourceValues: any[];
+    readonly _calculation: Function;
+    readonly _equalityFn: (a: T, b: T) => boolean;
+    _unsubscribers?: Unsubscribe[];
+    // Add internal methods needed by functional API calls
+    _update: () => boolean;
+    _subscribeToSources: () => void;
+    _unsubscribeFromSources: () => void;
+};
+
+/** Represents a functional Map Atom structure. */
+export type MapAtom<T extends object = any> = {
+    readonly $$id: symbol;
+    readonly $$type: typeof AtomTypes.Map;
+    readonly _internalAtom: Atom<T>; // The actual atom holding the object state
+};
+
+/** Represents a functional DeepMap Atom structure. */
+export type DeepMapAtom<T extends object = any> = {
+    readonly $$id: symbol;
+    readonly $$type: typeof AtomTypes.DeepMap;
+    readonly _internalAtom: Atom<T>; // The actual atom holding the object state
+};
+
+/** Union type for any kind of atom. */
+export type AnyAtom<T = any> = Atom<T> | ReadonlyAtom<T> | MapAtom<T extends object ? T : any> | DeepMapAtom<T extends object ? T : any>; // Include MapAtom and DeepMapAtom
+
+
+// --- Internal Helper Functions ---
 
 /**
- * The base prototype shared by all atoms created via `atom()`.
- * Contains the minimal core logic for get, set, and subscribe.
- * Event and batching functionalities are added dynamically via patching.
+ * Gets the underlying atom that holds the value and listeners.
+ * For Regular and Computed atoms, it's the atom itself.
+ * For Map/DeepMap atoms, it's the internal atom.
+ * @internal
  */
-export const AtomProto: Atom<any> = {
-  _value: undefined,
-
-  get() { return this._value; },
-
-  /**
-   * Sets the atom's value.
-   * Notifies listeners immediately if the value changes.
-   * Batching logic, if enabled via patching, overrides this behavior.
-   * @param value The new value.
-   * @param force If true, notify listeners even if the value is the same.
-   */
-  set(value, force = false) {
-    const oldValue = this._value;
-    // Import isInBatch and queueAtomForBatch from batch.ts (assuming these will be exported)
-    // We'll add the import later when modifying batch.ts
-    // For now, assume functions `isInBatch` and `queueAtomForBatch` exist.
-    if (force || !Object.is(value, oldValue)) { // Use Object.is for comparison consistency
-        // Trigger onSet listeners BEFORE setting value, ONLY if not in batch
-        if (!isInBatch()) {
-            this._setListeners?.forEach(fn => {
-                try { fn(value); } catch(e) { console.error(`Error in onSet listener for atom ${String(this)}:`, e); }
-            });
-        }
-
-        this._value = value;
-
-        // Check if currently in a batch
-        // @ts-ignore - Assume isInBatch and queueAtomForBatch exist for now
-        if (isInBatch()) {
-            // @ts-ignore
-            queueAtomForBatch(this, oldValue); // Queue for later notification
-        } else {
-            // Outside batch: notify immediately.
-            this._notify(value, oldValue);
-        }
+export function getBaseAtom<T>(atom: AnyAtom<T>): AtomWithValue<T> {
+    if (atom.$$type === AtomTypes.Map || atom.$$type === AtomTypes.DeepMap) {
+        // Access _internalAtom for MapAtom or DeepMapAtom
+        return (atom as MapAtom<T extends object ? T : any> | DeepMapAtom<T extends object ? T : any>)._internalAtom as AtomWithValue<T>;
     }
-  },
+    // For Atom and ReadonlyAtom (which extend AtomWithValue)
+    return atom as AtomWithValue<T>;
+}
 
-  /**
-   * Notifies all subscribed listeners about a value change.
-   * This is the base implementation. Event patching might add more logic.
-   * @param value The current value.
-   * @param oldValue The previous value.
-   */
-  _notify(value, oldValue) {
-    const ls = this._listeners;
+
+/**
+ * Notifies all listeners of an atom about a value change.
+ * Handles both value listeners and lifecycle listeners (onNotify).
+ * @internal - Exported for use by other modules like atom, computed, batch.
+ */
+export function notifyListeners<T>(atom: AnyAtom<T>, value: T, oldValue?: T | null): void {
+    const baseAtom = getBaseAtom(atom); // Use helper to get the atom with listeners
+
+    const ls = baseAtom._listeners;
     // Notify regular value listeners first
     if (ls?.size) {
-        // Optimization: Create a copy if iterating while potentially modifying (though unlikely here)
-        // const listenersToNotify = Array.from(ls);
-        // for (const fn of listenersToNotify) {
-        for (const fn of ls) { // Direct iteration usually fine for Set
+        for (const fn of ls) {
             try {
                 fn(value, oldValue);
             } catch (e) {
-                console.error(`Error in value listener for atom ${String(this)}:`, e);
+                console.error(`Error in value listener for atom ${String(atom)}:`, e);
             }
         }
     }
     // Notify onNotify listeners AFTER value listeners
-    this._notifyListeners?.forEach(fn => {
-        try { fn(value); } catch(e) { console.error(`Error in onNotify listener for atom ${String(this)}:`, e); }
+    baseAtom._notifyListeners?.forEach(fn => {
+        try { fn(value); } catch(e) { console.error(`Error in onNotify listener for atom ${String(atom)}:`, e); }
     });
-  },
-
-  // `_notifyBatch` will be removed as batching logic is refactored.
-
-  /**
-   * Subscribes a listener function to the atom's changes.
-   * Calls the listener immediately with the current value.
-   * Returns an unsubscribe function.
-   * Event patching might add `onStart`/`onStop` logic.
-   * @param listener The function to call on value changes.
-   * @returns A function to unsubscribe the listener.
-   */
-  subscribe(listener) {
-    const isFirstListener = !this._listeners?.size;
-    this._listeners ??= new Set();
-    this._listeners.add(listener);
-
-    // Trigger onStart if this is the first listener
-    if (isFirstListener) {
-        this._startListeners?.forEach(fn => {
-            try { fn(undefined); } catch(e) { console.error(`Error in onStart listener for atom ${String(this)}:`, e); }
-        });
-    }
-    // onMount is handled by the onMount function itself
-
-    // Initial call to the new listener
-    try {
-        listener(this._value, undefined);
-    } catch (e) {
-        console.error(`Error in initial listener call for atom ${String(this)}:`, e);
-    }
-
-
-    const self = this; // Capture `this` for the unsubscribe closure
-    return function unsubscribe() {
-      const listeners = self._listeners; // Use 'self'
-      if (!listeners?.has(listener)) return; // Already unsubscribed or listener not found
-
-      listeners.delete(listener);
-
-      // Trigger onStop if this was the last listener
-      if (!listeners.size) {
-        delete self._listeners; // Clean up Set if empty
-        self._stopListeners?.forEach(fn => { // Use 'self'
-            // Note: Using String(self) might not be ideal for error messages, but keeps it consistent for now.
-            try { fn(undefined); } catch(e) { console.error(`Error in onStop listener for atom ${String(self)}:`, e); }
-        });
-      }
-    };
-  }
+}
+/**
+ * Represents a Task Atom, which wraps an asynchronous function
+ * and provides its state (loading, error, data) reactively.
+ */
+export type TaskAtom<T = any> = {
+  readonly $$id: symbol; // Added for consistency, though not strictly needed by current logic
+  readonly $$type: number; // Placeholder, Task doesn't have a specific AtomType constant yet
+  readonly _stateAtom: Atom<TaskState<T>>;
+  readonly _asyncFn: (...args: any[]) => Promise<T>; // Store the async function
 };
 
-// Note: The `atom()` factory function itself resides in `atom.ts`.
+/** Type definition for the state managed by a Task Atom. */
+export type TaskState<T = any> = {
+  loading: boolean;
+  error?: Error;
+  data?: T;
+};
+
+
+// --- Core Functions (Placeholder Comments) ---
+
+// getAtomValue(atom)
+// setAtomValue(atom, value)
+// subscribeToAtom(atom, listener)
+
+// --- Removed AtomProto ---
+// No longer using prototype-based approach.

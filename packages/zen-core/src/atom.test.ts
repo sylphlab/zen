@@ -1,34 +1,32 @@
 import { describe, it, expect, vi } from 'vitest';
-import { atom } from './atom'; // Assuming atom is directly exported from atom.ts
+import { createAtom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional API
 
-describe('atom', () => {
+describe('atom (functional)', () => {
   it('should initialize with the correct value', () => {
     const initialValue = 0;
-    const count = atom(initialValue);
-    expect(count.get()).toBe(initialValue);
-    // expect(count.value).toBe(initialValue); // Avoid testing internal implementation details if possible
+    const count = createAtom(initialValue); // Use createAtom
+    expect(getAtomValue(count)).toBe(initialValue); // Use get
   });
 
-  it('should update the value with set()', () => {
-    const count = atom(0);
+  it('should update the value with setAtomValue()', () => {
+    const count = createAtom(0); // Use createAtom
     const newValue = 5;
-    count.set(newValue);
-    expect(count.get()).toBe(newValue);
-    // expect(count.value).toBe(newValue);
+    setAtomValue(count, newValue); // Use set
+    expect(getAtomValue(count)).toBe(newValue); // Use get
   });
 
   it('should not notify listeners if the value has not changed', () => {
-    const count = atom(0);
+    const count = createAtom(0); // Use createAtom
     const listener = vi.fn();
 
     // Subscribe *after* initial value to only catch updates
-    const unsubscribe = count.subscribe(() => {}); // Dummy initial subscribe
+    const unsubscribe = subscribeToAtom(count, () => {}); // Use subscribe
     unsubscribe(); // Unsubscribe immediately
 
-    const unsubscribeUpdate = count.subscribe(listener);
+    const unsubscribeUpdate = subscribeToAtom(count, listener); // Use subscribe
     listener.mockClear(); // Clear mock *after* subscription triggers initial call
 
-    count.set(0); // Set same value
+    setAtomValue(count, 0); // Use set
     expect(listener).not.toHaveBeenCalled();
 
     unsubscribeUpdate();
@@ -36,34 +34,35 @@ describe('atom', () => {
 
   it('should notify listeners immediately upon subscription with the current value', () => {
     const initialValue = 10;
-    const count = atom(initialValue);
+    const count = createAtom(initialValue); // Use createAtom
     const listener = vi.fn();
 
-    const unsubscribe = count.subscribe(listener);
+    const unsubscribe = subscribeToAtom(count, listener); // Use subscribe
 
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith(initialValue, undefined); // Add undefined for oldValue
+    // Functional subscribeToAtom passes undefined as oldValue initially
+    expect(listener).toHaveBeenCalledWith(initialValue, undefined);
 
     unsubscribe();
   });
 
   it('should notify listeners when the value changes', () => {
-    const count = atom(0);
+    const count = createAtom(0); // Use createAtom
     const listener = vi.fn();
 
     // Subscribe and ignore the initial call
-    const unsubscribe = count.subscribe(() => {});
+    const unsubscribe = subscribeToAtom(count, () => {}); // Use subscribe
     unsubscribe();
     listener.mockClear(); // Clear mock after dummy initial call
 
-    const unsubscribeUpdate = count.subscribe(listener);
+    const unsubscribeUpdate = subscribeToAtom(count, listener); // Use subscribe
     listener.mockClear(); // Clear mock *after* subscription triggers initial call
 
-    count.set(1);
+    setAtomValue(count, 1); // Use set
     expect(listener).toHaveBeenCalledTimes(1);
     expect(listener).toHaveBeenCalledWith(1, 0); // Add oldValue 0
 
-    count.set(2);
+    setAtomValue(count, 2); // Use set
     expect(listener).toHaveBeenCalledTimes(2);
     expect(listener).toHaveBeenLastCalledWith(2, 1); // Add oldValue 1 and use assertLastCalledWith
 
@@ -71,23 +70,23 @@ describe('atom', () => {
   });
 
   it('should allow multiple listeners', () => {
-    const count = atom(0);
+    const count = createAtom(0); // Use createAtom
     const listener1 = vi.fn();
     const listener2 = vi.fn();
 
-    const unsub1 = count.subscribe(listener1);
-    const unsub2 = count.subscribe(listener2);
+    const unsub1 = subscribeToAtom(count, listener1); // Use subscribe
+    const unsub2 = subscribeToAtom(count, listener2); // Use subscribe
 
     // Check initial calls
     expect(listener1).toHaveBeenCalledTimes(1);
-    expect(listener1).toHaveBeenCalledWith(0, undefined); // Add undefined oldValue
+    expect(listener1).toHaveBeenCalledWith(0, undefined); // Functional subscribeToAtom passes undefined initially
     expect(listener2).toHaveBeenCalledTimes(1);
-    expect(listener2).toHaveBeenCalledWith(0, undefined); // Add undefined oldValue
+    expect(listener2).toHaveBeenCalledWith(0, undefined); // Functional subscribeToAtom passes undefined initially
 
     listener1.mockClear();
     listener2.mockClear();
 
-    count.set(5);
+    setAtomValue(count, 5); // Use set
     expect(listener1).toHaveBeenCalledTimes(1);
     expect(listener1).toHaveBeenCalledWith(5, 0); // Add oldValue 0
     expect(listener2).toHaveBeenCalledTimes(1);
@@ -98,59 +97,59 @@ describe('atom', () => {
   });
 
   it('should stop notifying listeners after unsubscribing', () => {
-    const count = atom(0);
+    const count = createAtom(0); // Use createAtom
     const listener = vi.fn();
 
-    const unsubscribe = count.subscribe(listener);
+    const unsubscribe = subscribeToAtom(count, listener); // Use subscribe
     expect(listener).toHaveBeenCalledTimes(1); // Initial call
 
     listener.mockClear();
 
-    count.set(1);
+    setAtomValue(count, 1); // Use set
     expect(listener).toHaveBeenCalledTimes(1); // Update call
 
     unsubscribe();
 
-    count.set(2);
+    setAtomValue(count, 2); // Use set
     expect(listener).toHaveBeenCalledTimes(1); // No more calls after unsubscribe
 
   });
 
   it('should handle different data types', () => {
     // String
-    const text = atom("hello");
-    expect(text.get()).toBe("hello");
-    text.set("world");
-    expect(text.get()).toBe("world");
+    const text = createAtom("hello"); // Use createAtom
+    expect(getAtomValue(text)).toBe("hello"); // Use get
+    setAtomValue(text, "world"); // Use set
+    expect(getAtomValue(text)).toBe("world"); // Use get
 
     // Boolean
-    const flag = atom(true);
-    expect(flag.get()).toBe(true);
-    flag.set(false);
-    expect(flag.get()).toBe(false);
+    const flag = createAtom(true); // Use createAtom
+    expect(getAtomValue(flag)).toBe(true); // Use get
+    setAtomValue(flag, false); // Use set
+    expect(getAtomValue(flag)).toBe(false); // Use get
 
     // Object
-    const obj = atom({ a: 1 });
+    const obj = createAtom({ a: 1 }); // Use createAtom
     const listenerObj = vi.fn();
-    const unsubObj = obj.subscribe(listenerObj);
-    expect(obj.get()).toEqual({ a: 1 });
+    const unsubObj = subscribeToAtom(obj, listenerObj); // Use subscribe
+    expect(getAtomValue(obj)).toEqual({ a: 1 }); // Use get
     const initialObjValue = { a: 1 }; // Store initial for oldValue check
     const newObjValue = { a: 2 };
-    obj.set(newObjValue);
-    expect(obj.get()).toEqual(newObjValue);
+    setAtomValue(obj, newObjValue); // Use set
+    expect(getAtomValue(obj)).toEqual(newObjValue); // Use get
     expect(listenerObj).toHaveBeenCalledTimes(2); // Initial + update
     expect(listenerObj).toHaveBeenLastCalledWith(newObjValue, initialObjValue); // Check last call with oldValue
     unsubObj();
 
     // Array
-    const arr = atom([1, 2]);
+    const arr = createAtom([1, 2]); // Use createAtom
     const listenerArr = vi.fn();
-    const unsubArr = arr.subscribe(listenerArr);
-    expect(arr.get()).toEqual([1, 2]);
+    const unsubArr = subscribeToAtom(arr, listenerArr); // Use subscribe
+    expect(getAtomValue(arr)).toEqual([1, 2]); // Use get
     const initialArrValue = [1, 2]; // Store initial for oldValue check
     const newArr = [3, 4, 5];
-    arr.set(newArr);
-    expect(arr.get()).toEqual(newArr);
+    setAtomValue(arr, newArr); // Use set
+    expect(getAtomValue(arr)).toEqual(newArr); // Use get
     expect(listenerArr).toHaveBeenCalledTimes(2); // Initial + update
     expect(listenerArr).toHaveBeenLastCalledWith(newArr, initialArrValue); // Check last call with oldValue
     unsubArr();

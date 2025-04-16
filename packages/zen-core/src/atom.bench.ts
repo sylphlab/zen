@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { bench, describe } from 'vitest';
-import { atom as zenAtom } from './atom'; // Import directly from atom.ts
+import { createAtom as zenCreateAtom, get as zenGetAtomValue, set as zenSetAtomValue, subscribe as zenSubscribeToAtom } from './atom'; // Import updated functional API
 import { atom as nanoAtom } from 'nanostores';
 import { atom as jotaiAtom, useAtomValue, useSetAtom, Provider, createStore as createJotaiStore, Atom, WritableAtom } from 'jotai';
 import { createStore as createZustandVanillaStore } from 'zustand/vanilla';
@@ -32,7 +32,7 @@ const createJotaiWriteBenchSetup = <Value, Args extends unknown[], Result>(
 
 describe('Atom Creation', () => {
   bench('zen', () => {
-    zenAtom(0);
+    zenCreateAtom(0); // Use createAtom
   });
 
   bench('nanostores', () => {
@@ -57,11 +57,11 @@ describe('Atom Creation', () => {
 });
 
 describe('Atom Get', () => {
-  const zAtom = zenAtom(0);
+  const zAtom = zenCreateAtom(0); // Use createAtom
   const nAtom = nanoAtom(0);
 
   bench('zen', () => {
-    zAtom.get();
+    zenGetAtomValue(zAtom); // Use functional API
   });
 
   bench('nanostores', () => {
@@ -99,12 +99,12 @@ describe('Atom Get', () => {
 });
 
 describe('Atom Set (No Listeners)', () => {
-  const zAtom = zenAtom(0);
+  const zAtom = zenCreateAtom(0); // Use createAtom
   const nAtom = nanoAtom(0);
   let i = 0;
 
   bench('zen', () => {
-    zAtom.set(++i);
+    zenSetAtomValue(zAtom, ++i); // Use functional API
   });
 
   bench('nanostores', () => {
@@ -156,8 +156,8 @@ describe('Atom Subscribe/Unsubscribe', () => {
     const listener = () => {};
 
     bench('zen', () => {
-      const zAtom = zenAtom(0);
-      const unsub = zAtom.subscribe(listener);
+      const zAtom = zenCreateAtom(0); // Use createAtom
+      const unsub = zenSubscribeToAtom(zAtom, listener); // Use subscribe
       unsub();
     });
 

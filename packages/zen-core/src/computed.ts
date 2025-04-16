@@ -1,286 +1,184 @@
-// Computed (derived state) implementation for the zen library.
+// Functional computed (derived state) implementation.
 import {
   Atom,
   ReadonlyAtom,
   Listener,
   Unsubscribe,
-  AtomProto as CoreAtomProto // Import the base prototype
+  ComputedAtom,
+  AnyAtom,
+  AtomTypes,
+  notifyListeners // Import notifyListeners from core
 } from './core';
-// Event patching is handled externally via ensurePatched in events.ts
+import { get as getAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated core functional API
 
-// --- Types ---
-
+// --- Types --- (Copied from core.ts for clarity, could be imported)
 /** Represents an array of source atoms (can be Atom or ReadonlyAtom). */
-type Stores = ReadonlyArray<Atom<any> | ReadonlyAtom<any>>;
+type Stores = ReadonlyArray<AnyAtom<any>>; // Use AnyAtom
 
 /** Utility type to extract the value types from an array of Stores. */
 type StoreValues<S extends Stores> = {
-  [K in keyof S]: S[K] extends Atom<infer V> | ReadonlyAtom<infer V> ? V : never
+  [K in keyof S]: S[K] extends AnyAtom<infer V> ? V : never
 };
 
-/**
- * Internal type representing the structure of a computed atom instance.
- * Extends ReadonlyAtom and adds properties specific to derived state.
- * Note: _value is T | null initially, becomes T after first calculation.
- */
-type ComputedAtom<T> = Omit<ReadonlyAtom<T>, '_value'> & { // Omit original _value
-  _value: T | null; // Allow null initially
-  // Required properties/methods for internal logic
-  _sources: ReadonlyArray<Atom<any> | ReadonlyAtom<any>>;
-  _sourceValues: any[];
-  _calculation: Function; // Broad Function type for simplicity
-  _equalityFn: (a: T, b: T) => boolean;
-  _dirty: boolean;
-  _isSubscribing: boolean; // Flag to prevent loops during initial subscription
-  _update(): boolean; // Recalculates value if dirty, returns true if changed
-  _onChange(): void; // Called when a source atom changes
-  _subscribeToSources(): void; // Subscribes to all source atoms
-  _unsubscribeFromSources(): void; // Unsubscribes from all source atoms
-
-  // Optional properties (initialized lazily or can be undefined)
-  _unsubscribers?: Unsubscribe[]; // Array of unsubscribe functions for sources
-  _onChangeHandler?: () => void; // Bound listener for source changes
-};
-
-
-// --- Computed Atom Prototype ---
+// --- Internal Computed Logic ---
 
 /**
- * Prototype for computed atoms. Inherits from CoreAtomProto and overrides
- * methods like `get` and `subscribe` to handle derived state logic.
+ * Recalculates the computed value based on current source values.
+ * Updates the internal `_value` and notifies listeners if the value changes.
+ * Assumes the atom is already marked as dirty or needs initial calculation.
+ * @returns True if the value changed, false otherwise.
+ * @internal
  */
-export const ComputedAtomProto: ComputedAtom<any> = {
-  // Inherit base properties and methods (_value, _listeners, _notify)
-  ...CoreAtomProto,
+function updateComputedValue<T>(atom: ComputedAtom<T>): boolean {
+    const srcs = atom._sources;
+    const vals = atom._sourceValues;
+    const calc = atom._calculation;
+    const old = atom._value; // Capture value BEFORE recalculation (could be null)
 
-  // --- Computed-specific properties ---
-  _sources: [],
-  _sourceValues: [],
-  _calculation: () => undefined,
-  _equalityFn: Object.is, // Default equality check
-  _dirty: true, // Start dirty, calculate on first get/subscribe
-  _isSubscribing: false, // Flag for initial subscription phase
-  // _unsubscribers and _onChangeHandler are implicitly undefined initially
-  _value: null, // Initialize _value as null
-
-  // --- Overridden Methods ---
-
-  /**
-   * Gets the computed value.
-   * Subscribes to sources lazily on first access while active.
-   * Recalculates the value only if marked as dirty.
-   */
-  get() {
-    // Lazy subscription: Connect to sources only when accessed AND there are listeners
-    if (this._listeners?.size && !this._unsubscribers) {
-      this._subscribeToSources();
-    }
-    // Recalculate if dirty
-    if (this._dirty || this._value === null) { // Also update if value is still null
-      this._update(); // This updates _value and resets _dirty
-    }
-    // Non-null assertion: after _update(), _value should be T, not null.
-    return this._value!;
-  },
-
-  // `set` method is intentionally NOT overridden (it's a ReadonlyAtom).
-
-  /**
-   * Recalculates the computed value based on current source values.
-   * Updates the internal `_value` and notifies listeners if the value changes.
-   * @returns True if the value changed, false otherwise.
-   */
-  _update(): boolean {
-    const srcs = this._sources;
-    const vals = this._sourceValues;
-    const calc = this._calculation;
-    const old = this._value; // Capture value BEFORE recalculation (could be null)
-
-    // 1. Get current values from all source atoms
+    // 1. Get current values from all source atoms using the functional API
     for (let i = 0; i < srcs.length; i++) {
-      // Use optional chaining for safety, though sources should exist
-      vals[i] = srcs[i]?.get();
+        const source = srcs[i];
+        if (source) { // Check if source exists
+            vals[i] = getAtomValue(source); // Use getAtomValue
+        } else {
+            vals[i] = undefined; // Or handle missing source appropriately
+        }
     }
 
     // 2. Calculate the new value
     const newValue = calc.apply(null, vals);
-    this._dirty = false; // Mark as clean *after* calculation
+    atom._dirty = false; // Mark as clean *after* calculation
 
     // 3. Check if the value actually changed using the equality function
     // Handle the initial null case for 'old'
-    if (old !== null && this._equalityFn(newValue, old)) {
-      return false; // No change, exit early
+    if (old !== null && atom._equalityFn(newValue, old)) {
+        return false; // No change, exit early
     }
 
     // 4. Update internal value
-    this._value = newValue;
+    atom._value = newValue;
 
-    // 5. Notify listeners if not during the initial subscription phase.
-    // Computed atoms do not participate in batching directly; they notify immediately.
-    if (!this._isSubscribing) {
-        // Call the potentially patched `_notify`.
-        // If events are patched, this will also trigger `onNotify` listeners.
-      this._notify(newValue, old);
-    }
+    // 5. Value updated. Return true to indicate change.
+    // DO NOT notify here. Notification is handled by the caller (e.g., computedSourceChanged or batch end).
     return true; // Value changed
-  },
-
-  // `_notify` is inherited from CoreAtomProto (or its patched version).
-
-  /**
-   * Handler called when any source atom changes.
-   * Marks the computed atom as dirty and triggers an update if active.
-   */
-  _onChange(): void {
-    if (this._dirty) return;
-    // If already dirty, no need to do anything further.
-    if (this._dirty) return;
-
-    this._dirty = true;
-
-    // If there are active listeners, trigger an update immediately.
-    // This propagates the change down the computed chain.
-    if (this._listeners?.size) {
-      this._update(); // This will recalculate and notify if the value changed
-    }
-    // If no listeners, we just stay dirty until the next `get()`.
-  },
-
-  /** Subscribes to all source atoms. */
-  _subscribeToSources(): void {
-    if (this._unsubscribers) return;
-    // Avoid double subscriptions
-    if (this._unsubscribers) return;
-
-    const sources = this._sources;
-    this._unsubscribers = new Array(sources.length);
-
-    // Create and cache the bound onChange handler
-    if (!this._onChangeHandler) {
-      this._onChangeHandler = () => this._onChange();
-    }
-
-    for (let i = 0; i < sources.length; i++) {
-      const source = sources[i];
-      // Subscribe to each source using the cached handler
-      if (source && this._onChangeHandler) {
-        this._unsubscribers[i] = source.subscribe(this._onChangeHandler);
-      }
-    }
-  },
-
-  /** Unsubscribes from all source atoms. */
-  _unsubscribeFromSources(): void {
-    if (!this._unsubscribers) return;
-    if (!this._unsubscribers) return; // Nothing to unsubscribe from
-
-    for (const unsub of this._unsubscribers) {
-      unsub?.(); // Call each unsubscribe function
-    }
-    this._unsubscribers = undefined; // Clear the array
-    this._dirty = true; // Mark as dirty when inactive, forces recalc on next activation
-  },
-
-  /**
-   * Overrides the base subscribe method.
-   * Handles lazy subscription to sources and initial value calculation.
-   * Interacts with event patching for `onStart`/`onStop`.
-   */
-  subscribe(listener: Listener<any>): Unsubscribe {
-    const first = !this._listeners?.size;
-
-    // 1. Initialize listeners set if it doesn't exist
-    this._listeners ??= new Set();
-    this._listeners.add(listener);
-
-    // 2. Handle first subscriber logic (Trigger onStart)
-    if (first) {
-      this._subscribeToSources(); // Connect to upstream sources
-      // Trigger onStart listeners directly
-      this._startListeners?.forEach(fn => {
-          try { fn(undefined); } catch(e) { console.error(`Error in onStart listener for computed atom ${String(this)}:`, e); }
-      });
-    }
-    // Note: `onMount` is handled entirely by the `onMount` function itself.
-
-    // 3. Ensure value is calculated and notify the new listener
-    this._isSubscribing = true; // Prevent notifications during initial get
-    const currentValue = this.get(); // Ensures calculation if dirty
-    listener(currentValue, undefined); // Initial call with current value
-    this._isSubscribing = false; // Clear flag after initial notification
-
-    // 4. Return the unsubscribe function
-    const self = this; // Capture `this` for the closure
-    return function unsubscribe() {
-      const listeners = self._listeners;
-      if (!listeners) return; // Already fully unsubscribed
-
-      listeners.delete(listener); // Remove this specific listener
-
-      // If this was the last listener, disconnect from sources and trigger onStop
-      if (listeners.size === 0) {
-        self._unsubscribeFromSources();
-        // Trigger onStop listeners directly
-        self._stopListeners?.forEach(fn => {
-            try { fn(undefined); } catch(e) { console.error(`Error in onStop listener for computed atom ${String(self)}:`, e); }
-        });
-        delete self._listeners; // Clean up the Set object
-      }
-    };
-  }
-};
-
-// --- Factory Function ---
+}
 
 /**
- * Creates a read-only computed atom.
+ * Handler called when any source atom changes.
+ * Marks the computed atom as dirty and triggers an update if active.
+ * @internal
+ */
+function computedSourceChanged<T>(atom: ComputedAtom<T>): void {
+    if (atom._dirty) return; // Already dirty, no need to do anything further.
+
+    atom._dirty = true;
+
+    // If there are active listeners, trigger an update and notify *if* the value changed.
+    // This propagates the change down the computed chain.
+    if (atom._listeners?.size) {
+        const oldValue = atom._value; // Store value before potential update
+        // Use the internal _update method which calls updateComputedValue
+        // Need a way to call updateComputedValue or similar logic here.
+        // Let's assume updateComputedValue is sufficient for now.
+        const changed = updateComputedValue(atom); // Directly call update logic
+        if (changed) {
+            // Use the exported notifyListeners from atom.ts
+            notifyListeners(atom, atom._value!, oldValue); // Notify downstream listeners
+        }
+    }
+    // If no listeners, we just stay dirty until the next `getAtomValue()`.
+}
+
+/** Subscribes a computed atom to all its source atoms. @internal */
+function subscribeComputedToSources<T>(atom: ComputedAtom<T>): void {
+    if (atom._unsubscribers) return; // Avoid double subscriptions
+
+    const sources = atom._sources;
+    atom._unsubscribers = new Array(sources.length);
+
+    // Create a bound handler specific to this computed atom instance
+    const onChangeHandler = () => computedSourceChanged(atom);
+
+    for (let i = 0; i < sources.length; i++) {
+        const source = sources[i];
+        if (source) {
+            // Subscribe to each source using the functional API
+            atom._unsubscribers[i] = subscribeToAtom(source, onChangeHandler);
+        }
+    }
+}
+
+/** Unsubscribes a computed atom from all its source atoms. @internal */
+function unsubscribeComputedFromSources<T>(atom: ComputedAtom<T>): void {
+    if (!atom._unsubscribers) return; // Nothing to unsubscribe from
+
+    for (const unsub of atom._unsubscribers) {
+        unsub?.(); // Call each unsubscribe function
+    }
+    atom._unsubscribers = undefined; // Clear the array
+    atom._dirty = true; // Mark as dirty when inactive, forces recalc on next activation
+}
+
+
+// --- Override getAtomValue for Computed ---
+// We need to modify or wrap getAtomValue to handle computed logic.
+// This is now handled in atom.ts's getAtomValue by calling updateComputedValue.
+
+// --- Computed Factory (Functional Style) ---
+
+/**
+ * Creates a read-only computed atom (functional style).
  * Its value is derived from one or more source atoms using a calculation function.
  *
  * @template T The type of the computed value.
  * @template S Tuple type of the source stores.
- * @param stores An array or tuple of source atoms (Atom or ReadonlyAtom).
+ * @param stores An array or tuple of source atoms (AnyAtom).
  * @param calculation A function that takes the current values of the source stores
  *   as arguments and returns the computed value.
  * @param equalityFn Optional function to compare the old and new computed values.
  *   Defaults to `Object.is`. If it returns true, listeners are not notified.
  * @returns A ReadonlyAtom representing the computed value.
  */
-export function computed<T, S extends Stores>(
+export function createComputed<T, S extends Stores>( // Rename factory function
   stores: S,
   calculation: (...values: StoreValues<S>) => T,
   equalityFn: (a: T, b: T) => boolean = Object.is // Default to Object.is
 ): ReadonlyAtom<T> {
-  // Create instance using object literal, copying methods from ComputedAtomProto
-  // Create instance using object literal, copying methods from ComputedAtomProto
-  // Explicitly type the object literal to match ComputedAtom<T>
-  const atom: ComputedAtom<T> = {
-    // Core properties/methods (copied)
-    _value: null, // Initialize as null
-    get: ComputedAtomProto.get,
-    subscribe: ComputedAtomProto.subscribe,
-    _notify: ComputedAtomProto._notify,
-    // Computed-specific properties (initialized)
+
+  // Define the structure adhering to ComputedAtom<T> type
+  const computedAtom: ComputedAtom<T> = {
+    $$id: Symbol('computed'),
+    $$type: AtomTypes.Computed,
+    _value: null, // Start as null
+    _dirty: true,
     _sources: stores,
     _sourceValues: new Array(stores.length),
     _calculation: calculation as Function,
     _equalityFn: equalityFn,
-    _dirty: true,
-    _isSubscribing: false,
-    // Methods specific to computed (copied)
-    _update: ComputedAtomProto._update,
-    _onChange: ComputedAtomProto._onChange,
-    _subscribeToSources: ComputedAtomProto._subscribeToSources,
-    _unsubscribeFromSources: ComputedAtomProto._unsubscribeFromSources,
-    // Optional properties (initialized lazily or can be undefined)
+    // Listeners and unsubscribers initialized lazily
     _listeners: undefined,
     _startListeners: undefined,
     _stopListeners: undefined,
-    _setListeners: undefined, // Less common for computed, but include for type consistency
     _notifyListeners: undefined,
     _mountListeners: undefined,
     _unsubscribers: undefined,
-    _onChangeHandler: undefined,
+    // Add back internal methods needed by core logic (getAtomValue, subscribeToAtom)
+    _subscribeToSources: () => subscribeComputedToSources(computedAtom),
+    _unsubscribeFromSources: () => unsubscribeComputedFromSources(computedAtom),
+    _update: () => updateComputedValue(computedAtom),
+    // _onChange is not directly called externally, computedSourceChanged handles it
   };
 
-  return atom; // Return the configured computed atom instance
+   // Trigger onMount immediately after creation if listeners exist
+   computedAtom._mountListeners?.forEach(fn => {
+      try { fn(undefined); } catch(e) { console.error(`Error in onMount listener during computed creation:`, e); }
+   });
+   delete computedAtom._mountListeners; // Clean up mount listeners
+
+  // The getAtomValue in atom.ts now calls updateComputedValue if dirty.
+  // The subscribeToAtom in atom.ts now calls subscribeComputedToSources/unsubscribeComputedFromSources.
+
+  return computedAtom; // Return the computed atom structure
 }
+
+// Removed comment block about modifying atom.ts

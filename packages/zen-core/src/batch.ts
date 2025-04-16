@@ -1,12 +1,10 @@
 // Batching implementation without global prototype patching.
-import { Atom } from './core';
-// Import needed for type annotation in queueAtomForBatch
-import { Listener } from './core'; // This import might not be strictly needed anymore
+import { Atom, Listener, notifyListeners } from './core'; // Import notifyListeners from core
 
 // --- Batching Internals ---
 
-/** Tracks the nesting depth of batch calls. */
-let batchDepth = 0;
+/** Tracks the nesting depth of batch calls. Exported for direct check in atom.ts. @internal */
+export let batchDepth = 0;
 /** Stores atoms that have changed within the current batch, along with their original value. */
 const batchQueue = new Map<Atom<any>, any>(); // Map<Atom, OriginalValueBeforeBatch>
 
@@ -95,9 +93,8 @@ export function batch<T>(fn: () => T): T {
   if (batchDepth === 0 && !errorOccurred && changesToNotify.length > 0) {
       for (const change of changesToNotify) {
           try {
-              // Call the atom's standard _notify method.
-              // This will now correctly trigger both value listeners and onNotify listeners (due to core.ts refactor).
-              change.atom._notify(change.value, change.oldValue);
+              // Call the exported notifyListeners function directly.
+              notifyListeners(change.atom, change.value, change.oldValue);
           } catch (err) {
               console.error(`Error during batched notification for atom ${String(change.atom)}:`, err);
           }

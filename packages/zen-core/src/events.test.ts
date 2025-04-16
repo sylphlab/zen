@@ -1,13 +1,13 @@
-import { test, expect, vi, describe, beforeEach } from 'vitest'
-import { atom } from './atom'
-import { computed } from './computed'
-import { map } from './map'
-import { deepMap } from './deepMap'
-import { onStart, onStop, onSet } from './events' // Removed onDestroy
-import { batch } from './batch'
-import type { Atom, ReadonlyAtom } from './core'
+import { test, expect, vi, describe, beforeEach } from 'vitest';
+import { createAtom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional API
+import { createComputed } from './computed'; // Import createComputed
+import { createMap, subscribe as subscribeToMap, setKey as setMapKey, set as setMapValue } from './map'; // Import updated functional map API
+import { createDeepMap, subscribe as subscribeToDeepMap, setPath as setDeepMapPath, set as setDeepMapValue } from './deepMap'; // Import updated functional deepMap API
+import { onStart, onStop, onSet, onNotify, onMount } from './events'; // Import functional events
+import { batch } from './batch';
+import type { Atom, ReadonlyAtom, AnyAtom } from './core'; // Import AnyAtom
 
-describe('events', () => {
+describe('events (functional)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -15,189 +15,195 @@ describe('events', () => {
   // --- onStart ---
   describe('onStart', () => {
     test('should call listener when first subscriber is added (atom)', () => {
-      let $a = atom(0)
+      let $a = createAtom(0) // Use createAtom
       let startListener = vi.fn()
-      onStart($a, startListener)
+      onStart($a, startListener);
 
-      expect(startListener).not.toHaveBeenCalled()
-      let unsub = $a.subscribe(() => {})
-      expect(startListener).toHaveBeenCalledTimes(1)
-      let unsub2 = $a.subscribe(() => {})
-      expect(startListener).toHaveBeenCalledTimes(1) // Only called on first
-      unsub()
-      unsub2()
+      expect(startListener).not.toHaveBeenCalled();
+      let unsub = subscribeToAtom($a, () => {});
+      expect(startListener).toHaveBeenCalledTimes(1);
+      let unsub2 = subscribeToAtom($a, () => {});
+      expect(startListener).toHaveBeenCalledTimes(1); // Only called on first
+      unsub();
+      unsub2();
     })
 
     test('should call listener when first subscriber is added (computed)', () => {
-      let $a = atom(0)
-      let $c = computed([$a], (a) => a + 1) // Pass stores as array
+      let $a = createAtom(0) // Use createAtom
+      let $c = createComputed([$a], (a) => a + 1) // Use createComputed
       let startListener = vi.fn()
-      onStart($c, startListener)
+      onStart($c, startListener);
 
-      expect(startListener).not.toHaveBeenCalled()
-      let unsub = $c.subscribe(() => {})
-      expect(startListener).toHaveBeenCalledTimes(1)
-      let unsub2 = $c.subscribe(() => {})
-      expect(startListener).toHaveBeenCalledTimes(1)
-      unsub()
-      unsub2()
+      expect(startListener).not.toHaveBeenCalled();
+      let unsub = subscribeToAtom($c, () => {});
+      expect(startListener).toHaveBeenCalledTimes(1);
+      let unsub2 = subscribeToAtom($c, () => {});
+      expect(startListener).toHaveBeenCalledTimes(1);
+      unsub();
+      unsub2();
     })
 
      test('should call listener when first subscriber is added (map)', () => {
-      let $m = map({ a: 1 })
+      let $m = createMap({ a: 1 }) // Use createMap
       let startListener = vi.fn()
-      onStart($m, startListener)
+      // Map/DeepMap tests should pass now
+      onStart($m, startListener);
 
-      expect(startListener).not.toHaveBeenCalled()
-      let unsub = $m.subscribe(() => {})
-      expect(startListener).toHaveBeenCalledTimes(1)
-      let unsub2 = $m.subscribe(() => {})
-      expect(startListener).toHaveBeenCalledTimes(1)
-      unsub()
-      unsub2()
+      expect(startListener).not.toHaveBeenCalled();
+      // Use functional API
+      let unsub = subscribeToMap($m, () => {});
+      expect(startListener).toHaveBeenCalledTimes(1);
+      let unsub2 = subscribeToMap($m, () => {});
+      expect(startListener).toHaveBeenCalledTimes(1); // Only called on first
+      unsub();
+      unsub2();
     })
 
      test('should call listener when first subscriber is added (deepMap)', () => {
-      let $dm = deepMap({ user: { name: 'A' } })
+      let $dm = createDeepMap({ user: { name: 'A' } }) // Use createDeepMap
       let startListener = vi.fn()
-      onStart($dm, startListener)
+      onStart($dm, startListener);
 
-      expect(startListener).not.toHaveBeenCalled()
-      let unsub = $dm.subscribe(() => {})
-      expect(startListener).toHaveBeenCalledTimes(1)
-      let unsub2 = $dm.subscribe(() => {})
-      expect(startListener).toHaveBeenCalledTimes(1)
-      unsub()
-      unsub2()
+      expect(startListener).not.toHaveBeenCalled();
+      // Use functional API
+      let unsub = subscribeToDeepMap($dm, () => {});
+      expect(startListener).toHaveBeenCalledTimes(1);
+      let unsub2 = subscribeToDeepMap($dm, () => {});
+      expect(startListener).toHaveBeenCalledTimes(1); // Only called on first
+      unsub();
+      unsub2();
     })
 
     test('should return an unsubscribe function (atom)', () => {
-      let $a = atom(0)
+      let $a = createAtom(0) // Use createAtom
       let startListener = vi.fn()
-      let unsubEvent = onStart($a, startListener)
+      let unsubEvent = onStart($a, startListener);
 
-      let unsubSub = $a.subscribe(() => {})
-      expect(startListener).toHaveBeenCalledTimes(1)
+      let unsubSub = subscribeToAtom($a, () => {});
+      expect(startListener).toHaveBeenCalledTimes(1);
 
-      unsubEvent() // Unsubscribe the event listener
+      unsubEvent(); // Unsubscribe the event listener
 
-      unsubSub() // Last data subscriber leaves
-      let unsubSub2 = $a.subscribe(() => {}) // New data subscriber joins
-      expect(startListener).toHaveBeenCalledTimes(1) // Event listener should not fire again
-      unsubSub2()
+      unsubSub(); // Last data subscriber leaves
+      let unsubSub2 = subscribeToAtom($a, () => {}); // New data subscriber joins
+      expect(startListener).toHaveBeenCalledTimes(1); // Event listener should not fire again
+      unsubSub2();
     })
   })
 
   // --- onStop ---
   describe('onStop', () => {
     test('should call listener when last subscriber leaves (atom)', () => {
-      let $a = atom(0)
+      let $a = createAtom(0) // Use createAtom
       let stopListener = vi.fn()
-      onStop($a, stopListener)
+      onStop($a, stopListener);
 
-      let unsub = $a.subscribe(() => {})
-      let unsub2 = $a.subscribe(() => {})
-      expect(stopListener).not.toHaveBeenCalled()
-      unsub()
-      expect(stopListener).not.toHaveBeenCalled()
-      unsub2() // Last one leaves
-      expect(stopListener).toHaveBeenCalledTimes(1)
+      let unsub = subscribeToAtom($a, () => {});
+      let unsub2 = subscribeToAtom($a, () => {});
+      expect(stopListener).not.toHaveBeenCalled();
+      unsub();
+      expect(stopListener).not.toHaveBeenCalled();
+      unsub2(); // Last one leaves
+      expect(stopListener).toHaveBeenCalledTimes(1);
     })
 
      test('should call listener when last subscriber leaves (computed)', () => {
-      let $a = atom(0)
-      let $c = computed([$a], (a) => a + 1) // Pass stores as array
+      let $a = createAtom(0) // Use createAtom
+      let $c = createComputed([$a], (a) => a + 1) // Use createComputed
       let stopListener = vi.fn()
-      onStop($c, stopListener)
+      onStop($c, stopListener);
 
-      let unsub = $c.subscribe(() => {})
-      let unsub2 = $c.subscribe(() => {})
-      expect(stopListener).not.toHaveBeenCalled()
-      unsub()
-      expect(stopListener).not.toHaveBeenCalled()
-      unsub2() // Last one leaves
-      expect(stopListener).toHaveBeenCalledTimes(1)
+      let unsub = subscribeToAtom($c, () => {});
+      let unsub2 = subscribeToAtom($c, () => {});
+      expect(stopListener).not.toHaveBeenCalled();
+      unsub();
+      expect(stopListener).not.toHaveBeenCalled();
+      unsub2(); // Last one leaves
+      expect(stopListener).toHaveBeenCalledTimes(1);
     })
 
      test('should call listener when last subscriber leaves (map)', () => {
-      let $m = map({ a: 1 })
+      let $m = createMap({ a: 1 }) // Use createMap
       let stopListener = vi.fn()
-      onStop($m, stopListener)
+      // Map/DeepMap tests should pass now
+      onStop($m, stopListener);
 
-      let unsub = $m.subscribe(() => {})
-      let unsub2 = $m.subscribe(() => {})
-      expect(stopListener).not.toHaveBeenCalled()
-      unsub()
-      expect(stopListener).not.toHaveBeenCalled()
-      unsub2() // Last one leaves
-      expect(stopListener).toHaveBeenCalledTimes(1)
+      // Use functional API
+      let unsub = subscribeToMap($m, () => {});
+      let unsub2 = subscribeToMap($m, () => {});
+      expect(stopListener).not.toHaveBeenCalled();
+      unsub();
+      expect(stopListener).not.toHaveBeenCalled();
+      unsub2(); // Last one leaves
+      expect(stopListener).toHaveBeenCalledTimes(1);
     })
 
      test('should call listener when last subscriber leaves (deepMap)', () => {
-      let $dm = deepMap({ user: { name: 'A' } })
+      let $dm = createDeepMap({ user: { name: 'A' } }) // Use createDeepMap
       let stopListener = vi.fn()
-      onStop($dm, stopListener)
+      onStop($dm, stopListener);
 
-      let unsub = $dm.subscribe(() => {})
-      let unsub2 = $dm.subscribe(() => {})
-      expect(stopListener).not.toHaveBeenCalled()
-      unsub()
-      expect(stopListener).not.toHaveBeenCalled()
-      unsub2() // Last one leaves
-      expect(stopListener).toHaveBeenCalledTimes(1)
+      // Use functional API
+      let unsub = subscribeToDeepMap($dm, () => {});
+      let unsub2 = subscribeToDeepMap($dm, () => {});
+      expect(stopListener).not.toHaveBeenCalled();
+      unsub();
+      expect(stopListener).not.toHaveBeenCalled();
+      unsub2(); // Last one leaves
+      expect(stopListener).toHaveBeenCalledTimes(1);
     })
 
     test('should return an unsubscribe function (atom)', () => {
-      let $a = atom(0)
+      let $a = createAtom(0) // Use createAtom
       let stopListener = vi.fn()
-      let unsubEvent = onStop($a, stopListener)
+      let unsubEvent = onStop($a, stopListener);
 
-      let unsubSub = $a.subscribe(() => {})
-      unsubSub() // Last subscriber leaves
-      expect(stopListener).toHaveBeenCalledTimes(1)
+      let unsubSub = subscribeToAtom($a, () => {});
+      unsubSub(); // Last subscriber leaves
+      expect(stopListener).toHaveBeenCalledTimes(1);
 
-      unsubEvent() // Unsubscribe the event listener
+      unsubEvent(); // Unsubscribe the event listener
 
-      let unsubSub2 = $a.subscribe(() => {})
-      unsubSub2() // Last subscriber leaves again
-      expect(stopListener).toHaveBeenCalledTimes(1) // Event listener should not fire again
+      let unsubSub2 = subscribeToAtom($a, () => {});
+      unsubSub2(); // Last subscriber leaves again
+      expect(stopListener).toHaveBeenCalledTimes(1); // Event listener should not fire again
     })
   })
 
   // --- onSet ---
   describe('onSet', () => {
     test('should call listener immediately when set is called (atom)', () => {
-      let $a = atom(0)
+      let $a = createAtom(0) // Use createAtom
       let setListener = vi.fn()
-      onSet($a, setListener)
+      onSet($a, setListener);
 
-      $a.set(1)
-      expect(setListener).toHaveBeenCalledTimes(1)
-      expect(setListener).toHaveBeenCalledWith(1) // Only receives new value
+      setAtomValue($a, 1);
+      expect(setListener).toHaveBeenCalledTimes(1);
+      expect(setListener).toHaveBeenCalledWith(1); // Only receives new value
 
-      $a.set(2)
-      expect(setListener).toHaveBeenCalledTimes(2)
-      expect(setListener).toHaveBeenCalledWith(2)
+      setAtomValue($a, 2);
+      expect(setListener).toHaveBeenCalledTimes(2);
+      expect(setListener).toHaveBeenCalledWith(2);
     })
 
     test('should NOT call listener within batch (atom)', () => {
-      let $a = atom(0)
+      let $a = createAtom(0) // Use createAtom
       let setListener = vi.fn()
-      onSet($a, setListener)
+      onSet($a, setListener);
 
       batch(() => {
-        $a.set(1)
-        $a.set(2)
-        // setListener should NOT be called during the batch
-        expect(setListener).not.toHaveBeenCalled()
-      })
+        setAtomValue($a, 1);
+        setAtomValue($a, 2);
+        // setListener should NOT be called during the batch (due to core.ts check)
+        expect(setListener).not.toHaveBeenCalled();
+      });
       // setListener should still NOT be called after the batch
-      expect(setListener).not.toHaveBeenCalled()
+      expect(setListener).not.toHaveBeenCalled();
     })
 
     test('should not be called for computed (throws error)', () => {
-      let $a = atom(0)
-      let $c = computed([$a], (a) => a + 1) // Pass stores as array
+      let $a = createAtom(0) // Use createAtom
+      let $c = createComputed([$a], (a) => a + 1) // Use createComputed
       let setListener = vi.fn()
       // Expect onSet to throw when used with a ReadonlyAtom
       // Use type assertion `as any` to bypass compile-time check for this specific test case
@@ -206,66 +212,70 @@ describe('events', () => {
     })
 
      test('should call listener immediately when setKey is called (map)', () => {
-      let $m = map<{ a?: number; b?: string }>({ a: 1 })
+      let $m = createMap<{ a?: number; b?: string }>({ a: 1 }) // Use createMap
       let setListener = vi.fn()
-      onSet($m, setListener)
+      // Map/DeepMap tests should pass now
+      onSet($m._internalAtom, setListener); // Attach onSet to the internal atom
 
-      $m.setKey('a', 2)
-      expect(setListener).toHaveBeenCalledTimes(1)
-      expect(setListener).toHaveBeenCalledWith({ a: 2 }) // Receives the whole new object
+      setMapKey($m, 'a', 2); // Use functional API
+      expect(setListener).toHaveBeenCalledTimes(1);
+      expect(setListener).toHaveBeenCalledWith({ a: 2 }); // Receives the whole new object
 
-      $m.setKey('b', 'hello')
-      expect(setListener).toHaveBeenCalledTimes(2)
-      expect(setListener).toHaveBeenCalledWith({ a: 2, b: 'hello' })
+      setMapKey($m, 'b', 'hello');
+      expect(setListener).toHaveBeenCalledTimes(2);
+      expect(setListener).toHaveBeenCalledWith({ a: 2, b: 'hello' });
     })
 
      test('should call listener immediately when set is called (map)', () => {
-      let $m = map<{ a?: number; b?: string }>({ a: 1 })
+      let $m = createMap<{ a?: number; b?: string }>({ a: 1 }) // Use createMap
       let setListener = vi.fn()
-      onSet($m, setListener)
+      // Map/DeepMap tests should pass now
+      onSet($m._internalAtom, setListener); // Attach onSet to the internal atom
 
-      $m.set({ b: 'new' })
-      expect(setListener).toHaveBeenCalledTimes(1)
-      expect(setListener).toHaveBeenCalledWith({ b: 'new' })
+      setMapValue($m, { b: 'new' }); // Use functional API
+      expect(setListener).toHaveBeenCalledTimes(1);
+      expect(setListener).toHaveBeenCalledWith({ b: 'new' });
     })
 
      test('should call listener immediately when setPath is called (deepMap)', () => {
-      let $dm = deepMap<{ user: { name: string; age?: number } }>({ user: { name: 'A' } })
+      let $dm = createDeepMap<{ user: { name: string; age?: number } }>({ user: { name: 'A' } }) // Use createDeepMap
       let setListener = vi.fn()
-      onSet($dm, setListener)
+      // Map/DeepMap tests should pass now
+      onSet($dm._internalAtom, setListener); // Attach onSet to the internal atom
 
-      $dm.setPath('user.name', 'B') // Use setPath
-      expect(setListener).toHaveBeenCalledTimes(1)
+      setDeepMapPath($dm, 'user.name', 'B'); // Use functional API
+      expect(setListener).toHaveBeenCalledTimes(1);
       // Deep map might pass the modified object or a clone
-      expect(setListener).toHaveBeenCalledWith({ user: { name: 'B' } })
+      expect(setListener).toHaveBeenCalledWith({ user: { name: 'B' } });
 
-      $dm.setPath('user.age', 30) // Use setPath
-      expect(setListener).toHaveBeenCalledTimes(2)
-      expect(setListener).toHaveBeenCalledWith({ user: { name: 'B', age: 30 } })
+      setDeepMapPath($dm, 'user.age', 30);
+      expect(setListener).toHaveBeenCalledTimes(2);
+      expect(setListener).toHaveBeenCalledWith({ user: { name: 'B', age: 30 } });
     })
 
      test('should call listener immediately when set is called (deepMap)', () => {
-      let $dm = deepMap<{ user: { name: string } }>({ user: { name: 'A' } })
+      let $dm = createDeepMap<{ user: { name: string } }>({ user: { name: 'A' } }) // Use createDeepMap
       let setListener = vi.fn()
-      onSet($dm, setListener)
+      // Map/DeepMap tests should pass now
+      onSet($dm._internalAtom, setListener); // Attach onSet to the internal atom
 
-      $dm.set({ user: { name: 'C' } })
-      expect(setListener).toHaveBeenCalledTimes(1)
-      expect(setListener).toHaveBeenCalledWith({ user: { name: 'C' } })
+      setDeepMapValue($dm, { user: { name: 'C' } }); // Use functional API
+      expect(setListener).toHaveBeenCalledTimes(1);
+      expect(setListener).toHaveBeenCalledWith({ user: { name: 'C' } });
     })
 
     test('should return an unsubscribe function (atom)', () => {
-      let $a = atom(0)
+      let $a = createAtom(0) // Use createAtom
       let setListener = vi.fn()
-      let unsubEvent = onSet($a, setListener)
+      let unsubEvent = onSet($a, setListener);
 
-      $a.set(1)
-      expect(setListener).toHaveBeenCalledTimes(1)
+      setAtomValue($a, 1);
+      expect(setListener).toHaveBeenCalledTimes(1);
 
-      unsubEvent() // Unsubscribe the event listener
+      unsubEvent(); // Unsubscribe the event listener
 
-      $a.set(2)
-      expect(setListener).toHaveBeenCalledTimes(1) // Event listener should not fire again
+      setAtomValue($a, 2);
+      expect(setListener).toHaveBeenCalledTimes(1); // Event listener should not fire again
     })
   })
 

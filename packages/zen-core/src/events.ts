@@ -1,6 +1,5 @@
-// Event system implementation using dynamic patching for lifecycle and map listeners.
-import { Atom, ReadonlyAtom, Listener, Unsubscribe, AtomProto as CoreAtomProto } from './core';
-import { isInBatch } from './batch'; // Used to coordinate with batching system
+// Event system implementation for functional atoms.
+import { Atom, ReadonlyAtom, Listener, Unsubscribe, AnyAtom, AtomTypes, getBaseAtom, MapAtom, DeepMapAtom, AtomWithValue } from './core'; // Import necessary types and getBaseAtom from core
 import { STORE_MAP_KEY_SET } from './keys'; // Symbol to identify map/deepMap atoms
 import { Path, PathArray, getDeep } from './deepMapInternal'; // Utilities for deepMap
 
@@ -13,75 +12,73 @@ export type PathListener<T> = (value: any, path: Path, obj: T) => void;
 /** Listener for map key changes. */
 export type KeyListener<T, K extends keyof T = keyof T> = (value: T[K] | undefined, key: K, obj: T) => void;
 
-// --- Patching Logic ---
-
-// No patching logic needed anymore. Event triggers are integrated into core.ts.
+// --- Type Guard ---
 
 /** Type guard to check if an atom is mutable (not computed). */
-function isMutableAtom<T>(a: Atom<T> | ReadonlyAtom<T>): a is Atom<T> {
-  // A mutable atom has a 'set' method and is not derived (no '_sources').
-  // Note: This check might need refinement if other mutable atom types are added.
-  return typeof (a as Atom<T>).set === 'function' && !('_sources' in a);
+function isMutableAtom<T>(a: AnyAtom<T>): a is Atom<T> | MapAtom<any> | DeepMapAtom<any> { // Return type includes Map/DeepMap
+  // Check the internal type marker. Map/DeepMap are mutable via specific functions.
+  return a.$$type === AtomTypes.Regular || a.$$type === AtomTypes.Map || a.$$type === AtomTypes.DeepMap;
 }
 
 // --- Internal Helper for Removing Listeners ---
-// This remains the same, just operates on the properties directly.
 function _unsubscribe<T>(
-  a: Atom<T> | ReadonlyAtom<T>,
+  a: AnyAtom<T>, // Use AnyAtom
   listenerSetProp: '_startListeners' | '_stopListeners' | '_setListeners' | '_notifyListeners' | '_mountListeners',
   fn: LifecycleListener<T>
 ): void {
-  const ls = a[listenerSetProp];
+  const baseAtom = getBaseAtom(a); // Get the atom holding listeners
+  const ls = baseAtom[listenerSetProp]; // Access listeners on the base atom
   if (ls) {
     ls.delete(fn);
-    if (!ls.size) delete a[listenerSetProp];
+    if (!ls.size) delete baseAtom[listenerSetProp]; // Delete from base atom
   }
 }
 
 // --- Exported Lifecycle Listener Functions ---
-// These functions now directly add/remove listeners to the atom's properties.
+// These functions now directly add/remove listeners to the atom's properties via getBaseAtom.
 
 /** Attaches a listener triggered when the first subscriber appears. */
-export function onStart<T>(a: Atom<T> | ReadonlyAtom<T>, fn: LifecycleListener<T>): Unsubscribe {
-  // No patching needed.
-  a._startListeners ??= new Set();
-  a._startListeners.add(fn);
-  return () => _unsubscribe(a, '_startListeners', fn);
+export function onStart<T>(a: AnyAtom<T>, fn: LifecycleListener<T>): Unsubscribe {
+  const baseAtom = getBaseAtom(a);
+  baseAtom._startListeners ??= new Set();
+  baseAtom._startListeners.add(fn);
+  return () => _unsubscribe(a, '_startListeners', fn); // _unsubscribe uses getBaseAtom internally
 }
 
 /** Attaches a listener triggered when the last subscriber disappears. */
-export function onStop<T>(a: Atom<T> | ReadonlyAtom<T>, fn: LifecycleListener<T>): Unsubscribe {
-  // No patching needed.
-  a._stopListeners ??= new Set();
-  a._stopListeners.add(fn);
+export function onStop<T>(a: AnyAtom<T>, fn: LifecycleListener<T>): Unsubscribe {
+  const baseAtom = getBaseAtom(a);
+  baseAtom._stopListeners ??= new Set();
+  baseAtom._stopListeners.add(fn);
   return () => _unsubscribe(a, '_stopListeners', fn);
 }
 
 /** Attaches a listener triggered *before* a mutable atom's value is set (only outside batch). */
-export function onSet<T>(a: Atom<T>, fn: LifecycleListener<T>): Unsubscribe {
+export function onSet<T>(a: Atom<T>, fn: LifecycleListener<T>): Unsubscribe { // Keep Atom<T> constraint for clarity
   // Check remains useful to guide users.
+  // Allow attaching onSet to Map/DeepMap as well, as their set functions trigger it indirectly.
   if (!isMutableAtom(a)) {
     throw new Error('onSet can only be used with mutable atoms (atom, map, deepMap)');
   }
-  // No patching needed.
-  a._setListeners ??= new Set();
-  a._setListeners.add(fn);
-  return () => _unsubscribe(a, '_setListeners', fn);
+  const baseAtom = getBaseAtom(a); // Get the base atom (internal for map/deepMap)
+  baseAtom._setListeners ??= new Set();
+  baseAtom._setListeners.add(fn);
+  return () => _unsubscribe(a, '_setListeners', fn); // Pass original atom 'a'
 }
 
 /** Attaches a listener triggered *after* an atom's value listeners have been notified. */
-export function onNotify<T>(a: Atom<T> | ReadonlyAtom<T>, fn: LifecycleListener<T>): Unsubscribe {
-  // No patching needed.
-  a._notifyListeners ??= new Set();
-  a._notifyListeners.add(fn);
+export function onNotify<T>(a: AnyAtom<T>, fn: LifecycleListener<T>): Unsubscribe {
+  const baseAtom = getBaseAtom(a);
+  baseAtom._notifyListeners ??= new Set();
+  baseAtom._notifyListeners.add(fn);
   return () => _unsubscribe(a, '_notifyListeners', fn);
 }
 
 /** Attaches a listener triggered immediately and only once upon attachment. */
-export function onMount<T>(a: Atom<T> | ReadonlyAtom<T>, fn: LifecycleListener<T>): Unsubscribe {
-  // No patching needed.
-  a._mountListeners ??= new Set();
-  a._mountListeners.add(fn);
+export function onMount<T>(a: AnyAtom<T>, fn: LifecycleListener<T>): Unsubscribe {
+  const baseAtom = getBaseAtom(a);
+  baseAtom._mountListeners ??= new Set();
+  baseAtom._mountListeners.add(fn);
   try {
     fn(undefined); // Call immediately
   } catch (err) {
@@ -93,35 +90,32 @@ export function onMount<T>(a: Atom<T> | ReadonlyAtom<T>, fn: LifecycleListener<T
 
 // --- Key/Path Listeners (Primarily for Map/DeepMap) ---
 
-// WeakMaps to store listeners associated with specific map/deepMap atoms.
-// Keys: Atom instance
-// Values: Map where keys are stringified paths or keys, values are Sets of listeners.
-const pathListeners = new WeakMap<Atom<any>, Map<string, Set<PathListener<any>>>>();
-const keyListeners = new WeakMap<Atom<any>, Map<any, Set<KeyListener<any>>>>();
+// WeakMaps to store listeners associated with specific map/deepMap *internal* atoms.
+const pathListeners = new WeakMap<AtomWithValue<any>, Map<string, Set<PathListener<any>>>>(); // Key is AtomWithValue
+const keyListeners = new WeakMap<AtomWithValue<any>, Map<any, Set<KeyListener<any>>>>(); // Key is AtomWithValue
 
 /**
  * Listens to changes at specific paths within a deepMap atom.
- * Relies on the atom having the `STORE_MAP_KEY_SET` symbol.
- * @param a The deepMap atom instance.
- * @param paths An array of paths (strings or arrays) to listen to.
- * @param fn The listener function.
- * @returns An unsubscribe function.
+ * Relies on the internal atom having the `STORE_MAP_KEY_SET` symbol.
  */
 export function listenPaths<T extends object>(
-  a: Atom<T> & { [STORE_MAP_KEY_SET]?: boolean }, // Check for map/deepMap marker
+  a: AnyAtom<T>, // Accept AnyAtom (MapAtom, DeepMapAtom, etc.)
   paths: Path[],
   fn: PathListener<T>
 ): Unsubscribe {
-  // Only proceed if the atom is marked as a map/deepMap
-  if (!a[STORE_MAP_KEY_SET]) {
-    console.warn('listenPaths called on a non-map/deepMap atom. Listener ignored.');
+  // Get the internal atom directly. For Map/DeepMap, getBaseAtom returns the internal one.
+  const internalAtom = getBaseAtom(a);
+
+  // Check if it's a Map/DeepMap internal atom by checking the marker
+  if (!(internalAtom as any)[STORE_MAP_KEY_SET]) {
+    console.warn('listenPaths called on an incompatible atom type. Listener ignored.');
     return () => {}; // Return no-op unsubscribe
   }
 
-  let atomPathListeners = pathListeners.get(a);
+  let atomPathListeners = pathListeners.get(internalAtom); // Use internalAtom for WeakMap key
   if (!atomPathListeners) {
     atomPathListeners = new Map();
-    pathListeners.set(a, atomPathListeners);
+    pathListeners.set(internalAtom, atomPathListeners);
   }
 
   // Normalize paths to strings using null character separator for arrays
@@ -136,9 +130,13 @@ export function listenPaths<T extends object>(
     listenersForPath.add(fn as PathListener<any>);
   });
 
-  return () => {
-    const currentAtomListeners = pathListeners.get(a);
-    if (!currentAtomListeners) return;
+  return () => { // Return function starts here
+    // Get the internal atom again for unsubscribe
+    const internalAtomUnsub = getBaseAtom(a); // Use getBaseAtom again
+    // No need to check type again, getBaseAtom handles it
+
+    const currentAtomListeners = pathListeners.get(internalAtomUnsub); // Use internalAtom for WeakMap key
+    if (!currentAtomListeners) return; // Ensure return if no listeners for atom
 
     pathStrings.forEach(ps => {
       const listenersForPath = currentAtomListeners.get(ps);
@@ -151,22 +149,24 @@ export function listenPaths<T extends object>(
     });
 
     if (!currentAtomListeners.size) {
-      pathListeners.delete(a); // Clean up atom entry if no paths are listened to
+      pathListeners.delete(internalAtomUnsub); // Use internalAtom for WeakMap key
     }
-  };
+  }; // Return function ends here
 }
 
 /**
- * Internal function called by deepMap's patched `set` to emit path changes.
- * @param a The deepMap atom.
+ * Internal function called by map/deepMap `set` functions to emit path changes.
+ * @param a The *internal* atom of the map/deepMap.
  * @param changedPaths Array of paths that actually changed.
  * @param finalValue The final state object after changes.
  * @internal
  */
 export function _emitPathChanges<T extends object>(
-  a: Atom<T>, changedPaths: Path[], finalValue: T
+  a: Atom<T>, changedPaths: Path[], finalValue: T // Expects the internal Atom<T>
 ): void {
-  const atomPathListeners = pathListeners.get(a);
+  // console.log('_emitPathChanges called for atom:', a?.$$id?.toString()); // Debug log
+  const atomPathListeners = pathListeners.get(a); // Key is the internal atom
+  // console.log('Path listeners found in WeakMap:', atomPathListeners); // Debug log
   if (!atomPathListeners?.size || !changedPaths.length) return;
 
   // Normalize changed paths for efficient lookup
@@ -187,7 +187,8 @@ export function _emitPathChanges<T extends object>(
       let isPrefixMatch = registeredPathLength <= changedPathArray.length;
       if (isPrefixMatch) {
         for (let i = 0; i < registeredPathLength; i++) {
-          if (registeredPathArray[i] !== String(changedPathArray[i])) {
+          // Ensure consistent string comparison for array indices
+          if (String(registeredPathArray[i]) !== String(changedPathArray[i])) {
             isPrefixMatch = false;
             break;
           }
@@ -213,27 +214,26 @@ export function _emitPathChanges<T extends object>(
 
 /**
  * Listens to changes for specific keys within a map atom.
- * Relies on the atom having the `STORE_MAP_KEY_SET` symbol.
- * @param a The map atom instance.
- * @param keys An array of keys to listen to.
- * @param fn The listener function.
- * @returns An unsubscribe function.
+ * Relies on the internal atom having the `STORE_MAP_KEY_SET` symbol.
  */
 export function listenKeys<T extends object, K extends keyof T>(
-  a: Atom<T> & { [STORE_MAP_KEY_SET]?: boolean }, // Check for map/deepMap marker
+  a: AnyAtom<T>, // Accept AnyAtom
   keys: K[],
   fn: KeyListener<T, K>
 ): Unsubscribe {
-   // Only proceed if the atom is marked as a map/deepMap
-  if (!a[STORE_MAP_KEY_SET]) {
-    console.warn('listenKeys called on a non-map/deepMap atom. Listener ignored.');
+  // Get the internal atom directly.
+  const internalAtom = getBaseAtom(a);
+
+   // Check if it's a Map/DeepMap internal atom by checking the marker
+   if (!(internalAtom as any)[STORE_MAP_KEY_SET]) {
+    console.warn('listenKeys called on an incompatible atom type. Listener ignored.');
     return () => {}; // Return no-op unsubscribe
   }
 
-  let atomKeyListeners = keyListeners.get(a);
+  let atomKeyListeners = keyListeners.get(internalAtom); // Use internalAtom for WeakMap key
   if (!atomKeyListeners) {
     atomKeyListeners = new Map();
-    keyListeners.set(a, atomKeyListeners);
+    keyListeners.set(internalAtom, atomKeyListeners);
   }
 
   keys.forEach(k => {
@@ -245,9 +245,13 @@ export function listenKeys<T extends object, K extends keyof T>(
     listenersForKey.add(fn as KeyListener<any>);
   });
 
-  return () => {
-    const currentAtomListeners = keyListeners.get(a);
-    if (!currentAtomListeners) return;
+  return () => { // Return function starts here
+    // Get the internal atom again for unsubscribe
+    const internalAtomUnsub = getBaseAtom(a); // Use getBaseAtom again
+    // No need to check type again
+
+    const currentAtomListeners = keyListeners.get(internalAtomUnsub); // Use internalAtom for WeakMap key
+    if (!currentAtomListeners) return; // Ensure return if no listeners for atom
 
     keys.forEach(k => {
       const listenersForKey = currentAtomListeners.get(k);
@@ -260,22 +264,24 @@ export function listenKeys<T extends object, K extends keyof T>(
     });
 
     if (!currentAtomListeners.size) {
-      keyListeners.delete(a); // Clean up atom entry if no keys are listened to
+      keyListeners.delete(internalAtomUnsub); // Use internalAtom for WeakMap key
     }
-  };
+  }; // Return function ends here
 }
 
 /**
- * Internal function called by map's patched `set` to emit key changes.
- * @param a The map atom.
+ * Internal function called by map/deepMap `set` functions to emit key changes.
+ * @param a The *internal* atom of the map/deepMap.
  * @param changedKeys Array of keys that actually changed.
  * @param finalValue The final state object after changes.
  * @internal
  */
 export function _emitKeyChanges<T extends object>(
-  a: Atom<T>, changedKeys: ReadonlyArray<keyof T>, finalValue: T
+  a: Atom<T>, changedKeys: ReadonlyArray<keyof T>, finalValue: T // Expects the internal Atom<T>
 ): void {
-  const atomKeyListeners = keyListeners.get(a);
+  // console.log('_emitKeyChanges called for atom:', a?.$$id?.toString()); // Debug log
+  const atomKeyListeners = keyListeners.get(a); // Key is the internal atom
+  // console.log('Key listeners found in WeakMap:', atomKeyListeners); // Debug log
   if (!atomKeyListeners?.size) return;
 
   changedKeys.forEach(k => {

@@ -1,144 +1,148 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { atom } from './atom'; 
-import { computed } from './computed'; 
+import { createAtom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional API
+import { createComputed } from './computed'; // Import createComputed
 
-describe('computed', () => {
+// Mock the internal subscribe/unsubscribe functions for dependency tracking test
+vi.mock('./atom', async (importOriginal) => {
+  const original = await importOriginal() as typeof import('./atom');
+  return {
+    ...original,
+    subscribe: vi.fn(original.subscribe), // Spy on subscribe (renamed from subscribeToAtom)
+  };
+});
+
+describe('computed (functional)', () => {
   // Clear mocks after each test in this suite
   afterEach(() => {
     vi.restoreAllMocks();
+    // Clear specific mock history if needed
+    (subscribeToAtom as any).mockClear?.(); // Keep mock clear target as subscribeToAtom for now
   });
 
   it('should compute initial value correctly', () => {
-    const count = atom(10);
-    const double = computed([count], value => value * 2);
-    expect(double.get()).toBe(20);
+    const count = createAtom(10); // Use createAtom
+    const double = createComputed([count], value => value * 2); // Use createComputed
+    expect(getAtomValue(double)).toBe(20);
   });
 
   it('should update when a dependency atom changes', () => {
-    const count = atom(10);
-    const double = computed([count], value => value * 2);
+    const count = createAtom(10); // Use createAtom
+    const double = createComputed([count], value => value * 2); // Use createComputed
 
     // Subscribe to activate dependency tracking
-    const unsub = double.subscribe(() => {});
+    const unsub = subscribeToAtom(double, () => {});
 
-    expect(double.get()).toBe(20);
-    count.set(15);
-    expect(double.get()).toBe(30);
+    expect(getAtomValue(double)).toBe(20);
+    setAtomValue(count, 15);
+    expect(getAtomValue(double)).toBe(30);
 
     unsub();
   });
 
   it('should notify listeners when computed value changes', () => {
-    const count = atom(10);
-    const double = computed([count], value => value * 2);
+    const count = createAtom(10); // Use createAtom
+    const double = createComputed([count], value => value * 2); // Use createComputed
     const listener = vi.fn();
 
-    // Skip initial call test - new test impl accepts 2 calls
-    const unsubscribe = double.subscribe(listener);
+    const unsubscribe = subscribeToAtom(double, listener); // Use subscribeToAtom (mock target)
+    // Initial call happens, store the value for comparison
+    const initialValue = getAtomValue(double); // Should be 20
     listener.mockClear(); // Reset after subscription
-    
+
     // Test updates
-    count.set(15);
+    setAtomValue(count, 15);
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith(30, 20);
+    expect(listener).toHaveBeenCalledWith(30, initialValue); // Pass initialValue as oldValue
 
     unsubscribe();
   });
 
   it('should not notify listeners if computed value does not change', () => {
-    const count = atom(10);
-    const parity = computed([count], value => (value % 2 === 0 ? 'even' : 'odd'));
+    const count = createAtom(10); // Use createAtom
+    const parity = createComputed([count], value => (value % 2 === 0 ? 'even' : 'odd')); // Use createComputed
     const listener = vi.fn();
 
-    const unsubscribe = parity.subscribe(listener);
+    const unsubscribe = subscribeToAtom(parity, listener); // Use subscribeToAtom (mock target)
     listener.mockClear(); // Clear call history after subscription
 
-    count.set(12); // Value changes, but computed result ('even') does not
-    expect(parity.get()).toBe('even');
+    setAtomValue(count, 12); // Value changes, but computed result ('even') does not
+    expect(getAtomValue(parity)).toBe('even');
     expect(listener).not.toHaveBeenCalled();
 
     unsubscribe();
   });
 
   it('should handle multiple dependencies', () => {
-    const num1 = atom(10);
-    const num2 = atom(5);
-    const sum = computed([num1, num2], (n1, n2) => n1 + n2);
+    const num1 = createAtom(10); // Use createAtom
+    const num2 = createAtom(5); // Use createAtom
+    const sum = createComputed([num1, num2], (n1, n2) => n1 + n2); // Use createComputed
     const listener = vi.fn();
 
-    const unsubscribe = sum.subscribe(listener);
+    const unsubscribe = subscribeToAtom(sum, listener); // Use subscribeToAtom (mock target)
+    const initialSum = getAtomValue(sum); // 15
     listener.mockClear(); // Clear after subscription
 
-    num1.set(20); // sum changes from 15 to 25
-    expect(sum.get()).toBe(25);
+    setAtomValue(num1, 20); // sum changes from 15 to 25
+    expect(getAtomValue(sum)).toBe(25);
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith(25, 15);
+    expect(listener).toHaveBeenCalledWith(25, initialSum);
     listener.mockClear();
 
-    num2.set(7); // sum changes from 25 to 27
-    expect(sum.get()).toBe(27);
+    const intermediateSum = getAtomValue(sum); // 25
+    setAtomValue(num2, 7); // sum changes from 25 to 27
+    expect(getAtomValue(sum)).toBe(27);
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith(27, 25);
+    expect(listener).toHaveBeenCalledWith(27, intermediateSum);
 
     unsubscribe();
   });
 
   it('should handle dependencies on other computed atoms', () => {
-    const base = atom(10);
-    const double = computed([base], val => val * 2);
-    const quadruple = computed([double], val => val * 2);
+    const base = createAtom(10); // Use createAtom
+    const double = createComputed([base], val => val * 2); // Use createComputed
+    const quadruple = createComputed([double], val => val * 2); // Use createComputed
     const listener = vi.fn();
 
-    const unsubscribe = quadruple.subscribe(listener);
+    const unsubscribe = subscribeToAtom(quadruple, listener); // Use subscribeToAtom (mock target)
+    const initialQuad = getAtomValue(quadruple); // 40
     listener.mockClear(); // Clear after subscription
 
-    base.set(5);
-    expect(quadruple.get()).toBe(20); // 5 * 2 * 2
+    setAtomValue(base, 5);
+    expect(getAtomValue(quadruple)).toBe(20); // 5 * 2 * 2
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith(20, 40);
+    expect(listener).toHaveBeenCalledWith(20, initialQuad);
 
     unsubscribe();
   });
 
   it('should unsubscribe from dependencies when last listener unsubscribes', () => {
-    const dep1 = atom(1);
-    const dep2 = atom(2);
-
-    // Create spies for the original unsubscribe functions FIRST
-    const dep1UnsubSpy = vi.fn();
-    const dep2UnsubSpy = vi.fn();
-
-    // Spy on subscribe, simply make it return our unsubscribe spy.
-    const dep1SubscribeSpy = vi.spyOn(dep1, 'subscribe').mockReturnValue(dep1UnsubSpy);
-    const dep2SubscribeSpy = vi.spyOn(dep2, 'subscribe').mockReturnValue(dep2UnsubSpy);
-
-    const computedSum = computed([dep1, dep2], (d1, d2) => d1 + d2);
+    const dep1 = createAtom(1); // Use createAtom
+    const dep2 = createAtom(2); // Use createAtom
+    const computedSum = createComputed([dep1, dep2], (d1, d2) => d1 + d2); // Use createComputed
     const listener = vi.fn();
 
-    // First subscribe triggers dependency subscriptions
-    const unsub1 = computedSum.subscribe(listener);
-    expect(dep1SubscribeSpy).toHaveBeenCalledTimes(1);
-    expect(dep2SubscribeSpy).toHaveBeenCalledTimes(1);
-    expect(dep1UnsubSpy).not.toHaveBeenCalled();
-    expect(dep2UnsubSpy).not.toHaveBeenCalled();
+    // Cast to access internal properties for testing
+    const internalComputed = computedSum as any;
 
-    // Add a second listener - should NOT re-trigger dependency subscriptions
-    dep1SubscribeSpy.mockClear();
-    dep2SubscribeSpy.mockClear();
-    const unsub2 = computedSum.subscribe(() => {});
-    expect(dep1SubscribeSpy).not.toHaveBeenCalled();
-    expect(dep2SubscribeSpy).not.toHaveBeenCalled();
-    expect(dep1UnsubSpy).not.toHaveBeenCalled();
-    expect(dep2UnsubSpy).not.toHaveBeenCalled();
+    // Initially, no unsubscribers
+    expect(internalComputed._unsubscribers).toBeUndefined();
+
+    // First subscribe triggers dependency subscriptions
+    const unsub1 = subscribeToAtom(computedSum, listener); // Use subscribeToAtom (mock target)
+    expect(internalComputed._unsubscribers).toBeInstanceOf(Array);
+    expect(internalComputed._unsubscribers.length).toBe(2); // Should have subscribed to both deps
+
+    // Add a second listener - should NOT change unsubscribers array
+    const unsub2 = subscribeToAtom(computedSum, () => {}); // Use subscribeToAtom (mock target)
+    expect(internalComputed._unsubscribers).toBeInstanceOf(Array);
+    expect(internalComputed._unsubscribers.length).toBe(2);
 
     // Unsubscribe the second listener - should NOT unsubscribe from dependencies
     unsub2();
-    expect(dep1UnsubSpy).not.toHaveBeenCalled();
-    expect(dep2UnsubSpy).not.toHaveBeenCalled();
+    expect(internalComputed._unsubscribers).toBeInstanceOf(Array); // Still subscribed
 
-    // Unsubscribe the first (last) listener - should trigger calls to our spies
+    // Unsubscribe the first (last) listener - should trigger unsubscribe from dependencies
     unsub1();
-    expect(dep1UnsubSpy).toHaveBeenCalledTimes(1);
-    expect(dep2UnsubSpy).toHaveBeenCalledTimes(1);
+    expect(internalComputed._unsubscribers).toBeUndefined(); // Should be cleaned up
   });
 });

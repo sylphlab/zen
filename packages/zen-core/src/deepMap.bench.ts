@@ -1,8 +1,8 @@
-import { bench, describe } from 'vitest'
-import { deepMap } from './deepMap'
-import { atom } from './atom'
-import { Atom } from './core' // Atom type comes from core
-import { deepMap as nanostoresDeepMap } from 'nanostores'
+import { bench, describe } from 'vitest';
+import { createDeepMap, setPath } from './deepMap'; // Import updated functional API
+import { createAtom } from './atom'; // Import createAtom instead of atom
+import { Atom } from './core'; // Atom type comes from core
+import { deepMap as nanostoresDeepMap } from 'nanostores';
 
 // Note: Direct comparison for deep immutable updates is difficult as libraries handle it differently.
 // - Immer uses proxies for mutable-like updates.
@@ -15,7 +15,7 @@ describe('deepMap benchmark', () => {
   const initialDeepData = { user: { profile: { name: 'test', age: 1 }, settings: [1, 2, 3] } }
   describe('Creation', () => {
       bench('zen', () => {
-        deepMap(initialDeepData)
+        createDeepMap(initialDeepData); // Use createDeepMap
       })
       bench('nanostores', () => {
         nanostoresDeepMap(initialDeepData)
@@ -29,10 +29,10 @@ describe('deepMap benchmark', () => {
 
 
   const initialShallowData = { name: 'test', age: 1 }
-  describe('setPath (shallow)', () => { // Renamed describe block
+  describe('setPath (shallow)', () => {
       bench('zen', () => {
-        const store = deepMap(initialShallowData)
-        store.setPath('age', 2) // Use setPath
+        const store = createDeepMap(initialShallowData); // Use createDeepMap
+        setPath(store, 'age', 2); // Use setPath
       })
       bench('nanostores', () => {
         const store = nanostoresDeepMap(initialShallowData)
@@ -44,10 +44,10 @@ describe('deepMap benchmark', () => {
 
 
   const initial1LevelData = { user: { profile: { name: 'test' } } }
-  describe('setPath (1 level deep - name)', () => { // Renamed describe block
+  describe('setPath (1 level deep - name)', () => {
       bench('zen', () => {
-        const store = deepMap(initial1LevelData)
-        store.setPath('user.profile.name', 'new') // Use setPath
+        const store = createDeepMap(initial1LevelData); // Use createDeepMap
+        setPath(store, 'user.profile.name', 'new'); // Use setPath
       })
       bench('nanostores', () => {
         const store = nanostoresDeepMap(initial1LevelData)
@@ -59,10 +59,10 @@ describe('deepMap benchmark', () => {
 
 
   const initial2LevelData = { user: { profile: { name: 'test', age: 1 } } }
-   describe('setPath (2 levels deep - age)', () => { // Renamed describe block
+   describe('setPath (2 levels deep - age)', () => {
        bench('zen', () => {
-         const store = deepMap(initial2LevelData)
-         store.setPath('user.profile.age', 2) // Use setPath
+         const store = createDeepMap(initial2LevelData); // Use createDeepMap
+         setPath(store, 'user.profile.age', 2); // Use setPath
        })
        bench('nanostores', () => {
          const store = nanostoresDeepMap(initial2LevelData)
@@ -74,10 +74,10 @@ describe('deepMap benchmark', () => {
 
 
    const initialArrayData = { items: [1, 2, 3] }
-    describe('setPath (array index)', () => { // Renamed describe block
+    describe('setPath (array index)', () => {
         bench('zen', () => {
-          const store = deepMap(initialArrayData)
-          store.setPath(['items', 1], 99) // Use setPath
+          const store = createDeepMap(initialArrayData); // Use createDeepMap
+          setPath(store, ['items', 1], 99); // Use setPath
         })
         bench('nanostores', () => {
           const store = nanostoresDeepMap(initialArrayData)
@@ -89,10 +89,10 @@ describe('deepMap benchmark', () => {
 
 
     const initialEmptyData = {}
-    describe('setPath (creating path)', () => { // Renamed describe block
+    describe('setPath (creating path)', () => {
         bench('zen', () => {
-          const store = deepMap<DeepTestData>(initialEmptyData)
-          store.setPath('user.profile.name', 'created') // Use setPath
+          const store = createDeepMap<DeepTestData>(initialEmptyData); // Use createDeepMap
+          setPath(store, 'user.profile.name', 'created'); // Use setPath
         })
         bench('nanostores', () => {
           const store = nanostoresDeepMap<DeepTestData>(initialEmptyData)
