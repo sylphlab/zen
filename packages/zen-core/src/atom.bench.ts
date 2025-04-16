@@ -68,9 +68,18 @@ describe('Atom Get', () => {
     nAtom.get();
   });
 
-  const jotaiReadSetupGet = createJotaiReadBenchSetup(jotaiAtom(0));
+  // Jotai via hook
+  const jotaiReadSetupGetHook = createJotaiReadBenchSetup(jotaiAtom(0));
   bench('jotai (via hook)', () => {
-    jotaiReadSetupGet.get();
+    jotaiReadSetupGetHook.get();
+  });
+
+  // Jotai via store.get
+  const jotaiStoreForGet = createJotaiStore();
+  const jotaiAtomForGet = jotaiAtom(0);
+  jotaiStoreForGet.get(jotaiAtomForGet); // Initial get
+  bench('jotai (via store.get)', () => {
+    jotaiStoreForGet.get(jotaiAtomForGet);
   });
 
   const zustandStoreGet = createZustandVanillaStore(() => ({ count: 5 }));
@@ -102,11 +111,20 @@ describe('Atom Set (No Listeners)', () => {
     nAtom.set(++i);
   });
 
-  const baseJotaiAtomForSet = jotaiAtom(0);
-  const jotaiWriteSetupSet = createJotaiWriteBenchSetup(baseJotaiAtomForSet);
+  // Jotai via hook
+  const baseJotaiAtomForSetHook = jotaiAtom(0);
+  const jotaiWriteSetupSetHook = createJotaiWriteBenchSetup(baseJotaiAtomForSetHook);
   bench('jotai (via hook)', () => {
-    act(() => jotaiWriteSetupSet.set(++i));
+    act(() => jotaiWriteSetupSetHook.set(++i));
   });
+
+  // Jotai via store.set
+  const jotaiStoreForSet = createJotaiStore();
+  const jotaiAtomForSet = jotaiAtom(0);
+  bench('jotai (via store.set)', () => {
+    jotaiStoreForSet.set(jotaiAtomForSet, ++i);
+  });
+
 
   interface ZustandState {
     count: number;
@@ -149,11 +167,12 @@ describe('Atom Subscribe/Unsubscribe', () => {
       unsub();
     });
 
+    // Jotai store.sub remains the same as it's already store-based
     bench('jotai (store.sub)', () => {
-        const jAtom = jotaiAtom(0);
-        const store = createJotaiStore();
-        const unsub = store.sub(jAtom, listener);
-        unsub();
+        const jAtomSub = jotaiAtom(0);
+        const storeSub = createJotaiStore();
+        const unsubSub = storeSub.sub(jAtomSub, listener);
+        unsubSub();
     });
 
     bench('zustand (vanilla)', () => {

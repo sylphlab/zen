@@ -60,7 +60,18 @@ describe('Computed Get (1 dependency)', () => {
     const derivedV = { get computed() { return baseProxyV.count * 2; } };
     const computedE = baseStoreE.map(val => val * 2);
 
-    const jotaiReadSetupCompGet = createJotaiReadBenchSetup(computedJ);
+    // Jotai via hook
+    const jotaiReadSetupCompGetHook = createJotaiReadBenchSetup(computedJ);
+    bench('jotai (via hook)', () => {
+       jotaiReadSetupCompGetHook.get();
+    });
+
+    // Jotai via store.get
+    const jotaiStoreForCompGet = createJotaiStore();
+    jotaiStoreForCompGet.get(computedJ); // Initial get
+    bench('jotai (via store.get)', () => {
+        jotaiStoreForCompGet.get(computedJ);
+    });
 
     bench('zen', () => {
       computedZ.get();
@@ -70,9 +81,7 @@ describe('Computed Get (1 dependency)', () => {
       computedN.get();
     });
 
-    bench('jotai (via hook)', () => {
-       jotaiReadSetupCompGet.get();
-    });
+    // Jotai benchmarks moved up
 
     bench('zustand (selector)', () => {
        selectComputedZu(baseStoreZu.getState());
@@ -104,12 +113,23 @@ describe('Computed Update Propagation (1 dependency)', () => {
   const computedE = baseStoreE.map(val => val * 2);
 
   // Subscribe/Watch to trigger updates
-  computedZ.subscribe(() => {});
-  computedN.subscribe(() => {});
-  const jotaiReadSetupForComputedUpdate = createJotaiReadBenchSetup(computedJ);
-  const setBaseJ = jotaiReadSetupForComputedUpdate.store.set;
+  computedZ.subscribe(() => {}); // Zen
+  computedN.subscribe(() => {}); // Nanostores
+
+  // Jotai via hook setup
+  const jotaiReadSetupForComputedUpdateHook = createJotaiReadBenchSetup(computedJ);
+  const setBaseJHook = jotaiReadSetupForComputedUpdateHook.store.set;
+
+  // Jotai via store setup
+  const jotaiStoreForCompUpdate = createJotaiStore();
+  jotaiStoreForCompUpdate.sub(computedJ, () => {}); // Subscribe to computed
+  const setBaseJStore = jotaiStoreForCompUpdate.set;
+
+  // Zustand setup
   baseStoreZu.subscribe(() => { selectComputedZu(baseStoreZu.getState()); });
+  // Valtio setup
   valtioSubscribe(baseProxyV, () => { derivedV.computed; });
+  // Effector setup
   computedE.watch(() => {});
 
   let i = 0;
@@ -124,9 +144,16 @@ describe('Computed Update Propagation (1 dependency)', () => {
     computedN.get();
   });
 
+  // Jotai via hook
   bench('jotai (via hook update)', () => {
-    act(() => setBaseJ(baseAtomJ, ++i));
-    jotaiReadSetupForComputedUpdate.get();
+    act(() => setBaseJHook(baseAtomJ, ++i));
+    jotaiReadSetupForComputedUpdateHook.get(); // Read computed after update
+  });
+
+  // Jotai via store
+  bench('jotai (via store update)', () => {
+    setBaseJStore(baseAtomJ, ++i);
+    jotaiStoreForCompUpdate.get(computedJ); // Read computed after update
   });
 
    bench('zustand (vanilla update + select)', () => {
