@@ -5,28 +5,29 @@ import { atom as nanoAtom } from 'nanostores';
 import { atom as jotaiAtom, useAtomValue, useSetAtom, Provider, createStore as createJotaiStore } from 'jotai'; // Removed Atom, WritableAtom import from jotai
 import type { Atom, WritableAtom } from 'jotai'; // Import types separately
 import { createStore as createZustandVanillaStore } from 'zustand/vanilla';
-import type { StoreApi, UseBoundStore } from 'zustand';
+// import type { StoreApi, UseBoundStore } from 'zustand'; // Removed unused types
 import { proxy as valtioProxy, subscribe as valtioSubscribe } from 'valtio/vanilla';
 import { createStore as createEffectorStore, createEvent as createEffectorEvent } from 'effector';
 import { createElement } from 'react';
+import * as React from 'react'; // Added missing import
 import { renderHook, act } from '@testing-library/react';
 
 // --- Common Setup Helpers (Duplicated from original index.bench.ts for atom tests) ---
 const createJotaiReadBenchSetup = <T>(atomToRead: Atom<T>) => { // Use imported Atom type
     const store = createJotaiStore();
     store.get(atomToRead); // Ensure initial value
-    const wrapper = ({ children }: { children: React.ReactNode }) => createElement(Provider, { store, children });
-    const { result } = renderHook(() => useAtomValue(atomToRead, { store }), { wrapper });
-    return { get: () => result.current, store };
+        const wrapper = ({ children }: { children: React.ReactNode }) => createElement(Provider, { store, children });
+        const { result } = renderHook(() => useAtomValue(atomToRead, { store }), { wrapper });
+        return { get: () => result.current, store };
 };
 
 const createJotaiWriteBenchSetup = <Value, Args extends unknown[], Result>(
     atomToWrite: WritableAtom<Value, Args, Result> // Use imported WritableAtom type
 ) => {
     const store = createJotaiStore();
-    const wrapper = ({ children }: { children: React.ReactNode }) => createElement(Provider, { store, children });
-    const { result } = renderHook(() => useSetAtom(atomToWrite, { store }), { wrapper });
-    return { set: result.current, store };
+        const wrapper = ({ children }: { children: React.ReactNode }) => createElement(Provider, { store, children });
+        const { result } = renderHook(() => useSetAtom(atomToWrite, { store }), { wrapper });
+        return { set: result.current, store };
 };
 
 // --- Atom Benchmarks ---
@@ -85,12 +86,12 @@ describe('Atom Get', () => {
 
   const zustandStoreGet = createZustandVanillaStore(() => ({ count: 5 }));
   bench('zustand (vanilla)', () => {
-    zustandStoreGet.getState().count;
+        const _zustandValue = zustandStoreGet.getState().count; // Assign to avoid unused expression
   });
 
   const valtioStateGet = valtioProxy({ count: 5 });
   bench('valtio (vanilla)', () => {
-    valtioStateGet.count;
+        const _valtioValue = valtioStateGet.count; // Assign to avoid unused expression
   });
 
   const effectorStoreGet = createEffectorStore(5);
@@ -144,10 +145,10 @@ describe('Atom Set (No Listeners)', () => {
     valtioStateSet.count = ++i;
   });
 
-  const effectorSetEvent = createEffectorEvent<number>();
-  const effectorStoreSet = createEffectorStore(0).on(effectorSetEvent, (_, payload) => payload);
-  bench('effector', () => {
-    effectorSetEvent(++i);
+    const effectorSetEvent = createEffectorEvent<number>();
+    /* const effectorStoreSet = */ createEffectorStore(0).on(effectorSetEvent, (_, payload) => payload); // Commented out unused store variable
+    bench('effector', () => {
+      effectorSetEvent(++i);
   });
 
 });

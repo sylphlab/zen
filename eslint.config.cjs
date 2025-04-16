@@ -45,11 +45,10 @@ module.exports = tseslint.config(
       '@typescript-eslint/no-unused-expressions': 'error', // Catch unused expressions
       '@typescript-eslint/ban-ts-comment': ['error', { 'ts-expect-error': 'allow-with-description', 'ts-ignore': true, 'ts-nocheck': true, 'ts-check': false }], // Allow ts-ignore
     },
-  },
-
-  // Global ignores
-  {
-    ignores: [
+    },
+    // Global ignores must come before specific overrides
+    {
+      ignores: [
       'node_modules/',
       'dist/',
       '.turbo/',
@@ -62,6 +61,17 @@ module.exports = tseslint.config(
       '**/*.d.ts',
       'bun.lock',
       'package-lock.json',
-    ],
-  }
+      ],
+    },
+    // Overrides for test and benchmark files (moved to end for higher priority)
+    {
+      files: ['**/*.test.ts', '**/*.bench.ts'],
+      rules: {
+        '@typescript-eslint/no-unused-vars': 'off', // Allow unused vars in tests/benchmarks
+        'no-undef': 'off', // Allow undefined vars (like React in benchmarks)
+        '@typescript-eslint/no-unused-expressions': 'off', // Allow unused expressions (common in benchmarks)
+        '@typescript-eslint/no-explicit-any': 'off', // Allow any in tests/benchmarks
+        '@typescript-eslint/ban-ts-comment': 'off', // Allow ts-ignore/expect-error in tests
+      }
+    }
 );

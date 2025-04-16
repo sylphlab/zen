@@ -1,5 +1,5 @@
 // Type guard functions to differentiate between various atom types at runtime.
-import type { AnyAtom, MapAtom, DeepMapAtom, TaskAtom } from './types'; // Import AnyAtom and merged types
+import type { AnyAtom /*, MapAtom, DeepMapAtom, TaskAtom */ } from './types'; // Removed unused MapAtom, DeepMapAtom, TaskAtom
 import type { Atom } from './atom'; // Import specific types
 import type { ComputedAtom } from './computed'; // Import specific types
 // Removed imports for MapAtom, DeepMapAtom, TaskAtom from their original files

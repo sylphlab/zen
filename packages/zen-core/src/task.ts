@@ -1,6 +1,6 @@
 // Task atom implementation for managing asynchronous operations.
-import type { Atom } from './atom'; // Import Atom type
-import type { Listener, Unsubscribe, AtomWithValue, TaskState, TaskAtom } from './types'; // Import from types (including TaskAtom)
+// import type { Atom } from './atom'; // Removed unused Atom import
+import type { Listener, Unsubscribe, /* AtomWithValue, */ TaskState, TaskAtom } from './types'; // Removed unused AtomWithValue
 import { subscribe as subscribeToCoreAtom } from './atom'; // Import core subscribe
 import { notifyListeners } from './internalUtils'; // Import notifyListeners
 // Removed createAtom, getAtomValue, setAtomValue, subscribeToAtom imports

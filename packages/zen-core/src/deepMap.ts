@@ -1,5 +1,5 @@
 // Functional DeepMap atom implementation.
-import type { Unsubscribe, Listener, AnyAtom, AtomWithValue, DeepMapAtom } from './types'; // Import DeepMapAtom from types
+import type { Unsubscribe, /* Listener, */ AnyAtom, /* AtomWithValue, */ DeepMapAtom } from './types'; // Removed unused Listener, AtomWithValue
 import { get as getCoreValue, subscribe as subscribeToCoreAtom } from './atom'; // Import core get/subscribe
 import type { Atom } from './atom'; // Import Atom type for casting
 import { listenPaths as addPathListener, _emitPathChanges, PathListener } from './events'; // Path listener logic

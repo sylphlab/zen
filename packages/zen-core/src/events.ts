@@ -3,7 +3,7 @@ import type { Atom } from './atom'; // Import specific types
 // Removed unused: import type { ReadonlyAtom } from './computed';
 // Removed unused: import type { MapAtom } from './map';
 // Removed unused: import type { DeepMapAtom } from './deepMap';
-import type { Listener, Unsubscribe, AnyAtom, AtomWithValue, MapAtom, DeepMapAtom } from './types'; // Import base types and merged types
+import type { /* Listener, */ Unsubscribe, AnyAtom, AtomWithValue, MapAtom, DeepMapAtom } from './types'; // Removed unused Listener
 // getBaseAtom removed
 import { STORE_MAP_KEY_SET } from './keys'; // Symbol to identify map/deepMap atoms
 import { Path, PathArray, getDeep } from './deepMapInternal'; // Utilities for deepMap

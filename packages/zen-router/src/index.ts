@@ -10,7 +10,7 @@ export function createRouter(/* routes, options */) {
       value: null,
       get() { return this.value },
       set(newValue: any) { this.value = newValue; /* notify? */ },
-      subscribe(listener: any) { /* add listener */ return () => { /* remove listener */ } }
+            subscribe(_listener: any) { /* add listener */ return () => { /* remove listener */ } } // Prefix unused listener with _
   };
   return store;
 }

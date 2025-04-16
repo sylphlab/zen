@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { bench, describe } from 'vitest';
+import * as React from 'react'; // Added missing import
 import { atom as zenCreateAtom, get as zenGetAtomValue, set as zenSetAtomValue, subscribe as zenSubscribeToAtom } from './atom'; // Import updated functional API, alias atom as zenCreateAtom
 import { computed as zenCreateComputed } from './computed'; // Import computed factory, alias as zenCreateComputed
 import { atom as nanoAtom, computed as nanoComputed } from 'nanostores';
-import { atom as jotaiAtom, useAtomValue, useSetAtom, Provider, createStore as createJotaiStore } from 'jotai'; // Removed Atom, WritableAtom import from jotai
-import type { Atom, WritableAtom } from 'jotai'; // Import types separately
+import { atom as jotaiAtom, useAtomValue, /* useSetAtom, */ Provider, createStore as createJotaiStore } from 'jotai'; // Removed unused useSetAtom
+import type { Atom /*, WritableAtom */ } from 'jotai'; // Removed unused WritableAtom
 import { createStore as createZustandVanillaStore } from 'zustand/vanilla';
 import { proxy as valtioProxy, subscribe as valtioSubscribe } from 'valtio/vanilla';
 import { createStore as createEffectorStore, createEvent as createEffectorEvent } from 'effector';
@@ -15,11 +16,12 @@ import { renderHook, act } from '@testing-library/react';
 const createJotaiReadBenchSetup = <T>(atomToRead: Atom<T>) => { // Use imported Atom type
     const store = createJotaiStore();
     store.get(atomToRead); // Ensure initial value
-    const wrapper = ({ children }: { children: React.ReactNode }) => createElement(Provider, { store, children });
-    const { result } = renderHook(() => useAtomValue(atomToRead, { store }), { wrapper });
-    return { get: () => result.current, store };
+        const wrapper = ({ children }: { children: React.ReactNode }) => createElement(Provider, { store, children });
+        const { result } = renderHook(() => useAtomValue(atomToRead, { store }), { wrapper });
+        return { get: () => result.current, store };
 };
 
+/* // Removed unused function createJotaiWriteBenchSetup
 const createJotaiWriteBenchSetup = <Value, Args extends unknown[], Result>(
     atomToWrite: WritableAtom<Value, Args, Result> // Use imported WritableAtom type
 ) => {
@@ -28,6 +30,7 @@ const createJotaiWriteBenchSetup = <Value, Args extends unknown[], Result>(
     const { result } = renderHook(() => useSetAtom(atomToWrite, { store }), { wrapper });
     return { set: result.current, store };
 };
+*/
 
 // --- Computed Benchmarks ---
 
@@ -37,7 +40,7 @@ describe('Computed Creation', () => {
   const baseAtomJ = jotaiAtom(0);
 
   bench('zen (1 dependency)', () => {
-    zenCreateComputed([baseAtomZ], (val) => val * 2); // Use createComputed
+        zenCreateComputed([baseAtomZ as any], (...values) => (values[0] as number) * 2); // Use rest parameters
   });
 
   bench('nanostores (1 dependency)', () => {
@@ -63,7 +66,7 @@ describe('Computed Get (1 dependency)', () => {
     const baseProxyV = valtioProxy({ count: 5 });
     const baseStoreE = createEffectorStore(5);
 
-    const computedZ = zenCreateComputed([baseAtomZ], (val) => val * 2); // Use createComputed
+        const computedZ = zenCreateComputed([baseAtomZ as any], (...values) => (values[0] as number) * 2); // Use rest parameters
     const computedN = nanoComputed(baseAtomN, (val) => val * 2);
     const computedJ = jotaiAtom((get) => get(baseAtomJ) * 2);
     const selectComputedZu = (state: { count: number }) => state.count * 2;
@@ -98,7 +101,7 @@ describe('Computed Get (1 dependency)', () => {
     });
 
     bench('valtio (getter)', () => {
-       derivedV.computed;
+              const _derivedValtio = derivedV.computed; // Assign to avoid unused expression
     });
 
      bench('effector (derived store)', () => {
@@ -115,7 +118,7 @@ describe('Computed Update Propagation (1 dependency)', () => {
     const setBaseE = createEffectorEvent<number>();
   const baseStoreE = createEffectorStore(0).on(setBaseE, (_, p) => p);
 
-  const computedZ = zenCreateComputed([baseAtomZ], (val) => val * 2); // Use createComputed
+    const computedZ = zenCreateComputed([baseAtomZ as any], (...values) => (values[0] as number) * 2); // Use rest parameters
   const computedN = nanoComputed(baseAtomN, (val) => val * 2);
   const computedJ = jotaiAtom((get) => get(baseAtomJ) * 2);
   const selectComputedZu = (state: { count: number }) => state.count * 2;
@@ -138,7 +141,7 @@ describe('Computed Update Propagation (1 dependency)', () => {
   // Zustand setup
   baseStoreZu.subscribe(() => { selectComputedZu(baseStoreZu.getState()); });
   // Valtio setup
-  valtioSubscribe(baseProxyV, () => { derivedV.computed; });
+     valtioSubscribe(baseProxyV, () => { const _derivedValtio = derivedV.computed; }); // Assign to avoid unused expression
   // Effector setup
   computedE.watch(() => {});
 
