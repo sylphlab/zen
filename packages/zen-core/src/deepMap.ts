@@ -2,7 +2,7 @@
 import type { Atom } from './atom'; // Import Atom type
 import type { Unsubscribe, Listener, AnyAtom } from './types'; // Import from types
 // Removed unused: import type { MapAtom } from './map';
-import { createAtom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional atom API
+import { atom as createAtom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional atom API, alias atom as createAtom
 import { listenPaths as addPathListener, _emitPathChanges, PathListener } from './events'; // Path listener logic
 import { STORE_MAP_KEY_SET } from './keys'; // Symbol marker
 import { Path, setDeep, getChangedPaths } from './deepMapInternal'; // Deep object utilities
@@ -21,7 +21,7 @@ export type DeepMapAtom<T extends object = any> = { // Added default type param
  * @param initialValue The initial object state. It's used directly.
  * @returns A DeepMapAtom instance.
  */
-export function createDeepMap<T extends object>(initialValue: T): DeepMapAtom<T> {
+export function deepMap<T extends object>(initialValue: T): DeepMapAtom<T> { // Rename createDeepMap to deepMap
   const internalAtom = createAtom<T>(initialValue); // Use createAtom
   // Optimize: Only initialize the internal atom.
   const deepMapAtom: DeepMapAtom<T> = {

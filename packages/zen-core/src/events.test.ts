@@ -1,8 +1,8 @@
 import { test, expect, vi, describe, beforeEach } from 'vitest';
-import { createAtom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional API
-import { createComputed } from './computed'; // Import createComputed
-import { createMap, subscribe as subscribeToMap, setKey as setMapKey, set as setMapValue } from './map'; // Import updated functional map API
-import { createDeepMap, subscribe as subscribeToDeepMap, setPath as setDeepMapPath, set as setDeepMapValue } from './deepMap'; // Import updated functional deepMap API
+import { atom as createAtom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional API, alias atom as createAtom
+import { computed as createComputed } from './computed'; // Import computed, alias as createComputed
+import { map as createMap, subscribe as subscribeToMap, setKey as setMapKey, set as setMapValue } from './map'; // Import updated functional map API, alias map as createMap
+import { deepMap as createDeepMap, subscribe as subscribeToDeepMap, setPath as setDeepMapPath, set as setDeepMapValue } from './deepMap'; // Import updated functional deepMap API, alias deepMap as createDeepMap
 import { onStart, onStop, onSet, onNotify, onMount } from './events'; // Import functional events
 import { batch } from './batch';
 import type { Atom } from './atom'; // Import from specific files

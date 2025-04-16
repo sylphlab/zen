@@ -143,7 +143,7 @@ export function subscribe<T>(atom: AnyAtom<T>, listener: Listener<T>): Unsubscri
  * @param initialValue The initial value of the atom.
  * @returns An Atom instance.
  */
-export function createAtom<T>(initialValue: T): Atom<T> {
+export function atom<T>(initialValue: T): Atom<T> { // Rename createAtom to atom
   // Optimize: Only initialize the value. Listener properties will be added on demand.
   const newAtom: Atom<T> = {
     _value: initialValue,

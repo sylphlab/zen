@@ -1,7 +1,7 @@
 // Functional Map atom implementation.
 import type { Atom } from './atom'; // Import Atom type
 import type { Unsubscribe, Listener, AnyAtom } from './types'; // Import from types
-import { createAtom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional atom API
+import { atom as createAtom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional atom API, alias atom as createAtom
 import { listenKeys as addKeyListener, _emitKeyChanges, KeyListener } from './events'; // Key listener logic from events
 import { STORE_MAP_KEY_SET } from './keys'; // Symbol marker for map atoms
 
@@ -20,7 +20,7 @@ export type MapAtom<T extends object = any> = { // Added default type param
  * @param initialValue The initial object state. A shallow copy is made.
  * @returns A MapAtom instance.
  */
-export function createMap<T extends object>(initialValue: T): MapAtom<T> {
+export function map<T extends object>(initialValue: T): MapAtom<T> { // Rename createMap to map
   const internalAtom = createAtom<T>({ ...initialValue }); // Use createAtom
   // Optimize: Only initialize the internal atom.
   const mapAtom: MapAtom<T> = {

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { bench, describe } from 'vitest';
-import { createAtom as zenCreateAtom, get as zenGetAtomValue, set as zenSetAtomValue, subscribe as zenSubscribeToAtom } from './atom'; // Import updated functional API
-import { createComputed as zenCreateComputed } from './computed'; // Import createComputed factory
+import { atom as zenCreateAtom, get as zenGetAtomValue, set as zenSetAtomValue, subscribe as zenSubscribeToAtom } from './atom'; // Import updated functional API, alias atom as zenCreateAtom
+import { computed as zenCreateComputed } from './computed'; // Import computed factory, alias as zenCreateComputed
 import { atom as nanoAtom, computed as nanoComputed } from 'nanostores';
 import { atom as jotaiAtom, useAtomValue, useSetAtom, Provider, createStore as createJotaiStore } from 'jotai'; // Removed Atom, WritableAtom import from jotai
 import type { Atom, WritableAtom } from 'jotai'; // Import types separately

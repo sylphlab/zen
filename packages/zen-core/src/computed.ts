@@ -152,7 +152,7 @@ function unsubscribeComputedFromSources<T>(atom: ComputedAtom<T>): void {
  *   Defaults to `Object.is`. If it returns true, listeners are not notified.
  * @returns A ReadonlyAtom representing the computed value.
  */
-export function createComputed<T, S extends Stores>( // Rename factory function
+export function computed<T, S extends Stores>( // Rename createComputed to computed
   stores: S,
   calculation: (...values: StoreValues<S>) => T,
   equalityFn: (a: T, b: T) => boolean = Object.is // Default to Object.is

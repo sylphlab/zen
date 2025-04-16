@@ -1,7 +1,7 @@
 // Task atom implementation for managing asynchronous operations.
 import type { Atom } from './atom'; // Import Atom type
 import type { Listener, Unsubscribe, AtomWithValue, TaskState } from './types'; // Import from types
-import { createAtom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional atom API
+import { atom as createAtom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional atom API, alias atom as createAtom for internal use
 // Removed duplicate: import { atom } from './atom';
 // Removed TaskState definition, imported from types.ts
 
@@ -27,7 +27,7 @@ const runningPromises = new WeakMap<TaskAtom<any>, Promise<any>>();
  * @param asyncFn The asynchronous function to execute when `runTask` is called.
  * @returns A TaskAtom instance.
  */
-export function createTask<T = void>(
+export function task<T = void>( // Rename createTask to task
   asyncFn: (...args: any[]) => Promise<T>
 ): TaskAtom<T> {
   // 1. Internal atom to hold the task's state (loading, error, data).

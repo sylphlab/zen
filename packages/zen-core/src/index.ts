@@ -16,11 +16,11 @@ export type { LifecycleListener, KeyListener, PathListener } from './events';
 export type { Path } from './deepMapInternal'; // Export Path type
 
 // --- Core Factories ---
-export { createAtom } from './atom'; // Renamed
-export { createComputed } from './computed'; // Renamed
-export { createMap } from './map'; // Renamed
-export { createDeepMap } from './deepMap'; // Renamed
-export { createTask } from './task'; // Renamed
+export { atom } from './atom';
+export { computed } from './computed';
+export { map } from './map';
+export { deepMap } from './deepMap';
+export { task } from './task';
 
 // --- Core Functions ---
 export { get, set, subscribe } from './atom'; // Renamed
