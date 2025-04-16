@@ -1,5 +1,4 @@
-// 极致优化的轻量级状态管理库 (怪兽性能版) - 计算属性实现
-
+// Monster-optimized computed implementation
 import {
   Atom,
   ReadonlyAtom,
@@ -8,202 +7,241 @@ import {
   batchDepth,
   batchQueue,
 } from './core';
-import { LIFECYCLE, emit } from './events'; // Import lifecycle events
-// Import only AtomProto from atom.ts
+import { LIFECYCLE, emit } from './events';
 import { AtomProto } from './atom';
 
-// Computed related types
+// Types
 type Stores = ReadonlyArray<Atom<any> | ReadonlyAtom<any>>;
 type StoreValues<S extends Stores> = {
   [K in keyof S]: S[K] extends Atom<infer V> | ReadonlyAtom<infer V> ? V : never
 };
 
-// Minimal Computed Atom Prototype
-export const ComputedAtomProto: ReadonlyAtom<any> = {
-  // Inherit simplified properties and methods from AtomProto
-  ...AtomProto, // Includes _value _listeners get set (noop) etc.
+// ComputedAtom type with required methods
+interface ComputedAtom<T> extends ReadonlyAtom<T> {
+  _sources: ReadonlyArray<Atom<any> | ReadonlyAtom<any>>;
+  _sourceValues: any[];
+  _calculation: Function;
+  _equalityFn: (a: T, b: T) => boolean;
+  _dirty: boolean;
+  _isSubscribing: boolean;
+  _unsubscribers?: Unsubscribe[];
+  _onChangeHandler?: () => void;
+  _update(): boolean;
+  _onChange(): void;
+  _subscribeToSources(): void;
+  _unsubscribeFromSources(): void;
+  set(v: T, force?: boolean): void; // Add set method to interface
+}
 
-  // Computed-specific properties
-  _sources: undefined,
-  _sourceValues: undefined,
-  _calculation: undefined,
-  _equalityFn: undefined,
-  _unsubscribers: undefined,
-  _onChangeHandler: undefined,
+// Optimized computed atom implementation
+export const ComputedAtomProto: ComputedAtom<any> = {
+  ...AtomProto, // Include all base atom methods and properties
+  _sources: [],
+  _sourceValues: [],
+  _calculation: () => undefined,
+  _equalityFn: Object.is,
   _dirty: true,
-  // _isSubscribing: false, // Removed flag to suppress initial onNotify
-  // --- Overrides ---
-
-  // Override _notify specific to Computed: ONLY notify listeners.
-  // onNotify emission is handled separately in _update and _notifyBatch.
-  _notify: function(value: any, oldValue?: any) {
-    if (this._listeners && this._listeners.size > 0) {
-      // Use Array.from for safe iteration if listeners might unsubscribe themselves
-      Array.from(this._listeners).forEach(listener => listener(value, oldValue));
-    };
-    // DO NOT emit onNotify here.
-  },
-
-  // Override _notifyBatch specific to Computed: Call base listener notify, then emit onNotify.
-  _notifyBatch() {
-    const oldValue = this._oldValueBeforeBatch;
-    const newValue = this._value;
-    delete this._oldValueBeforeBatch; // Clear stored old value
-
-    // Only notify listeners and emit onNotify if the value actually changed
-    if (!Object.is(newValue, oldValue)) {
-        // Call the base _notify implementation from AtomProto just to iterate listeners
-        (AtomProto._notify as Function).call(this, newValue, oldValue);
-        // Emit onNotify *after* batch listeners are notified
-        // Emit onNotify *after* batch listeners are notified
-        emit(this, LIFECYCLE.onNotify, newValue);
-    }
-  },
-
-  // --- Core Computed Logic ---
-
-  get(): any {
-    if (!this._unsubscribers && this._listeners && this._listeners.size > 0) {
-        this._subscribeToSources!();
+  _isSubscribing: false,
+  
+  // Override get method for computed values
+  get() {
+    if (this._listeners?.size && !this._unsubscribers) {
+      this._subscribeToSources();
     }
     if (this._dirty) {
-       this._update!();
+      this._update();
     }
     return this._value;
   },
-
-  _update(): boolean {
-    // Cache frequently accessed properties to avoid repeated property lookups
-    const sources = this._sources!;
-    const sourceValues = this._sourceValues!;
-    const calculation = this._calculation!;
-    const sourceCount = sources.length;
-
-    // Fast path: Read all source values
-    for (let i = 0; i < sourceCount; i++) {
-      sourceValues[i] = sources[i]!.get();
+  
+  // No-op set method (computed values are read-only)
+  set() {
+    // No-op for computed values
+  },
+  
+  // Calculate and update value if needed
+  _update() {
+    // Cache frequently accessed properties
+    const srcs = this._sources;
+    const vals = this._sourceValues;
+    const calc = this._calculation;
+    const old = this._value;
+    
+    // Read all source values
+    for (let i = 0; i < srcs.length; i++) {
+      vals[i] = srcs[i]?.get();
     }
     
     // Calculate new value
-    const newValue = calculation.apply(null, sourceValues as any);
-    const oldValue = this._value;
-    
-    // Mark as up-to-date immediately to avoid redundant updates
+    const v = calc.apply(null, vals);
     this._dirty = false;
-
-    // Fast equality check
-    if (this._equalityFn!(newValue, oldValue)) {
-      return false; // No change
-    }
+    
+    // Skip update if value hasn't changed
+    if (this._equalityFn(v, old)) return false;
     
     // Update value
-    this._value = newValue;
-
-    // Handle notifications
+    this._value = v;
+    
+    // Handle batching
     if (batchDepth > 0) {
       if (!batchQueue.has(this)) {
-        this._oldValueBeforeBatch = oldValue;
+        this._oldValueBeforeBatch = old;
         batchQueue.add(this);
       }
     } else {
-      // Single notification for both listeners and lifecycle event
-      this._notify(newValue, oldValue);
-      // Only emit onNotify once per update
-      emit(this, LIFECYCLE.onNotify, newValue);
+      // Only notify and emit onNotify if not during initial subscription
+      if (!this._isSubscribing) {
+        this._notify(v, old);
+        emit(this, LIFECYCLE.onNotify, v);
+      }
     }
     
-    return true; // Value changed
+    return true;
   },
-
-  _onChange() {
-    // Skip if already dirty to avoid redundant work
-    if (this._dirty) return;
+  
+  // Handle notification after batch
+  _notifyBatch() {
+    const old = this._oldValueBeforeBatch;
+    const v = this._value;
+    delete this._oldValueBeforeBatch;
     
-    // Mark as dirty
+    if (!Object.is(v, old)) {
+      this._notify(v, old);
+      emit(this, LIFECYCLE.onNotify, v);
+    }
+  },
+  
+  // Override _notify method for safety
+  _notify(v, old) {
+    const ls = this._listeners;
+    if (!ls || !ls.size) return;
+    
+    // Fast path for single listener
+    if (ls.size === 1) {
+      const fn = Array.from(ls)[0];
+      fn?.(v, old); // Use optional chaining
+      return;
+    }
+    
+    // Safe iteration for multiple listeners
+    const fns = Array.from(ls);
+    for (let i = 0; i < fns.length; i++) {
+      fns[i]?.(v, old); // Use optional chaining
+    }
+  },
+  
+  // Mark computed value as dirty when sources change
+  _onChange() {
+    if (this._dirty) return;
     this._dirty = true;
     
-    // Only update if there are listeners
-    if (!this._listeners || this._listeners.size === 0) return;
+    if (!this._listeners?.size) return;
     
-    // Handle batched or immediate updates
     if (batchDepth > 0) {
-      // Add to batch queue if not already queued
       if (!batchQueue.has(this)) {
         this._oldValueBeforeBatch = this._value;
         batchQueue.add(this);
       }
     } else {
-      // Immediate update
-      this._update!();
+      this._update();
     }
   },
-
+  
+  // Subscribe to source atoms
   _subscribeToSources() {
-      if (this._unsubscribers) return;
-      const sources = this._sources!;
-      const sourceCount = sources.length;
-      this._unsubscribers = new Array(sourceCount);
-
-      if (!this._onChangeHandler) {
-          const self = this;
-          this._onChangeHandler = () => { self._onChange!(); };
+    if (this._unsubscribers) return;
+    
+    const srcs = this._sources;
+    this._unsubscribers = new Array(srcs.length);
+    
+    // Create change handler if needed
+    if (!this._onChangeHandler) {
+      const self = this;
+      this._onChangeHandler = () => self._onChange();
+    }
+    
+    // Subscribe to all sources
+    for (let i = 0; i < srcs.length; i++) {
+      const src = srcs[i];
+      if (src && this._onChangeHandler) {
+        this._unsubscribers[i] = src.subscribe(this._onChangeHandler);
       }
-
-      for (let i = 0; i < sourceCount; i++) {
-          this._unsubscribers[i] = sources[i]!.subscribe(this._onChangeHandler!);
-      }
+    }
   },
-
+  
+  // Unsubscribe from source atoms
   _unsubscribeFromSources() {
-      if (!this._unsubscribers) return;
-      for (const unsubscribe of this._unsubscribers) {
-          unsubscribe();
-      }
-      this._unsubscribers = undefined;
-      this._dirty = true;
+    if (!this._unsubscribers) return;
+    
+    // Unsubscribe from all sources
+    for (let i = 0; i < this._unsubscribers.length; i++) {
+      this._unsubscribers[i]?.(); // Use optional chaining
+    }
+    
+    this._unsubscribers = undefined;
+    this._dirty = true;
   },
-
-  subscribe(listener: Listener<any>): Unsubscribe {
-    const isFirstListener = !this._listeners || this._listeners.size === 0;
-    (this._listeners = this._listeners || new Set()).add(listener);
-
-    if (isFirstListener) {
-      this._subscribeToSources!();
+  
+  // Override subscribe method to handle computed-specific behavior
+  subscribe(fn: Listener<any>): Unsubscribe {
+    const first = !this._listeners?.size;
+    
+    // Initialize listeners set if needed
+    if (!this._listeners) this._listeners = new Set();
+    this._listeners.add(fn);
+    
+    // Handle first subscriber
+    if (first) {
+      this._subscribeToSources();
       emit(this, LIFECYCLE.onStart);
     }
-    emit(this, LIFECYCLE.onMount, listener);
-
-    // Removed _isSubscribing flag usage
-    this.get(); // Ensures calculation if dirty and notifies if value changed initially
+    
+    emit(this, LIFECYCLE.onMount, fn);
+    
+    // Flag to prevent duplicate notifications
+    this._isSubscribing = true;
+    
+    // Get current value and directly notify the new listener
+    const v = this.get();
+    fn(v, undefined);
+    
+    // Clear flag after notification
+    this._isSubscribing = false;
+    
+    // Return unsubscribe function
     const self = this;
-    return function unsubscribe(): void {
-      const currentListeners = self._listeners;
-      if (currentListeners) {
-        currentListeners.delete(listener);
-        if (currentListeners.size === 0) {
-          self._unsubscribeFromSources!();
-          emit(self, LIFECYCLE.onStop);
-        }
+    return function unsubscribe() {
+      const ls = self._listeners;
+      if (!ls) return;
+      
+      ls.delete(fn);
+      
+      if (ls.size === 0) {
+        self._unsubscribeFromSources();
+        emit(self, LIFECYCLE.onStop);
       }
     };
-  },
-
-  // set method is intentionally missing/noop for ReadonlyAtom
+  }
 };
 
-// Factory function
+/**
+ * Create a computed atom that derives its value from other atoms
+ */
 export function computed<T, S extends Stores>(
   stores: S,
   calculation: (...values: StoreValues<S>) => T,
   equalityFn: (a: T, b: T) => boolean = Object.is
 ): ReadonlyAtom<T> {
-  const computedAtom = Object.create(ComputedAtomProto) as ReadonlyAtom<T>;
-  computedAtom._sources = stores;
-  computedAtom._sourceValues = Array(stores.length);
-  computedAtom._calculation = calculation;
-  computedAtom._equalityFn = equalityFn;
-  computedAtom._dirty = true;
-  // Initialize value to trigger initial calculation/notification if needed by subscribers
-  // computedAtom.get(); // Maybe not needed if subscribe calls get()
-  return computedAtom;
+  // Create computed atom instance
+  const atom = Object.create(ComputedAtomProto) as ComputedAtom<T>;
+  
+  // Initialize properties
+  atom._sources = stores;
+  atom._sourceValues = new Array(stores.length);
+  atom._calculation = calculation as Function;
+  atom._equalityFn = equalityFn;
+  atom._dirty = true;
+  atom._isSubscribing = false;
+  
+  return atom;
 }

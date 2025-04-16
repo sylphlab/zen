@@ -1,94 +1,89 @@
-// 极致优化的轻量级状态管理库 (怪兽性能版) - Task Atom 实现
-
-import { ReadonlyAtom, Listener, Atom } from './core'; // Import Atom from core
+// Ultra-optimized task implementation for managing async operations
+import { Atom, Listener, Unsubscribe } from './core';
 import { atom } from './atom';
 
-// Task Atom 状态类型
+// Task state interface
 export interface TaskState<T = any> {
   loading: boolean;
   error?: Error;
   data?: T;
 }
 
-// Task Atom 类型定义 (扩展 ReadonlyAtom)
-export interface TaskAtom<T = any> extends ReadonlyAtom<TaskState<T>> {
+// Task atom interface
+export interface TaskAtom<T = any> {
+  get(): TaskState<T>;
+  subscribe(listener: Listener<TaskState<T>>): Unsubscribe;
   run(...args: any[]): Promise<T>;
 }
 
 /**
- * 创建一个用于管理异步操作状态的 Task Atom。
- *
- * @param asyncFn 执行异步操作的函数
- * @returns TaskAtom 实例
+ * Create a task atom for managing async operations
+ * 
+ * @param asyncFn Async function to execute
+ * @returns TaskAtom instance
  */
 export function task<T = void>(
   asyncFn: (...args: any[]) => Promise<T>
 ): TaskAtom<T> {
-  // 内部 atom 存储状态 { loading, error, data }
-  const taskState: Atom<TaskState<T>> = atom<TaskState<T>>({ loading: false });
-
-  // 存储当前正在运行的 Promise
+  // Internal state atom
+  const stateAtom = atom<TaskState<T>>({ loading: false });
+  
+  // Keep track of running promise
   let runningPromise: Promise<T> | null = null;
-
-  // 创建符合 TaskAtom 接口的对象
-  const taskInstance: TaskAtom<T> = {
-    // Delegate core ReadonlyAtom methods to the internal atom
-    get: taskState.get.bind(taskState), // Bind 'this'
-    subscribe: taskState.subscribe.bind(taskState), // Bind 'this'
-    // Expose internal value via get()
-    // REMOVED: value getter
-    // get value() { return taskState.value; },
-    // REMOVED: listeners getter
-    // Internal methods required by ReadonlyAtom interface (delegate)
-    _notify: taskState._notify.bind(taskState),
-    _notifyBatch: taskState._notifyBatch.bind(taskState),
-    get _value() { return taskState._value },
-    get _listeners() { return taskState._listeners },
-
-    // run 方法实现 (Refactored)
-    run: function (...args: any[]): Promise<T> {
-      // Synchronously check if already running
+  
+  // Create task instance
+  const taskAtom: TaskAtom<T> = {
+    // Delegate basic atom methods to internal state atom
+    get: () => stateAtom.get(),
+    subscribe: (listener) => stateAtom.subscribe(listener),
+    
+    // Task execution method
+    run: function(...args: any[]): Promise<T> {
+      // Return existing promise if already running
       if (runningPromise) {
-        return runningPromise; // Return the exact same promise instance
+        return runningPromise;
       }
-
-      // Inner async function to perform the actual task execution
+      
+      // Inner async function for execution
       const execute = async (): Promise<T> => {
-          // Use the internal taskState's set method
-          taskState.set({ loading: true, error: undefined, data: undefined });
-
-          const promise = asyncFn(...args);
-          // Store the promise returned by the *original* asyncFn call
-          runningPromise = promise;
-
-          try {
-              const result = await promise;
-              // Check if this is still the active promise before updating state
-              if (runningPromise === promise) {
-                  taskState.set({ loading: false, data: result });
-                  runningPromise = null; // Clear after completion
-              }
-              return result;
-          } catch (error) {
-              // Check if this is still the active promise before updating state
-              if (runningPromise === promise) {
-                  const errorObj = error instanceof Error ? error : new Error(String(error));
-                  taskState.set({ loading: false, error: errorObj });
-                  runningPromise = null; // Clear after completion
-              }
-              throw error; // Re-throw
+        // Set loading state
+        stateAtom.set({ loading: true });
+        
+        // Execute async function
+        const promise = asyncFn(...args);
+        runningPromise = promise;
+        
+        try {
+          // Wait for completion
+          const result = await promise;
+          
+          // Only update state if this is still the active promise
+          if (runningPromise === promise) {
+            stateAtom.set({ loading: false, data: result });
+            runningPromise = null;
           }
+          
+          return result;
+        } catch (error) {
+          // Only update state if this is still the active promise
+          if (runningPromise === promise) {
+            // Convert error to proper Error object
+            const errorObj = error instanceof Error 
+              ? error 
+              : new Error(String(error));
+            
+            stateAtom.set({ loading: false, error: errorObj });
+            runningPromise = null;
+          }
+          
+          throw error;
+        }
       };
-
-      // Start the execution and return the resulting promise
+      
+      // Start execution and return promise
       return execute();
     }
   };
-
-  // Freeze the instance to make it more like a ReadonlyAtom (optional, adds slight overhead)
-  // if (Object.freeze) {
-  //   Object.freeze(taskInstance);
-  // }
-
-  return taskInstance;
+  
+  return taskAtom;
 }

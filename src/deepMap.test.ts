@@ -209,7 +209,7 @@ describe('deepMap', () => {
     pathListener.mockClear();
 
     // Change path ['c']
-    store.setPath('c', 20);
+    store.setPath(['c'], 20);
     currentValue = store.get();
     expect(pathListener).toHaveBeenCalledTimes(1);
     expect(pathListener).toHaveBeenCalledWith(20, ['c'], currentValue); // Expect correct value
@@ -271,7 +271,7 @@ describe('deepMap', () => {
 
         batch(() => {
             store.setPath(['a', 'b'], 10); // Change deep path
-            store.setPath('c', 20);      // Change another path
+            store.setPath(['c'], 20);      // Change another path
         });
 
         const finalValue = { a: { b: 10 }, c: 20, d: 3 };

@@ -1,94 +1,126 @@
-// 极致优化的轻量级状态管理库 (怪兽性能版) - 核心类型定义
-
-// 基本类型定义
-export type Listener<T> = (value: T, oldValue?: T) => void;
+// Ultra-optimized state management core - Monster Edition
+export type Listener<T> = (v: T, old?: T) => void;
 export type Unsubscribe = () => void;
 
-// REMOVED: Event Payloads and Callbacks
-// REMOVED: Key subscription types
-
-// Minimal Atom Interface
+// Core interfaces
 export interface Atom<T = any> {
-  [key: symbol]: any; // Allow symbol indexing for lifecycle listeners
-  // REMOVED: Internal Event Listeners, Mount State, Key Listeners
-
   get(): T;
-  set(newValue: T, forceNotify?: boolean): void; // Simplified set signature
-  subscribe(listener: Listener<T>): Unsubscribe;
-  // REMOVED: readonly value: T;
-  // REMOVED: readonly listeners: ReadonlySet<Listener<T>>;
-  _notify(value: T, oldValue?: T): void; // Simplified notify signature
-  _notifyBatch(): void;
-  _value: T;
-  _listeners: Set<Listener<T>> | undefined;
-  // Internal property used in simplified batching
-  _batchValue?: T; // Note: This might be redundant/removable now? Check AtomProto.
-  _oldValueBeforeBatch?: T; // Store old value for batch key/path emission
-}
-
-// Minimal Readonly Atom Interface (e.g., for computed)
-export interface ReadonlyAtom<T = any> {
-  [key: symbol]: any; // Allow symbol indexing for lifecycle listeners
-  // REMOVED: Internal Event Listeners, Mount State, Key Listeners
-
-  get(): T;
-  subscribe(listener: Listener<T>): Unsubscribe;
-  // REMOVED: readonly value: T;
-  // REMOVED: readonly listeners: ReadonlySet<Listener<T>>;
-  _notify(value: T, oldValue?: T): void; // Simplified notify signature
-  _notifyBatch(): void;
+  set(v: T, force?: boolean): void;
+  subscribe(fn: Listener<T>): Unsubscribe;
   _value: T;
   _listeners?: Set<Listener<T>>;
-  // Internal property used in simplified batching
-  _batchValue?: T; // Note: This might be redundant/removable now? Check AtomProto.
-  _oldValueBeforeBatch?: T; // Store old value for batch key/path emission
-  // Keep computed specific properties
-  _dirty?: boolean; // Indicates if the computed value needs recalculation
-  _sources?: ReadonlyArray<Atom<any> | ReadonlyAtom<any>>; // Source atoms
-  _sourceValues?: any[]; // Last known values of sources
-  _calculation?: Function; // The function to compute the value
-  _equalityFn?: (a: T, b: T) => boolean; // Optional equality check
-  _unsubscribers?: (() => void)[]; // Array of unsubscribe functions for sources
-  _onChangeHandler?: () => void; // Bound handler for source changes
-  _onChange?(): void; // Internal method called on source change
-  _update?(): boolean; // Internal method to update value if dirty, returns true if value changed
-  _subscribeToSources?(): void; // Internal method to subscribe to sources
-  _unsubscribeFromSources?(): void; // Internal method to unsubscribe
-  _isSubscribing?: boolean; // Flag to suppress initial onNotify during subscribe
+  _oldValueBeforeBatch?: T;
+  _notify(v: T, old?: T): void;
+  _notifyBatch(): void;
+  [key: symbol]: any;
 }
 
-// REMOVED: EMPTY_SET Constant
+export interface ReadonlyAtom<T = any> {
+  get(): T;
+  subscribe(fn: Listener<T>): Unsubscribe;
+  _value: T;
+  _listeners?: Set<Listener<T>>;
+  _oldValueBeforeBatch?: T;
+  _notify(v: T, old?: T): void;
+  _notifyBatch(): void;
+  _dirty?: boolean;
+  _sources?: ReadonlyArray<Atom<any> | ReadonlyAtom<any>>;
+  _sourceValues?: any[];
+  _calculation?: Function;
+  _equalityFn?: (a: T, b: T) => boolean;
+  _unsubscribers?: Unsubscribe[];
+  _onChangeHandler?: Listener<any>;
+  _onChange?(): void;
+  _update?(): boolean;
+  _subscribeToSources?(): void;
+  _unsubscribeFromSources?(): void;
+  _isSubscribing?: boolean;
+  [key: symbol]: any;
+}
 
-// 批处理系统 (Optimized Batching System)
+// Batch system
 export let batchDepth = 0;
-export const batchQueue = new Set<Atom<any> | ReadonlyAtom<any>>(); // Ensure correct type
+export const batchQueue = new Set<Atom<any> | ReadonlyAtom<any>>();
 
-// 批处理API (Optimized for performance)
 export function batch<T>(fn: () => T): T {
-  // Increment depth counter
   batchDepth++;
-  
-  try {
-    // Execute the batch function
-    return fn();
-  } finally {
-    // Decrement depth counter
+  try { return fn(); }
+  finally {
     batchDepth--;
-    
-    // Process the queue only when exiting the outermost batch
     if (batchDepth === 0 && batchQueue.size > 0) {
-      // Capture the current queue
-      const queue = Array.from(batchQueue);
-      // Clear the queue early to avoid nested batch issues
+      const items = Array.from(batchQueue);
       batchQueue.clear();
-      
-      // Minimize property lookups in hot loop
-      const len = queue.length;
-      
-      // Fast loop for better performance
-      for (let i = 0; i < len; i++) {
-        queue[i]!._notifyBatch();
-      }
+      for (let i = 0; i < items.length; i++) items[i]?._notifyBatch();
     }
   }
+}
+
+// Base atom prototype
+export const AtomProto: Atom<any> = {
+  _value: undefined,
+  
+  get() { return this._value; },
+  
+  set(v, force = false) {
+    const old = this._value;
+    if (force || !Object.is(v, old)) {
+      this._value = v;
+      if (batchDepth > 0) {
+        if (!batchQueue.has(this)) {
+          this._oldValueBeforeBatch = old;
+          batchQueue.add(this);
+        }
+      } else this._notify(v, old);
+    }
+  },
+  
+  _notify(v, old) {
+    const ls = this._listeners;
+    if (!ls || !ls.size) return;
+    
+    if (ls.size === 1) {
+      const fn = ls.values().next().value;
+      fn && fn(v, old);
+      return;
+    }
+    
+    if (ls.size <= 3) {
+      for (const fn of ls) fn && fn(v, old);
+      return;
+    }
+    
+    const fns = Array.from(ls);
+    for (let i = 0; i < fns.length; i++) {
+      const fn = fns[i];
+      fn && fn(v, old);
+    }
+  },
+  
+  _notifyBatch() {
+    const old = this._oldValueBeforeBatch;
+    const v = this._value;
+    delete this._oldValueBeforeBatch;
+    
+    if (!Object.is(v, old)) this._notify(v, old);
+  },
+  
+  subscribe(fn) {
+    if (!this._listeners) this._listeners = new Set();
+    this._listeners.add(fn);
+    fn(this._value, undefined);
+    
+    const self = this;
+    return function() {
+      const ls = self._listeners;
+      if (!ls) return;
+      ls.delete(fn);
+      if (!ls.size) delete self._listeners;
+    };
+  }
+};
+
+export function atom<T>(v: T): Atom<T> {
+  const a = Object.create(AtomProto);
+  a._value = v;
+  return a;
 }

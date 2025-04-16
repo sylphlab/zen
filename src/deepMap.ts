@@ -1,89 +1,120 @@
-// Deep Map Helper (Restoring Features)
-
+// Ultra-optimized deep map implementation - Monster Edition
 import { Atom, Listener, Unsubscribe, batchDepth, batchQueue } from './core';
 import { atom } from './atom';
-import { LIFECYCLE, emit, baseListenPaths, emitPaths, PathListener } from './events'; // Import baseListenPaths
+import { LIFECYCLE, emit, baseListenPaths, emitPaths, PathListener } from './events';
 import { STORE_MAP_KEY_SET } from './keys';
-// Import helpers and Path type from the internal file
-import { getDeep, setDeep, Path, getChangedPaths } from './deepMapInternal';
+import { Path, PathArray, getDeep, setDeep, getChangedPaths } from './deepMapInternal';
 
-// DeepMap Interface with Path Subscription
+// DeepMap interface with path subscription
 export interface DeepMap<T extends object> extends Atom<T> {
-  setPath: (path: Path, value: any, forceNotify?: boolean) => void; // Renamed setKey back to setPath
-  // Add listenPaths signature for deep path listening
-  listenPaths(paths: Path[], listener: PathListener<T>): Unsubscribe; // Placeholder listener type
-  // Mark atom as supporting path listeners
-  [STORE_MAP_KEY_SET]?: boolean; // Re-using symbol, maybe rename later?
+  setPath(path: Path, value: any, forceNotify?: boolean): void;
+  listenPaths(paths: Path[], listener: PathListener<T>): Unsubscribe;
+  [STORE_MAP_KEY_SET]?: boolean;
 }
 
 /**
- * Create a store for managing deep objects.
- * Allows setting and potentially subscribing to changes at specific deep paths.
- *
- * @param initialValue Initial object value.
- * @returns A deep map store.
+ * Create a monster-optimized deep map for nested object state
+ * @param initialValue Initial object state
  */
 export function deepMap<T extends object>(initialValue: T): DeepMap<T> {
-  const store = atom(initialValue);
-  const deepMapStore = store as DeepMap<T>;
-
-  // Mark the atom for path listeners
-  deepMapStore[STORE_MAP_KEY_SET] = true; // Re-using symbol
-
-  deepMapStore.setPath = (path: Path, value: any, forceNotify: boolean = false): void => {
-    const current = store.get();
-    const newValue = setDeep(current, path, value); // Use setDeep
-
-    // Use simplified set if value changed
+  // Create atom
+  const baseAtom = atom<T>(initialValue);
+  const deepMapAtom = baseAtom as DeepMap<T>;
+  
+  // Mark atom for path listeners
+  deepMapAtom[STORE_MAP_KEY_SET] = true;
+  
+  // Track whether we're in setPath
+  let isCalledBySetPath = false;
+  
+  // Track changed paths for batching
+  let batchChangedPaths: Path[] | null = null;
+  
+  // Implement setPath method
+  deepMapAtom.setPath = function(path: Path, value: any, forceNotify = false): void {
+    if (!path || (Array.isArray(path) && path.length === 0) || path === '') {
+      return; // Skip empty paths
+    }
+    
+    const current = this.get();
+    const newValue = setDeep(current, path, value);
+    
+    // Only update if value changed or forced
     if (forceNotify || newValue !== current) {
-        // Call the overridden set method, which handles batching, onSet, _notify, onNotify, and emitPaths via _notifyBatch
-        store.set(newValue, forceNotify);
-    }
-  };
-
-  // Override the base 'set' method to handle path emission for full object updates
-  const originalSet = deepMapStore.set; // Keep reference to original prototype set
-  deepMapStore.set = function (newValue: T, forceNotify: boolean = false): void {
-    const oldValue = this._value;
-    if (forceNotify || !Object.is(newValue, oldValue)) {
-        // Call original set logic (handles batching, onSet, _notify, onNotify)
-        originalSet.call(this, newValue, forceNotify);
-
-        // After original set logic (which includes _notify), emit path changes if not batching
-        if (batchDepth === 0) {
-            // Assuming getChangedPaths exists and returns Path[]
-            const changedPaths = getChangedPaths(oldValue, newValue);
-            if (changedPaths.length > 0) {
-                emitPaths(this, changedPaths, newValue); // Emit changed paths
-            }
+      // Flag that we're in setPath
+      isCalledBySetPath = true;
+      
+      try {
+        // Call base set method
+        baseAtom.set(newValue, forceNotify);
+        
+        // Track changed path for batching
+        if (batchDepth > 0) {
+          if (!batchChangedPaths) batchChangedPaths = [];
+          batchChangedPaths.push(path);
+        } else {
+          // Emit path change if not batching
+          emitPaths(this, [path], newValue);
         }
-    }
-  };
-
-
-  // Implement listenPaths
-  deepMapStore.listenPaths = function (paths: Path[], listener: PathListener<T>): Unsubscribe {
-    // Delegate to the baseListenPaths function from events.ts
-    return baseListenPaths(this, paths, listener);
-  };
-
-  // Override _notifyBatch to handle emitPaths correctly after batch completes
-  const originalNotifyBatch = deepMapStore._notifyBatch;
-  deepMapStore._notifyBatch = function() {
-    const oldValue = this._oldValueBeforeBatch; // Get stored old value
-    // Call original batch notify (handles listeners and clears _oldValueBeforeBatch)
-    originalNotifyBatch.call(this);
-    // Now oldValue is defined (if a change occurred in the batch) and _oldValueBeforeBatch is cleared
-
-    // If oldValue exists (meaning a change happened), calculate and emit changed paths
-    if (oldValue !== undefined) {
-      const newValue = this._value;
-      const changedPaths = getChangedPaths(oldValue, newValue);
-      if (changedPaths.length > 0) {
-          emitPaths(this, changedPaths, newValue);
+      } finally {
+        isCalledBySetPath = false;
       }
     }
   };
-
-  return deepMapStore;
+  
+  // Override set method for full updates
+  const originalSet = deepMapAtom.set;
+  deepMapAtom.set = function(newValue: T, forceNotify = false): void {
+    // If called by setPath, just delegate
+    if (isCalledBySetPath) {
+      originalSet.call(this, newValue, forceNotify);
+      return;
+    }
+    
+    // Get old value
+    const oldValue = this._value;
+    
+    // Only update if different or forced
+    if (forceNotify || !Object.is(newValue, oldValue)) {
+      // Call original set (handles batching, notify, etc.)
+      originalSet.call(this, newValue, forceNotify);
+      
+      // Calculate changed paths
+      const changedPaths = getChangedPaths(oldValue, newValue);
+      
+      // Handle path emissions
+      if (batchDepth > 0) {
+        if (!batchChangedPaths) batchChangedPaths = [];
+        // Store paths for batch processing
+        batchChangedPaths.push(...changedPaths);
+      } else if (changedPaths.length) {
+        // Immediate notification
+        emitPaths(this, changedPaths, newValue);
+      }
+    }
+  };
+  
+  // Implement listenPaths
+  deepMapAtom.listenPaths = function(paths: Path[], listener: PathListener<T>): Unsubscribe {
+    return baseListenPaths(this, paths, listener);
+  };
+  
+  // Override _notifyBatch to handle path emissions
+  const originalNotifyBatch = deepMapAtom._notifyBatch;
+  deepMapAtom._notifyBatch = function() {
+    const oldValue = this._oldValueBeforeBatch;
+    
+    // Call original batch notification
+    originalNotifyBatch.call(this);
+    
+    // Emit path changes after batch
+    if (batchChangedPaths?.length && oldValue) {
+      const newValue = this._value;
+      // We processed all the paths, so this will be the final notification
+      emitPaths(this, batchChangedPaths, newValue);
+      batchChangedPaths = null;
+    }
+  };
+  
+  return deepMapAtom;
 }

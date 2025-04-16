@@ -1,13 +1,27 @@
-// 极致优化的轻量级状态管理库 (怪兽性能版)
-// 经过极致性能优化，包含可变辅助函数以最大化性能
+// Ultra-optimized state management library - Monster Performance Edition
 
-// Re-export all functionality from separate modules
-export * from './core';
-export * from './atom';
-export * from './computed';
-export * from './map';
-export * from './deepMap';
-export * from './task';
-// Removed: export * from './mutable';
-export * from './events';
-export * from './keys';
+// Re-export core types and functions
+export { batch, atom } from './core';
+export type { Atom, ReadonlyAtom, Listener, Unsubscribe } from './core';
+
+// Re-export computed
+export { computed } from './computed';
+
+// Re-export map
+export { map } from './map';
+export type { MapAtom } from './map';
+
+// Re-export deepMap
+export { deepMap } from './deepMap';
+export type { DeepMap } from './deepMap';
+
+// Re-export task
+export { task } from './task';
+export type { TaskState, TaskAtom } from './task';
+
+// Re-export lifecycle events
+export { LIFECYCLE, listen, listenKeys } from './events';
+export type { KeyListener, PathListener } from './events';
+
+// Re-export utility symbols
+export { STORE_MAP_KEY_SET } from './keys';
