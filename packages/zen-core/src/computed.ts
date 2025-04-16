@@ -21,8 +21,10 @@ type StoreValues<S extends Stores> = {
 /**
  * Internal type representing the structure of a computed atom instance.
  * Extends ReadonlyAtom and adds properties specific to derived state.
+ * Note: _value is T | null initially, becomes T after first calculation.
  */
-type ComputedAtom<T> = ReadonlyAtom<T> & {
+type ComputedAtom<T> = Omit<ReadonlyAtom<T>, '_value'> & { // Omit original _value
+  _value: T | null; // Allow null initially
   // Required properties/methods for internal logic
   _sources: ReadonlyArray<Atom<any> | ReadonlyAtom<any>>;
   _sourceValues: any[];
@@ -59,6 +61,7 @@ export const ComputedAtomProto: ComputedAtom<any> = {
   _dirty: true, // Start dirty, calculate on first get/subscribe
   _isSubscribing: false, // Flag for initial subscription phase
   // _unsubscribers and _onChangeHandler are implicitly undefined initially
+  _value: null, // Initialize _value as null
 
   // --- Overridden Methods ---
 
@@ -73,10 +76,11 @@ export const ComputedAtomProto: ComputedAtom<any> = {
       this._subscribeToSources();
     }
     // Recalculate if dirty
-    if (this._dirty) {
+    if (this._dirty || this._value === null) { // Also update if value is still null
       this._update(); // This updates _value and resets _dirty
     }
-    return this._value;
+    // Non-null assertion: after _update(), _value should be T, not null.
+    return this._value!;
   },
 
   // `set` method is intentionally NOT overridden (it's a ReadonlyAtom).
@@ -90,7 +94,7 @@ export const ComputedAtomProto: ComputedAtom<any> = {
     const srcs = this._sources;
     const vals = this._sourceValues;
     const calc = this._calculation;
-    const old = this._value; // Capture value BEFORE recalculation
+    const old = this._value; // Capture value BEFORE recalculation (could be null)
 
     // 1. Get current values from all source atoms
     for (let i = 0; i < srcs.length; i++) {
@@ -103,7 +107,8 @@ export const ComputedAtomProto: ComputedAtom<any> = {
     this._dirty = false; // Mark as clean *after* calculation
 
     // 3. Check if the value actually changed using the equality function
-    if (this._equalityFn(newValue, old)) {
+    // Handle the initial null case for 'old'
+    if (old !== null && this._equalityFn(newValue, old)) {
       return false; // No change, exit early
     }
 
@@ -245,18 +250,37 @@ export function computed<T, S extends Stores>(
   calculation: (...values: StoreValues<S>) => T,
   equalityFn: (a: T, b: T) => boolean = Object.is // Default to Object.is
 ): ReadonlyAtom<T> {
-  // Create instance inheriting from ComputedAtomProto
-  const atom = Object.create(ComputedAtomProto) as ComputedAtom<T>;
-
-  // Initialize computed-specific properties
-  atom._sources = stores;
-  atom._sourceValues = new Array(stores.length); // Initialize array for source values
-  atom._calculation = calculation as Function; // Store calculation function
-  atom._equalityFn = equalityFn; // Store equality function
-  atom._dirty = true; // Start dirty
-  atom._isSubscribing = false; // Ensure flag is initialized correctly
-  // _value will be calculated on first get/subscribe
-  // _listeners, _unsubscribers, _onChangeHandler are initialized lazily
+  // Create instance using object literal, copying methods from ComputedAtomProto
+  // Create instance using object literal, copying methods from ComputedAtomProto
+  // Explicitly type the object literal to match ComputedAtom<T>
+  const atom: ComputedAtom<T> = {
+    // Core properties/methods (copied)
+    _value: null, // Initialize as null
+    get: ComputedAtomProto.get,
+    subscribe: ComputedAtomProto.subscribe,
+    _notify: ComputedAtomProto._notify,
+    // Computed-specific properties (initialized)
+    _sources: stores,
+    _sourceValues: new Array(stores.length),
+    _calculation: calculation as Function,
+    _equalityFn: equalityFn,
+    _dirty: true,
+    _isSubscribing: false,
+    // Methods specific to computed (copied)
+    _update: ComputedAtomProto._update,
+    _onChange: ComputedAtomProto._onChange,
+    _subscribeToSources: ComputedAtomProto._subscribeToSources,
+    _unsubscribeFromSources: ComputedAtomProto._unsubscribeFromSources,
+    // Optional properties (initialized lazily or can be undefined)
+    _listeners: undefined,
+    _startListeners: undefined,
+    _stopListeners: undefined,
+    _setListeners: undefined, // Less common for computed, but include for type consistency
+    _notifyListeners: undefined,
+    _mountListeners: undefined,
+    _unsubscribers: undefined,
+    _onChangeHandler: undefined,
+  };
 
   return atom; // Return the configured computed atom instance
 }

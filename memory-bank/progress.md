@@ -1,62 +1,58 @@
-# Latest Benchmark & Size Results (Post Patching Refactor - 2025-04-16)
+# Latest Benchmark & Size Results (Post Object Literal Refactor - 2025-04-16)
 
 ## Refactoring (Remove Patching)
-- Modified `core.ts` to integrate event triggers (`onSet`, `onStart`, `onStop`, `onNotify`) directly into prototype methods (`set`, `subscribe`, `_notify`).
-- Modified `events.ts` to remove patching logic (`ensurePatched`). Event listener functions now directly manipulate atom properties.
-- Modified `batch.ts` to remove global prototype patching. It now uses a `Map` (`batchQueue`) to track atoms changed during a batch and their original values. `core.ts`'s `set` method now checks `isInBatch()` and calls `queueAtomForBatch()` instead of notifying directly when inside a batch.
+- Modified `core.ts` to integrate event triggers directly into prototype methods.
+- Modified `events.ts` to remove patching logic.
+- Modified `batch.ts` to use an internal queue instead of global prototype patching.
+
+## Refactoring (Object Literal Creation)
+- Modified `atom.ts` and `computed.ts` factory functions to use object literals instead of `Object.create()`, copying methods from the prototype directly onto the instance.
 - Successfully ran `bun run test` after refactoring.
 
-## Benchmark Run (2025-04-16 Post Refactor)
+## Benchmark Run (2025-04-16 Post Object Literal Refactor)
 - Successfully ran `bun run bench`.
 
-## Performance (`npm run bench` Results - 2025-04-16 Post Refactor)
+## Performance (`npm run bench` Results - 2025-04-16 Post Object Literal Refactor)
 
 **(Note:** Full benchmark output available in execution history. Key observations below.)
 
-**Atom Operations:**
-- Core performance remains excellent, comparable to pre-refactor baseline.
+**Atom/Computed Creation:**
+- **Significant Improvement:** Creation speed increased substantially (closer to Jotai) compared to the `Object.create()` approach, confirming V8's preference for object literals with stable shapes.
 
-**Computed Operations:**
-- Performance remains excellent.
+**Other Operations (Get/Set/Subscribe/Update/Batching):**
+- Performance remains largely unchanged, still excellent.
 
-**Map/DeepMap Operations:**
-- Performance remains excellent.
-
-**Batching:**
-- `zen batch` performance is slightly lower than the previous patching implementation but still significantly faster than sequential sets, especially with listeners. This trade-off is acceptable for improved code structure and engine optimization potential.
-
-**Events:**
-- Event overhead remains similar.
-
-## Size (`size-limit`, brotlied - 2025-04-16 Post Refactor)
+## Size (`size-limit`, brotlied - 2025-04-16 Post Object Literal Refactor)
 - `jotai` (atom): 170 B (Reference)
 - `nanostores` (atom): **265 B** (Reference)
 - `zustand` (core): 461 B (Reference)
-- **`zen (atom only)`**: **633 B** (Slight increase from 523 B baseline)
+- **`zen (atom only)`**: **675 B** (Slight increase from 633 B post-patching-refactor)
 - `valtio`: 903 B (Reference)
-- **`zen (full)`**: **1.17 kB** (Slight increase from 1.09 kB baseline)
+- **`zen (full)`**: **1.23 kB** (Slight increase from 1.17 kB post-patching-refactor)
 - `effector`: 5.27 kB (Reference)
 - `@reduxjs/toolkit`: 6.99 kB (Reference)
-- **Size Analysis**: Slight size increase (~100 B) due to integrating event logic directly into core prototypes. This is acceptable given the removal of dynamic patching.
+- **Size Analysis**: Minor size increase (~40-60 B) due to methods being copied onto each instance instead of shared via prototype. This is an acceptable trade-off for the significant creation performance gain.
 
-## Features Implemented (Post Refactor)
-- `atom` (Factory in `atom.ts`, core logic includes event triggers)
-- `computed` (Core logic includes event triggers)
-- `map`, `deepMap` (Core logic includes event triggers, key/path listeners via WeakMap)
+## Features Implemented (Post Object Literal Refactor)
+- `atom` (Factory uses object literal)
+- `computed` (Factory uses object literal)
+- `map`, `deepMap` (Still use `Object.create` internally via `atom()` base)
 - `task`
-- Lifecycle Events (`onStart`, etc.) - Via direct listener sets.
+- Lifecycle Events (`onStart`, etc.) - Integrated into core methods.
 - Batching (`batch()`) - Via internal queue, no prototype patching.
 - Key/Path Subscriptions (`listenKeys`, `listenPaths`).
 
-## Benchmark Highlights (Post Refactor)
-- Core `zen` performance remains excellent.
+## Benchmark Highlights (Post Object Literal Refactor)
+- Atom/Computed creation significantly faster.
+- Other core performance remains excellent.
 - Dynamic patching successfully removed.
 - Code structure simplified and potentially more optimizable by JS engines.
 
 ## Current Status
 - Refactoring to remove dynamic patching is complete.
+- Refactoring to use object literals for atom/computed creation is complete.
 - Tests and benchmarks pass.
-- Performance is confirmed high, size impact is minimal and acceptable.
+- Performance profile improved (faster creation), size impact minimal and acceptable.
 
 ## Known Issues/Next Steps (Refined)
 1.  ~~Analyze Size Increase (Post Event Refactor)~~ (Analyzed)
@@ -76,7 +72,10 @@
 15. ~~Record Baseline Size~~ (Done: atom 523 B, full 1.09 kB)
 16. ~~Refactor Core: Remove Dynamic Patching~~ (Done)
 17. ~~Verify Refactoring (Tests, Benchmarks, Size)~~ (Done)
-18. **Investigate Size Discrepancy**: Why was the original 1.45 kB measurement different? (Lower priority)
-19. **Consider Further Map Optimizations**: Analyze remaining gap with nanostores Map Set Key performance. (Optional)
-20. **Consider Packaging Improvements**: Explore options for tree shaking, bundle optimization, or feature flags. (Optional)
-21. **Release Planning**: Prepare for next release.
+18. ~~Refactor Core: Use Object Literals for Creation~~ (Done for atom/computed)
+19. ~~Verify Object Literal Refactoring (Tests, Benchmarks, Size)~~ (Done)
+20. **Refactor Map/DeepMap:** Consider changing `map()` and `deepMap()` to also use object literals for consistency, or keep as is if `Object.create` overhead is negligible there.
+21. **Investigate Size Discrepancy**: Why was the original 1.45 kB measurement different? (Lower priority)
+22. **Consider Further Map Optimizations**: Analyze remaining gap with nanostores Map Set Key performance. (Optional)
+23. **Consider Packaging Improvements**: Explore options for tree shaking, bundle optimization, or feature flags. (Optional)
+24. **Release Planning**: Prepare for next release.

@@ -9,10 +9,21 @@ import { Atom, AtomProto as CoreAtomProto } from './core'; // Import Core AtomPr
  * @returns An Atom instance.
  */
 export function atom<T>(initialValue: T): Atom<T> {
-  // Create instance inheriting from the CORE prototype
-  const a = Object.create(CoreAtomProto);
-  // Set initial value
-  a._value = initialValue;
-  // No method overrides here - patching handles event logic
+  // Create instance using object literal, copying methods from CoreAtomProto
+  const a: Atom<T> = {
+    _value: initialValue,
+    // Copy methods directly from the prototype
+    get: CoreAtomProto.get,
+    set: CoreAtomProto.set,
+    subscribe: CoreAtomProto.subscribe,
+    _notify: CoreAtomProto._notify,
+    // Initialize listener sets as potentially undefined
+    _listeners: undefined,
+    _startListeners: undefined,
+    _stopListeners: undefined,
+    _setListeners: undefined,
+    _notifyListeners: undefined,
+    _mountListeners: undefined,
+  };
   return a;
 }

@@ -42,7 +42,7 @@ export type Atom<T = any> = {
 export type ReadonlyAtom<T = any> = {
   get(): T;
   subscribe(fn: Listener<T>): Unsubscribe;
-  _value: T;
+  _value: T | null; // Allow null for initial state of computed atoms
   _listeners?: Set<Listener<T>>;
   // --- Optional properties added by patching (Events) ---
   _startListeners?: Set<LifecycleListener<T>>; // Added by events.ts
