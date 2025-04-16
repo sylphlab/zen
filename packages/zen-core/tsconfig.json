@@ -1,4 +1,4 @@
-{
+ {
   // Removed "extends": "../../tsconfig.base.json"
   "compilerOptions": {
     // Copied necessary options from tsconfig.base.json
@@ -26,13 +26,11 @@
     "declarationMap": false,
     "inlineSources": false,
     "forceConsistentCasingInFileNames": true,
-
-    // Package-specific options
     "composite": true, // Required for project references
-    "emitDeclarationOnly": true, // Only emit .d.ts files
-    "declarationDir": "dist" // Output .d.ts files directly to dist
-    // No rootDir needed if include is specific
+
+    // Removed other package-specific options: emitDeclarationOnly, declarationDir
+    "rootDir": "src" // Restore rootDir for composite project
   },
-  "include": ["src"], // Keep it simple
-  "exclude": ["node_modules", "dist"] // Keep it simple
+  "include": ["src/**/*.ts"], // Keep explicit include
+  "exclude": ["node_modules", "dist"]
 }

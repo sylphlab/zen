@@ -53,11 +53,11 @@ function ensurePatched<T>(a: Atom<T> | ReadonlyAtom<T>): void {
             instanceOriginalSet.call(this, v, force);
         } else {
             // --- Inside batch ---
-            // Call the method currently on the CORE prototype (which should be batch.patchedSet if batching is active).
-            // This ensures batching logic (deferring notification) takes over completely,
-            // preventing immediate `onSet` or `onNotify` triggers from this patch.
-            // The batching patch handles its own `onSet` triggering at the end of the batch.
-            coreOriginalSet.call(this, v, force); // Use captured coreOriginalSet
+            // Call the method currently on the ATOM PROTOTYPE (imported as CoreAtomProto).
+            // If batching is active, this will be batch.patchedSet.
+            // This ensures batching logic handles value update and defers notification.
+            // Crucially, onSet listeners are NOT triggered here.
+            CoreAtomProto.set.call(this, v, force);
         }
       }
     };

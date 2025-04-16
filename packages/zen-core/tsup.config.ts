@@ -1,9 +1,9 @@
 import { defineConfig } from 'tsup'
 
 export default defineConfig({
-  entry: ['src/index.ts'],
+  entry: ['src/index.ts'], // Point back to src directory
   format: ['esm', 'cjs'],
-  dts: true,
+  dts: true, // Simplify DTS generation option
   splitting: false,
   sourcemap: false, // Disable sourcemap for production builds
   clean: true,
