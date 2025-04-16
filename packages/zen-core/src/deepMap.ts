@@ -1,11 +1,17 @@
 // Functional DeepMap atom implementation.
-import { Atom, Unsubscribe, Listener, AnyAtom, MapAtom, DeepMapAtom } from './core'; // Removed AtomTypes
+import type { Atom } from './atom'; // Import Atom type
+import type { Unsubscribe, Listener, AnyAtom } from './types'; // Import from types
+// Removed unused: import type { MapAtom } from './map';
 import { createAtom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional atom API
 import { listenPaths as addPathListener, _emitPathChanges, PathListener } from './events'; // Path listener logic
 import { STORE_MAP_KEY_SET } from './keys'; // Symbol marker
 import { Path, setDeep, getChangedPaths } from './deepMapInternal'; // Deep object utilities
 
-// Removed local definition of DeepMapAtom, using the one from core.ts
+// --- Type Definition ---
+/** Represents a functional DeepMap Atom structure. */
+export type DeepMapAtom<T extends object = any> = { // Added default type param
+  readonly _internalAtom: Atom<T>; // The actual atom holding the object state
+};
 
 // --- Functional API for DeepMap ---
 
@@ -105,10 +111,4 @@ export function listenPaths<T extends object>(
     return addPathListener(deepMapAtom._internalAtom as AnyAtom<T>, paths, listener);
 }
 
-// Optional: Keep old exports for backward compatibility?
-// export { createDeepMap as deepMap };
-// export { setPath as setDeepMapPath };
-// export { set as setDeepMapValue };
-// export { get as getDeepMapValue };
-// export { subscribe as subscribeToDeepMap };
-// export { listenPaths as listenDeepMapPaths };
+// Note: Old deepMap exports removed. Use createDeepMap, setDeepMapPath, etc.

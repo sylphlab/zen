@@ -1,15 +1,28 @@
 // Functional computed (derived state) implementation.
-import {
-  Atom,
-  ReadonlyAtom,
-  Listener,
-  Unsubscribe,
-  ComputedAtom,
-  AnyAtom,
-  // Removed AtomTypes
-  notifyListeners // Import notifyListeners from core
-} from './core';
+import type { Listener, Unsubscribe, AnyAtom, AtomWithValue } from './types'; // Import from types
+import { notifyListeners } from './internalUtils'; // Import from internalUtils
 import { get as getAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated core functional API
+
+// --- Type Definitions ---
+/** Represents a read-only atom (functional style). */
+export type ReadonlyAtom<T = any> = AtomWithValue<T> & {
+    _value: T | null; // Readonly might start as null (computed)
+};
+
+/** Represents a computed atom's specific properties (functional style). */
+export type ComputedAtom<T = any> = ReadonlyAtom<T> & {
+    _value: T | null; // Computed starts as null
+    _dirty: boolean;
+    readonly _sources: ReadonlyArray<AnyAtom>; // Use AnyAtom recursively
+    _sourceValues: any[];
+    readonly _calculation: Function;
+    readonly _equalityFn: (a: T, b: T) => boolean;
+    _unsubscribers?: Unsubscribe[];
+    // Add internal methods needed by functional API calls
+    _update: () => boolean;
+    _subscribeToSources: () => void;
+    _unsubscribeFromSources: () => void;
+};
 
 // --- Types --- (Copied from core.ts for clarity, could be imported)
 /** Represents an array of source atoms (can be Atom or ReadonlyAtom). */
@@ -172,4 +185,4 @@ export function createComputed<T, S extends Stores>( // Rename factory function
   return computedAtom; // Return the computed atom structure
 }
 
-// Removed comment block about modifying atom.ts
+// Note: getAtomValue and subscribeToAtom logic in atom.ts handles computed atom specifics.

@@ -1,6 +1,15 @@
 // Functional atom implementation
-import { Atom, Listener, Unsubscribe, AnyAtom, ComputedAtom, notifyListeners, getBaseAtom } from './core'; // Removed AtomTypes
-import { isInBatch, queueAtomForBatch, batchDepth } from './batch'; // Import batch helpers AND batchDepth
+import type { Listener, Unsubscribe, AnyAtom, AtomWithValue } from './types'; // Import from types
+import type { ComputedAtom } from './computed'; // Import ComputedAtom from computed.ts
+import { isComputedAtom } from './typeGuards'; // Import from typeGuards
+import { getBaseAtom, notifyListeners } from './internalUtils'; // Import from internalUtils
+import { queueAtomForBatch, batchDepth } from './batch'; // Import batch helpers AND batchDepth (Removed isInBatch)
+
+// --- Type Definition ---
+/** Represents a writable atom (functional style). */
+export type Atom<T = any> = AtomWithValue<T> & {
+    _value: T; // Regular atoms always have an initial value
+};
 
 // --- Core Functional API ---
 
@@ -10,12 +19,12 @@ import { isInBatch, queueAtomForBatch, batchDepth } from './batch'; // Import ba
  * @returns The current value.
  */
 export function get<T>(atom: AnyAtom<T>): T | null { // Return type allows null for computed initial
-    // Check if it's a computed atom by checking for _calculation property
-    if ('_calculation' in atom) {
-        const computed = atom as ComputedAtom<T>; // Cast to ComputedAtom
+    // Use type guard to check if it's a computed atom
+    if (isComputedAtom(atom)) {
+        const computed = atom as ComputedAtom<T>; // Explicit cast after type guard
         // Ensure _update exists (it should based on the type) and call it if dirty or initially null
         if ((computed._dirty || computed._value === null)) {
-             computed._update(); // Call the internal update method directly via type
+             computed._update(); // Use the explicitly cast 'computed' variable
         }
     }
     // Return the potentially updated value from the base atom
@@ -29,13 +38,8 @@ export function get<T>(atom: AnyAtom<T>): T | null { // Return type allows null 
  * @param force If true, notify listeners even if the value is the same.
  */
 export function set<T>(atom: Atom<T>, value: T, force = false): void {
-    // Check if it's a regular atom by ensuring it's not computed, map, deepMap, or task
-    // This check is less robust without $$type. Consider if needed or rely on TypeScript.
-    // For now, let's assume the caller passes a valid Atom<T>.
-    // if (!('_value' in atom) || '_calculation' in atom || '_internalAtom' in atom || '_stateAtom' in atom) {
-    //     console.warn('set called on a non-regular atom.');
-    //     return;
-    // }
+    // Assuming the caller passes a valid Atom<T> due to TypeScript typing.
+    // Runtime checks were removed for performance/simplicity after $$type removal.
 
     const oldValue = atom._value;
     if (force || !Object.is(value, oldValue)) {
@@ -87,11 +91,11 @@ export function subscribe<T>(atom: AnyAtom<T>, listener: Listener<T>): Unsubscri
             try { fn(undefined); } catch(e) { console.error(`Error in onStart listener for atom ${String(atom)}:`, e); }
         });
         // If it's a computed atom, trigger its source subscription logic
-        if ('_calculation' in atom) { // Check if computed
-             const computed = atom as ComputedAtom<T>;
+        if (isComputedAtom(atom)) { // Use type guard
+             const computed = atom as ComputedAtom<T>; // Explicit cast after type guard
              // Ensure the method exists before calling
              if (typeof computed._subscribeToSources === 'function') {
-                computed._subscribeToSources();
+                computed._subscribeToSources(); // Use the explicitly cast 'computed' variable
              }
         }
     }
@@ -120,11 +124,11 @@ export function subscribe<T>(atom: AnyAtom<T>, listener: Listener<T>): Unsubscri
             try { fn(undefined); } catch(e) { console.error(`Error in onStop listener for atom ${String(atom)}:`, e); }
         });
         // If it's a computed atom, trigger its source unsubscription logic
-        if ('_calculation' in atom) { // Check if computed
-            const computed = atom as ComputedAtom<T>;
+        if (isComputedAtom(atom)) { // Use type guard
+            const computed = atom as ComputedAtom<T>; // Explicit cast after type guard
              // Ensure the method exists before calling
              if (typeof computed._unsubscribeFromSources === 'function') {
-                computed._unsubscribeFromSources();
+                computed._unsubscribeFromSources(); // Use the explicitly cast 'computed' variable
              }
         }
       }

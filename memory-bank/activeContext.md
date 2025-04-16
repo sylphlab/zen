@@ -1,36 +1,23 @@
-# Active Context (2025-04-16)
+# Active Context (2025-04-16 Cleanup & Review Complete)
 
 ## Current Focus
-- **Complete Object Literal Refactoring:**
-    - Modified `atom.ts` and `computed.ts` to use object literals instead of `Object.create()`.
-    - Fixed resulting TypeScript errors in `computed.ts` and `core.ts`.
-    - Verified changes with `bun run test` (passed).
-    - Verified performance impact with `bun run bench` (creation significantly faster, others stable).
-    - Verified size impact with `bun run size` (slight increase: atom 675 B, full 1.23 kB - acceptable trade-off).
-- Updated Memory Bank (`progress.md`, `activeContext.md`) with refactoring details and results.
+- **Cleanup & Review Complete:** Code cleanup (removed comments, unused imports) and review for fast-path optimizations in `packages/zen-core/src` are complete.
+- **Status:**
+    - **Cleanup:** Removed commented-out code and unused imports from `atom.ts`, `computed.ts`, `map.ts`, `deepMap.ts`, `events.ts`. Added explanatory comment to `_emitPathChanges` in `events.ts`.
+    - **Review:** Core fast paths (`get`, `set`, `subscribe`, `notifyListeners`, `batch`) appear well-optimized. Map/DeepMap `set` operations use standard immutability patterns (`{...spread}`). `deepMap`'s `getChangedPaths` remains a potential bottleneck for very large/deep objects, but optimizing it further carries risks and complexity, deferred for now based on "stable performance" requirement.
+    - **Previous State:** Functional API refactoring, module separation, and creation optimization were already complete (Commits: `f0c4085`, `36e5650`). Tests passed, benchmarks improved, bundle size low (atom: 143B, full: 687B - pre-cleanup).
 
 ## Recent Changes & Decisions
-- **Refactoring (Object Literals):** Successfully changed `atom()` and `computed()` creation.
-- **Refactoring (Remove Patching):** Successfully removed dynamic patching for events and batching.
-- **Verification:** Tests and benchmarks pass after all refactoring.
-- **Size:** Recorded post-object-literal-refactor size.
-- **Baseline Commit:** Stable pre-refactoring state committed at `ff6a27b`.
+- Performed code cleanup and review as requested.
+- Identified no low-risk, high-impact fast-path optimizations beyond existing structure. Deferred complex `getChangedPaths` optimization.
 
 ## Next Steps
-- Commit the completed object literal refactoring.
-- Decide whether to refactor `map()` and `deepMap()` similarly.
-- Consider optional optimizations (Map performance, packaging).
-- Begin release planning.
+- Commit the cleanup changes.
+- Consider further optimizations (e.g., `getChangedPaths`), packaging, or release steps.
+- Address guideline compliance task (fetching `guidelines/typescript/style_quality.md`) if it becomes available.
 
 ## Active Decisions
-- Using object literals for `atom` and `computed` creation improves performance significantly with acceptable size trade-off.
-- Dynamic patching has been successfully removed.
-- Core performance remains excellent.
-- `atom()` factory resides in `atom.ts`.
-- `AtomProto` defined only in `core.ts`, minimal implementation.
-- All definitions use `type` aliases.
-- Terser minification is enabled.
-- `size-limit` for the full bundle is 1.8 kB.
+- Cleanup and review completed. No immediate further optimizations planned for core fast paths.
 
 ## Guideline Verification Issues
-- (Unchanged) Failed to fetch `guidelines/typescript/style_quality.md`. Proceeding without guideline verification for now. Task added to address guideline compliance later.
+- **Persistent Failure:** Repeated attempts to fetch `guidelines/typescript/style_quality.md` failed (GitHub 404 Not Found). Cleanup/review proceeded based on existing code style and best practices. The compliance task remains pending.

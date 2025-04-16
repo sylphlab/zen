@@ -1,12 +1,13 @@
 // Functional Map atom implementation.
-import { Atom, Unsubscribe, Listener, AnyAtom } from './core'; // Removed AtomTypes
+import type { Atom } from './atom'; // Import Atom type
+import type { Unsubscribe, Listener, AnyAtom } from './types'; // Import from types
 import { createAtom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional atom API
 import { listenKeys as addKeyListener, _emitKeyChanges, KeyListener } from './events'; // Key listener logic from events
 import { STORE_MAP_KEY_SET } from './keys'; // Symbol marker for map atoms
 
+// --- Type Definition ---
 /** Type definition for the functional Map Atom structure. */
-export type MapAtom<T extends object> = {
-  // Removed $$id and $$type
+export type MapAtom<T extends object = any> = { // Added default type param
   readonly _internalAtom: Atom<T>; // Internal atom holding the object state
   // Key listeners are managed by the events module via WeakMap
 };
@@ -116,6 +117,4 @@ export function listenKeys<T extends object, K extends keyof T>(
     return addKeyListener(mapAtom._internalAtom as AnyAtom<T>, keys, listener);
 }
 
-// Optional: Keep the old 'map' export for backward compatibility during transition?
-// For now, let's assume a clean break and only export the new functional API.
-// export { createMap as map };
+// Note: Old 'map' export removed. Use 'createMap'.
