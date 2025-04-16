@@ -23,10 +23,10 @@ export { deepMap } from './deepMap';
 export { task } from './task';
 
 // --- Core Functions ---
-export { get, set, subscribe } from './atom'; // Renamed
-export { get as getMapValue, setKey as setMapKey, set as setMapValue, subscribe as subscribeToMap, listenKeys as listenMapKeys } from './map'; // Renamed + added listenKeys
-export { get as getDeepMapValue, setPath as setDeepMapPath, set as setDeepMapValue, subscribe as subscribeToDeepMap, listenPaths as listenDeepMapPaths } from './deepMap'; // Renamed + added listenPaths
-export { getTaskState, subscribeToTask, runTask } from './task'; // Added runTask
+export { get, set, subscribe } from './atom'; // Core functions for all atoms (get/subscribe) or basic atoms (set)
+export { setKey as setMapKey, set as setMapValue, listenKeys as listenMapKeys } from './map'; // Map-specific functions (Removed getMapValue, subscribeToMap)
+export { setPath as setDeepMapPath, set as setDeepMapValue, listenPaths as listenDeepMapPaths } from './deepMap'; // DeepMap-specific functions (Removed getDeepMapValue, subscribeToDeepMap)
+export { getTaskState, subscribeToTask, runTask } from './task'; // Task-specific functions
 export { batch } from './batch';
 
 // --- Event Functions ---
