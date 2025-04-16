@@ -1,33 +1,33 @@
-# Latest Benchmark & Size Results (Mid-Functional Refactor - 2025-04-16)
+# Latest Benchmark & Size Results (Post Type Refactor - 2025-04-16)
 
-## Refactoring (Remove Patching)
+## Refactoring (Type Safety - Remove `any`)
+- **Completed:** Reviewed all `.ts` files in `packages/zen-core/src`.
+- Replaced `any` with generics (including `Args` for `TaskAtom`), overloads (`get`, `subscribe`), or `unknown` where feasible.
+- Retained some internal `any` where strict typing was impractical (e.g., `deepMapInternal`, `internalUtils`, WeakMap keys/values).
+- Resolved resulting type errors via inlining or casting.
+
+## Refactoring (Remove Patching) - Previous
 - Complete for core, events, batch.
 
-## Refactoring (Object Literal Creation)
+## Refactoring (Object Literal Creation) - Previous
 - Complete for atom, computed.
 
-## Refactoring (Functional API)
-- **Core:** `atom`, `computed`, `batch`, `task`, `events` refactored.
-- **Tests:** `atom.test.ts`, `computed.test.ts`, `batch.test.ts`, `task.test.ts`, `events.test.ts` updated and passing.
-- **Benchmarks:** `atom.bench.ts`, `batch.bench.ts`, `computed.bench.ts`, `deepMap.bench.ts` updated.
-- **Remaining:**
-    - Update remaining benchmark files (`map.bench.ts`, `events.bench.ts`, `task.bench.ts`) to use functional API.
-    - Refactor `map.test.ts` and `deepMap.test.ts` to use functional API (currently failing).
-    - Refactor `map.ts` and `deepMap.ts` key/path listener trigger logic if tests still fail after test refactor.
+## Refactoring (Functional API) - Previous
+- **Core:** `atom`, `computed`, `batch`, `task`, `events`, `map`, `deepMap` refactored.
+- **Tests:** All tests updated and passing.
+- **Benchmarks:** All benchmarks updated.
 
-## Performance (`npm run bench` Results - Not run after latest benchmark updates)
-- Previous runs showed core performance maintained, creation improved, slight batching trade-off.
+## Performance (`npm run bench` Results - Post Major Refactor)
+- Significant improvements observed across most operations after major refactoring. Performance is highly competitive. `deepMap`'s `getChangedPaths` remains a potential future optimization target.
 
-## Size (`size-limit`, brotlied - Post Object Literal Refactor)
-- **`zen (atom only)`**: **675 B**
-- **`zen (full)`**: **1.23 kB**
+## Size (`size-limit`, brotlied - Post Type Refactor - 2025-04-16)
+- **`zen (atom only)`**: **52 B**
+- **`zen (full)`**: **667 B**
 
 ## Current Status
-- Core functional refactoring largely complete.
-- Tests for core components pass.
-- Benchmark files partially updated.
-- `map`/`deepMap` tests still failing due to pending test/source refactoring.
-- Handing over task.
+- Type refactoring complete.
+- `size-limit` checked.
+- Ready for commit.
 
 ## Known Issues/Next Steps (Refined)
 1.  ~~Analyze Size Increase (Post Event Refactor)~~ (Analyzed)
@@ -52,10 +52,18 @@
 20. ~~Refactor Core: Functional API (`atom`, `computed`, `batch`, `task`, `events`)~~ (Done)
 21. ~~Update Tests (`atom`, `computed`, `batch`, `task`, `events`)~~ (Done)
 22. ~~Update Benchmarks (`atom`, `batch`, `computed`, `deepMap`)~~ (Done)
-23. ~~**Update Benchmarks:** Update `map.bench.ts`, `events.bench.ts`, `task.bench.ts`. (Done)~~~
-24. ~~**Refactor Tests:** Update `map.test.ts`, `deepMap.test.ts`. (Done - Tests passed)~~~
-25. ~~**Fix Key/Path Listeners:** Debug and fix `map`/`deepMap` listener trigger logic if tests still fail. (Not needed, tests passed after refactor)~~~
-26. ~~**Final Verification:** Run all tests, benchmarks, size checks. (Done - Tests passed, benchmarks ran, size: atom 143B, full 687B)~~~
-27. ~~**Commit Final Refactoring.** (Done - commit `2dd2a24`)~~~
-28. ~~**Refactor Modules & Optimize Creation:** Separate types/utils, remove type markers, delay listener init. (Done - commit `36e5650`)~~~
-29. **Consider Further Optimizations/Packaging/Release.** (Next potential step)
+23. ~~**Update Benchmarks:** Update `map.bench.ts`, `events.bench.ts`, `task.bench.ts`. (Done)~~
+24. ~~**Refactor Tests:** Update `map.test.ts`, `deepMap.test.ts`. (Done - Tests passed)~~
+25. ~~**Fix Key/Path Listeners:** Debug and fix `map`/`deepMap` listener trigger logic if tests still fail. (Not needed, tests passed after refactor)~~
+26. ~~**Final Verification:** Run all tests, benchmarks, size checks. (Done - Tests passed, benchmarks ran, size: atom 143B, full 687B)~~
+27. ~~**Commit Final Refactoring.** (Done - commit `2dd2a24`)~~
+28. ~~**Refactor Modules & Optimize Creation:** Separate types/utils, remove type markers, delay listener init. (Done - commit `36e5650`)~~
+29. ~~**Major Refactor:** Merge atom structures, remove `getBaseAtom`. (Done - commit `c0310cf` includes this and naming/build fixes)~~
+30. **Refactor Types:** Remove `any`, use generics/overloads. (Done - Commit `64483ae`)
+31. ~~Commit Type Refactoring.~~ (Done)
+32. **Setup ESLint:** Install deps, create config (`eslint.config.cjs`), add `no-explicit-any` rule, update script. (Done - *Needs commit*)
+33. **Run ESLint Fix:** Apply automatic fixes. (Done - *Needs commit*)
+34. **Commit ESLint Setup & Fixes.** (Next step)
+35. **Address Remaining ESLint Errors/Warnings.** (Optional)
+36. **Consider Packaging/Documentation/Release.**
+37. **Potentially revisit `deepMap`'s `getChangedPaths` optimization.**

@@ -13,10 +13,10 @@ describe('batch (functional)', () => {
   })
 
   test('should group multiple set calls into one', () => {
-    let $a = atom(0) // Use atom
-    let $b = atom('initial') // Use atom
-    let listenerA = vi.fn()
-    let listenerB = vi.fn();
+    const $a = atom(0) // Use atom
+    const $b = atom('initial') // Use atom
+    const listenerA = vi.fn()
+    const listenerB = vi.fn();
 
     const unsubA = subscribe($a, listenerA);
     const unsubB = subscribe($b, listenerB);
@@ -49,10 +49,10 @@ describe('batch (functional)', () => {
   })
 
   test('should handle nested batches correctly', () => {
-    let $a = atom(0) // Use atom
-    let $b = atom(10) // Use atom
-    let listenerA = vi.fn()
-    let listenerB = vi.fn();
+    const $a = atom(0) // Use atom
+    const $b = atom(10) // Use atom
+    const listenerA = vi.fn()
+    const listenerB = vi.fn();
 
     const unsubA = subscribe($a, listenerA);
     const unsubB = subscribe($b, listenerB);
@@ -88,15 +88,15 @@ describe('batch (functional)', () => {
   })
 
   test('should return the value from the callback', () => {
-    let result = batch(() => {
+    const result = batch(() => {
       return 42
     })
     expect(result).toBe(42)
   })
 
   test('should handle errors within the batch', () => {
-    let $a = atom(0); // Use atom
-    let listenerA = vi.fn();
+    const $a = atom(0); // Use atom
+    const listenerA = vi.fn();
     const unsubA = subscribe($a, listenerA); // Use subscribe
 
     // Store initial value
@@ -131,9 +131,9 @@ describe('batch (functional)', () => {
   })
 
   test('onSet listener should NOT be called within batch', () => {
-    let $a = atom(0) // Use atom
-    let onSetListener = vi.fn()
-    let finalListener = vi.fn()
+    const $a = atom(0) // Use atom
+    const onSetListener = vi.fn()
+    const finalListener = vi.fn()
 
     // Attach onSet listener
     onSet($a, onSetListener); // onSet still works by attaching to the atom structure
@@ -167,8 +167,8 @@ describe('batch (functional)', () => {
 
   test('batching should only apply to atoms with patched set', () => {
     // Create a real atom
-    let $plain = atom(100); // Use atom
-    let plainListener = vi.fn();
+    const $plain = atom(100); // Use atom
+    const plainListener = vi.fn();
     const unsubPlain = subscribe($plain, plainListener); // Use subscribe
 
     // Store initial value
@@ -176,7 +176,7 @@ describe('batch (functional)', () => {
     plainListener.mockClear(); // Clear initial call
 
     // Simulate a fake atom structure (no methods)
-    let fakeAtom = {
+    const fakeAtom = {
       $$id: Symbol('fake'),
       $$type: 99, // Some other type
       _value: 200,

@@ -9,7 +9,7 @@ import { queueAtomForBatch, batchDepth } from './batch'; // Import batch helpers
 
 // --- Type Definition ---
 /** Represents a writable atom (functional style). */
-export type Atom<T = any> = AtomWithValue<T> & {
+export type Atom<T = unknown> = AtomWithValue<T> & { // Default to unknown
     _value: T; // Regular atoms always have an initial value
 };
 
@@ -33,13 +33,14 @@ export function get<T>(atom: AnyAtom<T>): T | TaskState<unknown> | object | null
         case 'atom':
             // Type is narrowed to Atom<T>, _value is T
             return atom._value;
-        case 'computed':
+        case 'computed': { // Correct block scope
             // Explicit cast needed despite switch
             const computed = atom as ComputedAtom<T>;
             if (computed._dirty || computed._value === null) {
                 computed._update();
             }
             return computed._value;
+        } // Close block scope
         case 'map':
         case 'deepMap':
             // Type is narrowed to MapAtom<any> | DeepMapAtom<any>
@@ -50,12 +51,13 @@ export function get<T>(atom: AnyAtom<T>): T | TaskState<unknown> | object | null
             // Type is narrowed to TaskAtom<T>
             // Overload ensures atom._value is TaskState<T>
             return atom._value;
-        default:
+        default: { // Correct block scope
             // Handle unknown kind - should not happen with AnyAtom
             // Fallback to satisfy TS, though ideally unreachable
             console.error("Unknown atom kind in get():", atom);
-            const exhaustiveCheck: never = atom; // Ensure all cases are handled
+            const _exhaustiveCheck: never = atom; // Keep rename
             return null;
+        } // Close block scope
     }
 }
 
@@ -109,12 +111,12 @@ export function subscribe<T extends object>(atom: MapAtom<T>, listener: Listener
 export function subscribe<T extends object>(atom: DeepMapAtom<T>, listener: Listener<T>): Unsubscribe;
 export function subscribe<T>(atom: TaskAtom<T>, listener: Listener<TaskState<T>>): Unsubscribe;
 // General implementation signature
-export function subscribe<T>(atom: AnyAtom<T>, listener: Listener<any>): Unsubscribe { // Use Listener<any> for implementation flexibility
+export function subscribe<T>(atom: AnyAtom<T>, listener: Listener<any>): Unsubscribe { // Keep listener as any for implementation signature compatibility
     // Operate directly on the atom
-    const baseAtom = atom as AtomWithValue<any>; // Cast for listener access
+    const baseAtom = atom as AtomWithValue<unknown>; // Keep cast to unknown
     const isFirstListener = !baseAtom._listeners?.size;
     baseAtom._listeners ??= new Set();
-    baseAtom._listeners.add(listener as Listener<any>); // Cast listener type
+    baseAtom._listeners.add(listener as Listener<any>); // Keep listener cast as any
 
     // Trigger onStart and onMount if this is the first listener
     if (isFirstListener) {
@@ -155,12 +157,13 @@ export function subscribe<T>(atom: AnyAtom<T>, listener: Listener<any>): Unsubsc
             case 'atom':
                 currentValue = atom._value;
                 break;
-            case 'computed':
+            case 'computed': { // Correct block scope placement
                 const computed = atom as ComputedAtom<T>;
                 if (computed._dirty || computed._value === null) {
                     computed._update();
                 }
                 currentValue = computed._value;
+            } // Close block scope
                 break;
             case 'map':
             case 'deepMap':
@@ -169,26 +172,29 @@ export function subscribe<T>(atom: AnyAtom<T>, listener: Listener<any>): Unsubsc
             case 'task':
                 currentValue = atom._value; // Overloads ensure this is TaskState<T>
                 break;
-            default:
+            default: { // Correct block scope placement
                  // Should be unreachable due to AnyAtom type
                  console.error("Unknown atom kind in subscribe initial call:", atom);
-                 const exhaustiveCheck: never = atom;
+                 const _exhaustiveCheck: never = atom; // Keep rename
                  currentValue = null; // Fallback
                  break;
+            } // Close block scope
         }
         // The subscribe overloads ensure the listener type matches currentValue type now.
         listener(currentValue, undefined);
-    } catch (e) {
+    } catch (e) { // Corrected try...catch structure
         console.error(`Error in initial listener call for atom ${String(atom)}:`, e);
     }
 
     return function unsubscribe() {
       // Operate directly on the atom
-      const baseAtom = atom as AtomWithValue<any>; // Cast for listener access
+      const baseAtom = atom as AtomWithValue<unknown>; // Keep cast to unknown
       const listeners = baseAtom._listeners;
-      if (!listeners?.has(listener)) return; // Already unsubscribed or listener not found
+      // Keep cast to any for Set.has check due to variance issues
+      if (!listeners?.has(listener as Listener<any>)) return;
 
-      listeners.delete(listener); // Use Set delete
+      // Keep cast to any for Set.delete due to variance issues
+      listeners.delete(listener as Listener<any>);
 
       // Trigger onStop if this was the last listener
       if (!listeners.size) { // Use Set size

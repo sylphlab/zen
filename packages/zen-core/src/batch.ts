@@ -55,7 +55,7 @@ export function batch<T>(fn: () => T): T {
   let errorOccurred = false;
   let result: T;
   // Stores details of atoms that actually changed value for final notification.
-  let changesToNotify: { atom: Atom<any>; value: unknown; oldValue: unknown }[] = []; // Revert atom to Atom<any>
+  const changesToNotify: { atom: Atom<any>; value: unknown; oldValue: unknown }[] = []; // Revert atom to Atom<any>
 
   try {
       result = fn(); // Execute the provided function

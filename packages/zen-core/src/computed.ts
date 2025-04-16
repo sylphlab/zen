@@ -1,7 +1,7 @@
 // Functional computed (derived state) implementation.
-import type { Listener, Unsubscribe, AnyAtom, AtomWithValue } from './types'; // Import from types
+import type { Unsubscribe, AnyAtom, AtomWithValue } from './types'; // Removed Listener import
 import { notifyListeners } from './internalUtils'; // Import from internalUtils
-import { get as getAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated core functional API
+// Removed getAtomValue, subscribeToAtom imports as logic is inlined
 
 // --- Type Definitions ---
 /** Represents a computed atom's specific properties (functional style). */
@@ -12,7 +12,7 @@ export type ComputedAtom<T = unknown> = AtomWithValue<T | null> & { // Value can
     _dirty: boolean;
     readonly _sources: ReadonlyArray<AnyAtom>; // Use AnyAtom recursively
     _sourceValues: unknown[]; // Use unknown[] instead of any[]
-    readonly _calculation: Function;
+    readonly _calculation: Function; // Keep Function type for now, consider stricter typing later if possible
     readonly _equalityFn: (a: T, b: T) => boolean;
     _unsubscribers?: Unsubscribe[];
     // Add internal methods needed by functional API calls
@@ -58,24 +58,26 @@ function updateComputedValue<T>(atom: ComputedAtom<T>): boolean {
                 case 'atom':
                     sourceValue = source._value;
                     break;
-                case 'computed':
+                case 'computed': { // Correct block scope
                     // Need to cast to ComputedAtom to access _update
                     const computedSource = source as ComputedAtom<unknown>;
                     if (computedSource._dirty || computedSource._value === null) {
                         computedSource._update();
                     }
                     sourceValue = computedSource._value;
+                } // Close block scope
                     break;
                 case 'map':
                 case 'deepMap':
                 case 'task':
                     sourceValue = source._value; // Value is object or TaskState
                     break;
-                default:
+                default: { // Correct block scope
                     console.error("Unknown atom kind in computed source:", source);
-                    const exhaustiveCheck: never = source;
+                    const _exhaustiveCheck: never = source; // Rename
                     sourceValue = undefined; // Fallback
                     break;
+                } // Close block scope
             }
             vals[i] = sourceValue;
         } else {
@@ -84,7 +86,7 @@ function updateComputedValue<T>(atom: ComputedAtom<T>): boolean {
     }
 
     // 2. Calculate the new value
-    const newValue = calc.apply(null, vals);
+    const newValue = calc(...vals); // Use spread operator instead of apply
     atom._dirty = false; // Mark as clean *after* calculation
 
     // 3. Check if the value actually changed using the equality function
@@ -116,7 +118,6 @@ function computedSourceChanged<T>(atom: ComputedAtom<T>): void {
     if (atom._listeners?.size) {
         const oldValue = atom._value; // Store value before potential update
         // Use the internal _update method which calls updateComputedValue
-        // Need a way to call updateComputedValue or similar logic here.
         // Let's assume updateComputedValue is sufficient for now.
         const changed = updateComputedValue(atom); // Directly call update logic
         if (changed) {
@@ -145,7 +146,7 @@ function subscribeComputedToSources<T>(atom: ComputedAtom<T>): void {
         const source = sources[i];
         if (source) {
             // Inline subscribeToAtom logic to avoid overload resolution issues
-            const baseSource = source as AtomWithValue<any>; // Cast for listener access
+            const baseSource = source as AtomWithValue<unknown>; // Cast to unknown
             const isFirstSourceListener = !baseSource._listeners?.size;
             baseSource._listeners ??= new Set();
             baseSource._listeners.add(onChangeHandler); // Add the computed's handler
@@ -176,7 +177,7 @@ function subscribeComputedToSources<T>(atom: ComputedAtom<T>): void {
 
             // Store the unsubscribe logic for this specific source
             atom._unsubscribers[i] = () => {
-                const baseSrc = source as AtomWithValue<any>;
+                const baseSrc = source as AtomWithValue<unknown>; // Cast to unknown
                 const srcListeners = baseSrc._listeners;
                 if (!srcListeners?.has(onChangeHandler)) return;
 
@@ -245,7 +246,7 @@ export function computed<T, S extends Stores>( // Rename createComputed to compu
     _dirty: true,
     _sources: stores,
     _sourceValues: new Array(stores.length),
-    _calculation: calculation as Function,
+    _calculation: calculation as Function, // Keep Function type for now
     _equalityFn: equalityFn,
     // Listener properties (e.g., _listeners, _startListeners) are omitted
     // _unsubscribers will be added by _subscribeToSources when needed
