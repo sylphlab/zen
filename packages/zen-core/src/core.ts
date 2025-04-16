@@ -1,5 +1,6 @@
 // Core type definitions and base prototype for the zen state management library.
 import type { LifecycleListener } from './events';
+import { isInBatch, queueAtomForBatch } from './batch';
 
 /** Callback function type for atom listeners. */
 export type Listener<T> = (value: T, oldValue?: T) => void;
@@ -23,11 +24,11 @@ export type Atom<T = any> = {
   _setListeners?: Set<LifecycleListener<T>>;   // Added by events.ts
   _notifyListeners?: Set<LifecycleListener<T>>;// Added by events.ts
   _mountListeners?: Set<LifecycleListener<T>>; // Added by events.ts
-  _oldValueBeforeBatch?: T;                   // Added by batch.ts
+  // _oldValueBeforeBatch is now managed internally by batch.ts's Map
   _notify(value: T, oldValue?: T): void;      // Base implementation in AtomProto
-  _notifyBatch?(): void;                      // Added by batch.ts
-  _patchedForEvents?: boolean;                // Added by events.ts
-  _patchedForBatching?: boolean;              // Added by batch.ts
+  // _notifyBatch is no longer needed
+  // _patchedForEvents is no longer needed
+  // _patchedForBatching is no longer needed
   // --- End optional properties ---
 
   [key: symbol]: any; // Allow extending with symbols
@@ -50,8 +51,8 @@ export type ReadonlyAtom<T = any> = {
   _notifyListeners?: Set<LifecycleListener<T>>;// Added by events.ts
   _mountListeners?: Set<LifecycleListener<T>>; // Added by events.ts
   _notify(value: T, oldValue?: T): void;      // Base implementation (often overridden by computed)
-  _notifyBatch?(): void;                      // Added by events.ts (less common for readonly)
-  _patchedForEvents?: boolean;                // Added by events.ts
+  // _notifyBatch is no longer needed
+  // _patchedForEvents is no longer needed
   // --- End optional event properties ---
 
   // --- Properties specific to computed/derived atoms ---
@@ -94,10 +95,28 @@ export const AtomProto: Atom<any> = {
    */
   set(value, force = false) {
     const oldValue = this._value;
-    if (force || value !== oldValue) {
-      this._value = value;
-      // Base behavior: notify immediately. Patched version might defer.
-      this._notify(value, oldValue);
+    // Import isInBatch and queueAtomForBatch from batch.ts (assuming these will be exported)
+    // We'll add the import later when modifying batch.ts
+    // For now, assume functions `isInBatch` and `queueAtomForBatch` exist.
+    if (force || !Object.is(value, oldValue)) { // Use Object.is for comparison consistency
+        // Trigger onSet listeners BEFORE setting value, ONLY if not in batch
+        if (!isInBatch()) {
+            this._setListeners?.forEach(fn => {
+                try { fn(value); } catch(e) { console.error(`Error in onSet listener for atom ${String(this)}:`, e); }
+            });
+        }
+
+        this._value = value;
+
+        // Check if currently in a batch
+        // @ts-ignore - Assume isInBatch and queueAtomForBatch exist for now
+        if (isInBatch()) {
+            // @ts-ignore
+            queueAtomForBatch(this, oldValue); // Queue for later notification
+        } else {
+            // Outside batch: notify immediately.
+            this._notify(value, oldValue);
+        }
     }
   },
 
@@ -109,14 +128,26 @@ export const AtomProto: Atom<any> = {
    */
   _notify(value, oldValue) {
     const ls = this._listeners;
-    if (!ls || !ls.size) return;
-    for (const fn of ls) {
-      // Use the correct parameter names: value, oldValue
-      fn && fn(value, oldValue);
+    // Notify regular value listeners first
+    if (ls?.size) {
+        // Optimization: Create a copy if iterating while potentially modifying (though unlikely here)
+        // const listenersToNotify = Array.from(ls);
+        // for (const fn of listenersToNotify) {
+        for (const fn of ls) { // Direct iteration usually fine for Set
+            try {
+                fn(value, oldValue);
+            } catch (e) {
+                console.error(`Error in value listener for atom ${String(this)}:`, e);
+            }
+        }
     }
+    // Notify onNotify listeners AFTER value listeners
+    this._notifyListeners?.forEach(fn => {
+        try { fn(value); } catch(e) { console.error(`Error in onNotify listener for atom ${String(this)}:`, e); }
+    });
   },
 
-  // `_notifyBatch` is added dynamically by batch.ts patching if needed.
+  // `_notifyBatch` will be removed as batching logic is refactored.
 
   /**
    * Subscribes a listener function to the atom's changes.
@@ -127,24 +158,40 @@ export const AtomProto: Atom<any> = {
    * @returns A function to unsubscribe the listener.
    */
   subscribe(listener) {
+    const isFirstListener = !this._listeners?.size;
     this._listeners ??= new Set();
     this._listeners.add(listener);
 
-    // Lifecycle event `onStart` is handled by event patching if active.
-    // We check `_listeners.size === 1` *after* adding, within the patched `subscribe`.
+    // Trigger onStart if this is the first listener
+    if (isFirstListener) {
+        this._startListeners?.forEach(fn => {
+            try { fn(undefined); } catch(e) { console.error(`Error in onStart listener for atom ${String(this)}:`, e); }
+        });
+    }
+    // onMount is handled by the onMount function itself
 
-    listener(this._value, undefined); // Initial call with current value
+    // Initial call to the new listener
+    try {
+        listener(this._value, undefined);
+    } catch (e) {
+        console.error(`Error in initial listener call for atom ${String(this)}:`, e);
+    }
+
 
     const self = this; // Capture `this` for the unsubscribe closure
     return function unsubscribe() {
-      const listeners = self._listeners;
-      if (!listeners) return; // Already unsubscribed everything
+      const listeners = self._listeners; // Use 'self'
+      if (!listeners?.has(listener)) return; // Already unsubscribed or listener not found
 
       listeners.delete(listener);
 
+      // Trigger onStop if this was the last listener
       if (!listeners.size) {
         delete self._listeners; // Clean up Set if empty
-        // Lifecycle event `onStop` is handled by event patching if active.
+        self._stopListeners?.forEach(fn => { // Use 'self'
+            // Note: Using String(self) might not be ideal for error messages, but keeps it consistent for now.
+            try { fn(undefined); } catch(e) { console.error(`Error in onStop listener for atom ${String(self)}:`, e); }
+        });
       }
     };
   }

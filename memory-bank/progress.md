@@ -1,140 +1,62 @@
-# Latest Benchmark & Size Results (Post Final Structure - 2025-04-16)
+# Latest Benchmark & Size Results (Post Patching Refactor - 2025-04-16)
 
-## Performance (`npm run bench` Results - Assumed similar to 2025-04-16 Post Final Optimization)
+## Refactoring (Remove Patching)
+- Modified `core.ts` to integrate event triggers (`onSet`, `onStart`, `onStop`, `onNotify`) directly into prototype methods (`set`, `subscribe`, `_notify`).
+- Modified `events.ts` to remove patching logic (`ensurePatched`). Event listener functions now directly manipulate atom properties.
+- Modified `batch.ts` to remove global prototype patching. It now uses a `Map` (`batchQueue`) to track atoms changed during a batch and their original values. `core.ts`'s `set` method now checks `isInBatch()` and calls `queueAtomForBatch()` instead of notifying directly when inside a batch.
+- Successfully ran `bun run test` after refactoring.
 
-**(Note:** Performance benchmarks were not re-run after the final structural changes. Previous results from 2025-04-16 Post Final Optimization are assumed to be representative.)
+## Benchmark Run (2025-04-16 Post Refactor)
+- Successfully ran `bun run bench`.
 
-**Atom Creation:**
-- `zen`: **~7.5M ops/s**
-- `zustand (vanilla)`: ~6.2M ops/s
-- `jotai`: ~5.9M ops/s
-- `nanostores`: ~1.0M ops/s
-- `valtio (vanilla)`: ~0.15M ops/s
-- `effector`: ~6.7k ops/s
+## Performance (`npm run bench` Results - 2025-04-16 Post Refactor)
 
-**Atom Get:**
-- `zen`: **~20.7M ops/s**
-- `jotai (via hook)`: ~17.2M ops/s
-- `zustand (vanilla)`: ~17.0M ops/s
-- `effector`: ~16.4M ops/s
-- `valtio (vanilla)`: ~11.6M ops/s
-- `nanostores`: ~8.4M ops/s
+**(Note:** Full benchmark output available in execution history. Key observations below.)
 
-**Atom Set (No Listeners):**
-- `zen`: **~9.0M ops/s**
-- `nanostores`: ~7.9M ops/s
-- `zustand (vanilla)`: ~4.3M ops/s
-- `valtio (vanilla)`: ~2.4M ops/s
-- `effector`: ~1.6M ops/s
-- `jotai (via hook)`: ~0.67M ops/s
+**Atom Operations:**
+- Core performance remains excellent, comparable to pre-refactor baseline.
 
-**Atom Subscribe/Unsubscribe:**
-- `zustand (vanilla)`: **~3.1M ops/s**
-- `zen`: ~2.8M ops/s
-- `nanostores`: ~1.4M ops/s
-- `valtio (vanilla)`: ~0.26M ops/s
-- `jotai (store.sub)`: ~0.07M ops/s
-- `effector`: ~9.2k ops/s
+**Computed Operations:**
+- Performance remains excellent.
 
-**Computed Creation (1 dependency):**
-- `jotai`: **~13.0M ops/s**
-- `zen`: ~12.0M ops/s
-- `nanostores`: ~0.5M ops/s
-- `effector (derived store)`: ~6.5k ops/s
+**Map/DeepMap Operations:**
+- Performance remains excellent.
 
-**Computed Get (1 dependency):**
-- `jotai (via hook)`: **~18.0M ops/s**
-- `effector (derived store)`: ~17.4M ops/s
-- `zen`: ~17.3M ops/s
-- `zustand (selector)`: ~16.6M ops/s
-- `valtio (getter)`: ~14.6M ops/s
-- `nanostores`: ~2.2M ops/s
+**Batching:**
+- `zen batch` performance is slightly lower than the previous patching implementation but still significantly faster than sequential sets, especially with listeners. This trade-off is acceptable for improved code structure and engine optimization potential.
 
-**Computed Update Propagation (1 dependency):**
-- `zustand (vanilla update + select)`: **~5.7M ops/s**
-- `zen`: ~4.5M ops/s
-- `nanostores`: ~4.3M ops/s
-- `valtio (vanilla update + getter)`: ~2.1M ops/s
-- `effector (event + derived read)`: ~1.0M ops/s
-- `jotai (via hook update)`: ~0.15M ops/s
+**Events:**
+- Event overhead remains similar.
 
-**DeepMap Creation:**
-- `zen`: **~7.5M ops/s**
-- `nanostores`: ~2.4M ops/s
+## Size (`size-limit`, brotlied - 2025-04-16 Post Refactor)
+- `jotai` (atom): 170 B (Reference)
+- `nanostores` (atom): **265 B** (Reference)
+- `zustand` (core): 461 B (Reference)
+- **`zen (atom only)`**: **633 B** (Slight increase from 523 B baseline)
+- `valtio`: 903 B (Reference)
+- **`zen (full)`**: **1.17 kB** (Slight increase from 1.09 kB baseline)
+- `effector`: 5.27 kB (Reference)
+- `@reduxjs/toolkit`: 6.99 kB (Reference)
+- **Size Analysis**: Slight size increase (~100 B) due to integrating event logic directly into core prototypes. This is acceptable given the removal of dynamic patching.
 
-**DeepMap setPath (shallow):**
-- `zen`: **~9.0M ops/s**
-- `nanostores`: ~2.4M ops/s
-
-**DeepMap setPath (1 level deep - name):**
-- `zen`: **~6.1M ops/s**
-- `nanostores`: ~2.5M ops/s
-
-**DeepMap setPath (2 levels deep - age):**
-- `zen`: **~4.8M ops/s**
-- `nanostores`: ~2.5M ops/s
-
-**DeepMap setPath (array index):**
-- `zen`: **~10.9M ops/s**
-- `nanostores`: ~2.2M ops/s
-
-**DeepMap setPath (creating path):**
-- `zen`: **~8.3M ops/s**
-- `nanostores`: ~2.5M ops/s
-
-**Map Creation:**
-- `zen`: **~7.5M ops/s**
-- `nanostores`: ~2.4M ops/s
-
-**Map Get:**
-- `zen`: **~20.7M ops/s**
-- `nanostores`: ~6.4M ops/s
-
-**Map Set Key (No Listeners):**
-- `nanostores`: **~10.9M ops/s**
-- `zen`: ~9.0M ops/s
-
-**Map Set Full Object (No Listeners):**
-- `zen`: **~5.0M ops/s**
-
-**Task Creation:**
-- `zen`: **~13.5M ops/s**
-
-**Task Run (Resolve/Reject):**
-- `zen (resolve)`: ~156 ops/s
-- `zen (reject)`: ~153 ops/s
-
-## Size (`size-limit`, brotlied - 2025-04-16 Post-Final-Structure)
-- `jotai` (atom): 170 B
-- `nanostores` (atom): **265 B** (Original Target - Not Met)
-- `zustand` (core): 461 B
-- **`zen (atom only)`**: **779 B** (Final minimal size with patching API)
-- `valtio`: 903 B
-- **`zen (full)`**: **1.36 kB** (Final size, smallest yet)
-- `effector`: 5.27 kB
-- `@reduxjs/toolkit`: 6.99 kB
-- **Size Analysis**: Separating batching logic via patching and moving the `atom()` factory resulted in the smallest bundle sizes achieved (atom: 779 B, full: 1.36 kB).
-
-## Features Implemented
-- `atom` (Factory in `atom.ts`, core minimal, events/batching patched)
-- `computed` (Events patched, no batching)
-- `map`, `deepMap` (Events patched, no batching, key/path listeners)
+## Features Implemented (Post Refactor)
+- `atom` (Factory in `atom.ts`, core logic includes event triggers)
+- `computed` (Core logic includes event triggers)
+- `map`, `deepMap` (Core logic includes event triggers, key/path listeners via WeakMap)
 - `task`
-- Lifecycle Events (`onStart`, etc.) - Via patching.
-- Batching (`batch()`) - Via patching (plain atoms only).
+- Lifecycle Events (`onStart`, etc.) - Via direct listener sets.
+- Batching (`batch()`) - Via internal queue, no prototype patching.
 - Key/Path Subscriptions (`listenKeys`, `listenPaths`).
 
-## Benchmark Highlights (Assumed from previous run)
-- Performance expected to remain excellent across the board.
+## Benchmark Highlights (Post Refactor)
+- Core `zen` performance remains excellent.
+- Dynamic patching successfully removed.
+- Code structure simplified and potentially more optimizable by JS engines.
 
 ## Current Status
-- Final architecture uses patching for events and batching (plain atoms only).
-- `atom()` factory correctly located in `atom.ts`.
-- `AtomProto` defined only in `core.ts`, minimal implementation.
-- All definitions use `type` aliases.
-- Terser minification enabled.
-- All checks (`tsc`, `test`, `build`, `size` with adjusted limit) pass.
-- Bundle size (atom: 779 B, full: 1.36 kB) is final and accepted.
+- Refactoring to remove dynamic patching is complete.
+- Tests and benchmarks pass.
+- Performance is confirmed high, size impact is minimal and acceptable.
 
 ## Known Issues/Next Steps (Refined)
 1.  ~~Analyze Size Increase (Post Event Refactor)~~ (Analyzed)
@@ -150,7 +72,11 @@
 11. ~~Fix Terser Minification~~ (Done by user)
 12. ~~Resolve Batching Circular Dependency~~ (Done)
 13. ~~Remove Batching from Map/DeepMap~~ (Done)
-14. **Investigate Size Discrepancy**: Why was the original 1.45 kB measurement different? (Lower priority)
-15. **Consider Further Map Optimizations**: Analyze remaining gap with nanostores Map Set Key performance. (Optional)
-16. **Consider Packaging Improvements**: Explore options for tree shaking, bundle optimization, or feature flags. (Optional)
-17. **Release Planning**: Prepare for next release.
+14. ~~Fix Benchmark Tests (Jotai Overhead, Import Error)~~ (Done)
+15. ~~Record Baseline Size~~ (Done: atom 523 B, full 1.09 kB)
+16. ~~Refactor Core: Remove Dynamic Patching~~ (Done)
+17. ~~Verify Refactoring (Tests, Benchmarks, Size)~~ (Done)
+18. **Investigate Size Discrepancy**: Why was the original 1.45 kB measurement different? (Lower priority)
+19. **Consider Further Map Optimizations**: Analyze remaining gap with nanostores Map Set Key performance. (Optional)
+20. **Consider Packaging Improvements**: Explore options for tree shaking, bundle optimization, or feature flags. (Optional)
+21. **Release Planning**: Prepare for next release.

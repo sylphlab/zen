@@ -15,98 +15,17 @@ export type KeyListener<T, K extends keyof T = keyof T> = (value: T[K] | undefin
 
 // --- Patching Logic ---
 
-// Store original methods from the CORE prototype to ensure we can call base logic.
-// Note: We capture these at module load time.
-const coreOriginalSet = CoreAtomProto.set;
-const coreOriginalSubscribe = CoreAtomProto.subscribe;
-const coreOriginalNotify = CoreAtomProto._notify;
+// No patching logic needed anymore. Event triggers are integrated into core.ts.
 
 /** Type guard to check if an atom is mutable (not computed). */
 function isMutableAtom<T>(a: Atom<T> | ReadonlyAtom<T>): a is Atom<T> {
   // A mutable atom has a 'set' method and is not derived (no '_sources').
+  // Note: This check might need refinement if other mutable atom types are added.
   return typeof (a as Atom<T>).set === 'function' && !('_sources' in a);
 }
 
-/**
- * Ensures that the necessary event methods are patched onto the atom instance.
- * This function is idempotent; it only patches once per atom.
- * @param a The atom (mutable or readonly) to patch.
- */
-function ensurePatched<T>(a: Atom<T> | ReadonlyAtom<T>): void {
-  if (a._patchedForEvents) return;
-
-  // --- Patch only MUTABLE atoms ---
-  if (isMutableAtom(a)) {
-    const instanceOriginalSet = a.set; // Capture instance's original set (could be core or already patched)
-    // Patch set method
-    a.set = function(this: Atom<T>, v: T, force = false) {
-      const old = this._value;
-      if (force || !Object.is(v, old)) {
-        if (!isInBatch()) {
-            // --- Outside batch ---
-            // Trigger onSet listeners BEFORE setting value (only outside batch)
-            (this._setListeners as Set<LifecycleListener<T>> | undefined)?.forEach((fn: LifecycleListener<T>) => {
-              try { fn(v); } catch(e) { console.error(`Error in onSet listener for atom ${String(this)}:`, e); }
-            });
-            // Call the INSTANCE'S original set logic (could be core or batch-patched).
-            // This ensures the correct notification (immediate or batched) occurs.
-            instanceOriginalSet.call(this, v, force);
-        } else {
-            // --- Inside batch ---
-            // Call the method currently on the ATOM PROTOTYPE (imported as CoreAtomProto).
-            // If batching is active, this will be batch.patchedSet.
-            // This ensures batching logic handles value update and defers notification.
-            // Crucially, onSet listeners are NOT triggered here.
-            CoreAtomProto.set.call(this, v, force);
-        }
-      }
-    };
-  }
-  // --- End of mutable atom patching ---
-
-  // --- Patch methods common to Atom and ReadonlyAtom ---
-
-  const instanceOriginalNotify = a._notify; // Capture instance's original _notify
-  // Patch _notify method (applies to both)
-  a._notify = function(this: Atom<T> | ReadonlyAtom<T>, v: T, old?: T) {
-    // Call INSTANCE'S original notify logic FIRST
-    instanceOriginalNotify.call(this, v, old);
-    // Trigger onNotify listeners AFTER value listeners
-    (this._notifyListeners as Set<LifecycleListener<T>> | undefined)?.forEach((fn: LifecycleListener<T>) => {
-      try { fn(v); } catch(e) { console.error(`Error in onNotify listener for atom ${String(this)}:`, e); }
-    });
-  };
-
-  const instanceOriginalSubscribe = a.subscribe; // Capture instance's original subscribe
-  // Patch subscribe method (applies to both)
-  a.subscribe = function(this: Atom<T> | ReadonlyAtom<T>, fn: Listener<T>): Unsubscribe {
-    const first = !this._listeners || this._listeners.size === 0;
-    const unsub = instanceOriginalSubscribe.call(this, fn); // Call INSTANCE'S original subscribe logic FIRST
-
-    if (first) { // Trigger onStart listeners if it's the first subscriber
-      (this._startListeners as Set<LifecycleListener<T>> | undefined)?.forEach((l: LifecycleListener<T>) => {
-        try { l(undefined); } catch(e) { console.error(`Error in onStart listener for atom ${String(this)}:`, e); }
-      });
-    }
-    // onMount is handled by onMount function itself
-
-    const self = this;
-    return () => { // Return a patched unsubscribe function
-      unsub(); // Call original unsubscribe
-      if (!self._listeners || self._listeners.size === 0) { // Trigger onStop listeners if it's the last subscriber
-        (self._stopListeners as Set<LifecycleListener<T>> | undefined)?.forEach((l: LifecycleListener<T>) => {
-          try { l(undefined); } catch(e) { console.error(`Error in onStop listener for atom ${String(this)}:`, e); }
-        });
-      }
-      };
-    };
-  // --- End of common patching ---
-
-  a._patchedForEvents = true;
-}
-
-
 // --- Internal Helper for Removing Listeners ---
+// This remains the same, just operates on the properties directly.
 function _unsubscribe<T>(
   a: Atom<T> | ReadonlyAtom<T>,
   listenerSetProp: '_startListeners' | '_stopListeners' | '_setListeners' | '_notifyListeners' | '_mountListeners',
@@ -119,13 +38,12 @@ function _unsubscribe<T>(
   }
 }
 
-// --- Exported Lifecycle Listener Functions (Patch atom on first use) ---
-
 // --- Exported Lifecycle Listener Functions ---
+// These functions now directly add/remove listeners to the atom's properties.
 
 /** Attaches a listener triggered when the first subscriber appears. */
 export function onStart<T>(a: Atom<T> | ReadonlyAtom<T>, fn: LifecycleListener<T>): Unsubscribe {
-  ensurePatched(a);
+  // No patching needed.
   a._startListeners ??= new Set();
   a._startListeners.add(fn);
   return () => _unsubscribe(a, '_startListeners', fn);
@@ -133,7 +51,7 @@ export function onStart<T>(a: Atom<T> | ReadonlyAtom<T>, fn: LifecycleListener<T
 
 /** Attaches a listener triggered when the last subscriber disappears. */
 export function onStop<T>(a: Atom<T> | ReadonlyAtom<T>, fn: LifecycleListener<T>): Unsubscribe {
-  ensurePatched(a);
+  // No patching needed.
   a._stopListeners ??= new Set();
   a._stopListeners.add(fn);
   return () => _unsubscribe(a, '_stopListeners', fn);
@@ -141,12 +59,11 @@ export function onStop<T>(a: Atom<T> | ReadonlyAtom<T>, fn: LifecycleListener<T>
 
 /** Attaches a listener triggered *before* a mutable atom's value is set (only outside batch). */
 export function onSet<T>(a: Atom<T>, fn: LifecycleListener<T>): Unsubscribe {
-  // This check is technically redundant due to the `Atom<T>` type hint,
-  // but kept for explicit safety and clarity.
+  // Check remains useful to guide users.
   if (!isMutableAtom(a)) {
     throw new Error('onSet can only be used with mutable atoms (atom, map, deepMap)');
   }
-  ensurePatched(a);
+  // No patching needed.
   a._setListeners ??= new Set();
   a._setListeners.add(fn);
   return () => _unsubscribe(a, '_setListeners', fn);
@@ -154,7 +71,7 @@ export function onSet<T>(a: Atom<T>, fn: LifecycleListener<T>): Unsubscribe {
 
 /** Attaches a listener triggered *after* an atom's value listeners have been notified. */
 export function onNotify<T>(a: Atom<T> | ReadonlyAtom<T>, fn: LifecycleListener<T>): Unsubscribe {
-  ensurePatched(a);
+  // No patching needed.
   a._notifyListeners ??= new Set();
   a._notifyListeners.add(fn);
   return () => _unsubscribe(a, '_notifyListeners', fn);
@@ -162,7 +79,7 @@ export function onNotify<T>(a: Atom<T> | ReadonlyAtom<T>, fn: LifecycleListener<
 
 /** Attaches a listener triggered immediately and only once upon attachment. */
 export function onMount<T>(a: Atom<T> | ReadonlyAtom<T>, fn: LifecycleListener<T>): Unsubscribe {
-  ensurePatched(a);
+  // No patching needed.
   a._mountListeners ??= new Set();
   a._mountListeners.add(fn);
   try {

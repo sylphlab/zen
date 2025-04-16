@@ -188,11 +188,13 @@ export const ComputedAtomProto: ComputedAtom<any> = {
     this._listeners ??= new Set();
     this._listeners.add(listener);
 
-    // 2. Handle first subscriber logic
+    // 2. Handle first subscriber logic (Trigger onStart)
     if (first) {
       this._subscribeToSources(); // Connect to upstream sources
-      // Note: `onStart` event is triggered by the *patched* subscribe method (in events.ts)
-      // if event listeners are attached. This base method doesn't trigger it directly.
+      // Trigger onStart listeners directly
+      this._startListeners?.forEach(fn => {
+          try { fn(undefined); } catch(e) { console.error(`Error in onStart listener for computed atom ${String(this)}:`, e); }
+      });
     }
     // Note: `onMount` is handled entirely by the `onMount` function itself.
 
@@ -210,11 +212,13 @@ export const ComputedAtomProto: ComputedAtom<any> = {
 
       listeners.delete(listener); // Remove this specific listener
 
-      // If this was the last listener, disconnect from sources
+      // If this was the last listener, disconnect from sources and trigger onStop
       if (listeners.size === 0) {
         self._unsubscribeFromSources();
-        // Note: `onStop` event is triggered by the *patched* subscribe method (in events.ts)
-        // if event listeners are attached.
+        // Trigger onStop listeners directly
+        self._stopListeners?.forEach(fn => {
+            try { fn(undefined); } catch(e) { console.error(`Error in onStop listener for computed atom ${String(self)}:`, e); }
+        });
         delete self._listeners; // Clean up the Set object
       }
     };
