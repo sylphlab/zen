@@ -1,19 +1,16 @@
 // Task atom implementation for managing asynchronous operations.
 import type { Atom } from './atom'; // Import Atom type
-import type { Listener, Unsubscribe, AtomWithValue, TaskState } from './types'; // Import from types
-import { atom as createAtom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional atom API, alias atom as createAtom for internal use
-// Removed duplicate: import { atom } from './atom';
-// Removed TaskState definition, imported from types.ts
+import type { Listener, Unsubscribe, AtomWithValue, TaskState, TaskAtom } from './types'; // Import from types (including TaskAtom)
+import { subscribe as subscribeToCoreAtom } from './atom'; // Import core subscribe
+import { notifyListeners } from './internalUtils'; // Import notifyListeners
+// Removed createAtom, getAtomValue, setAtomValue, subscribeToAtom imports
 
 // --- Type Definition ---
 /**
  * Represents a Task Atom, which wraps an asynchronous function
  * and provides its state (loading, error, data) reactively.
  */
-export type TaskAtom<T = any> = {
-  readonly _stateAtom: Atom<TaskState<T>>;
-  readonly _asyncFn: (...args: any[]) => Promise<T>; // Store the async function
-};
+// TaskAtom type is now defined in types.ts
 
 
 // --- Internal state for tracking running promises ---
@@ -30,17 +27,14 @@ const runningPromises = new WeakMap<TaskAtom<any>, Promise<any>>();
 export function task<T = void>( // Rename createTask to task
   asyncFn: (...args: any[]) => Promise<T>
 ): TaskAtom<T> {
-  // 1. Internal atom to hold the task's state (loading, error, data).
-  const stateAtom = createAtom<TaskState<T>>({ loading: false }); // Use createAtom
-
-  // 2. Create the TaskAtom object, storing the async function.
-  // Optimize: Only initialize essential properties.
+  // Create the merged TaskAtom object directly
   const taskAtom: TaskAtom<T> = {
-    _stateAtom: stateAtom,
-    _asyncFn: asyncFn, // Store the async function
+    _kind: 'task',
+    _value: { loading: false }, // Initial TaskState
+    _asyncFn: asyncFn,
+    // Listener properties (_listeners, etc.) are initially undefined
   };
-
-  // 3. Return the created TaskAtom.
+  // No need for STORE_MAP_KEY_SET marker for task atoms
   return taskAtom;
 }
 
@@ -55,7 +49,8 @@ export function task<T = void>( // Rename createTask to task
  * @returns A promise that resolves with the result or rejects with the error.
  */
 export function runTask<T>(taskAtom: TaskAtom<T>, ...args: any[]): Promise<T> {
-  const stateAtom = taskAtom._stateAtom;
+  // Operate directly on taskAtom
+  // const stateAtom = taskAtom._stateAtom; // Removed
 
   // Check if a promise is already running for this task using the WeakMap.
   const existingPromise = runningPromises.get(taskAtom);
@@ -66,8 +61,11 @@ export function runTask<T>(taskAtom: TaskAtom<T>, ...args: any[]): Promise<T> {
 
   // Define the actual execution logic within an async function.
   const execute = async (): Promise<T> => {
-    // Set loading state immediately using functional API. Clear previous error/data.
-    setAtomValue(stateAtom, { loading: true, error: undefined, data: undefined });
+    // Set loading state immediately. Clear previous error/data.
+    const oldState = taskAtom._value;
+    taskAtom._value = { loading: true, error: undefined, data: undefined };
+    // Notify listeners directly attached to TaskAtom
+    notifyListeners(taskAtom, taskAtom._value, oldState);
 
     // Call the stored async function and store the promise.
     const promise = taskAtom._asyncFn(...args);
@@ -81,7 +79,10 @@ export function runTask<T>(taskAtom: TaskAtom<T>, ...args: any[]): Promise<T> {
       // is still the one tracked in the WeakMap.
       if (runningPromises.get(taskAtom) === promise) {
         // console.log('Task succeeded, updating state.'); // Optional debug log
-        setAtomValue(stateAtom, { loading: false, data: result, error: undefined });
+        const oldStateSuccess = taskAtom._value;
+        taskAtom._value = { loading: false, data: result, error: undefined };
+        // Notify listeners directly attached to TaskAtom
+        notifyListeners(taskAtom, taskAtom._value, oldStateSuccess);
         runningPromises.delete(taskAtom); // Clear the running promise tracker.
       } else {
         // console.log('Task succeeded, but a newer run is active. Ignoring result.'); // Optional debug log
@@ -94,7 +95,10 @@ export function runTask<T>(taskAtom: TaskAtom<T>, ...args: any[]): Promise<T> {
         // console.error('Task failed, updating state:', error); // Optional debug log
         // Ensure the error stored is always an Error instance.
         const errorObj = error instanceof Error ? error : new Error(String(error ?? 'Unknown error'));
-        setAtomValue(stateAtom, { loading: false, error: errorObj, data: undefined });
+        const oldStateError = taskAtom._value;
+        taskAtom._value = { loading: false, error: errorObj, data: undefined };
+        // Notify listeners directly attached to TaskAtom
+        notifyListeners(taskAtom, taskAtom._value, oldStateError);
         runningPromises.delete(taskAtom); // Clear the running promise tracker.
       } else {
          // console.error('Task failed, but a newer run is active. Ignoring error.'); // Optional debug log
@@ -112,13 +116,11 @@ export function runTask<T>(taskAtom: TaskAtom<T>, ...args: any[]): Promise<T> {
 /**
  * Gets the current state of a task atom.
  * @param taskAtom The task atom to read from.
- * @returns The current TaskState, or null if the internal atom's value is somehow null (shouldn't happen for task's stateAtom).
+ * @returns The current TaskState.
  */
-export function getTaskState<T>(taskAtom: TaskAtom<T>): TaskState<T> | null {
-    // Task's internal state atom should always be initialized and never computed,
-    // so getAtomValue should not return null here in practice.
-    // However, to satisfy the type checker based on getAtomValue's signature, we allow null.
-    return getAtomValue(taskAtom._stateAtom);
+export function getTaskState<T>(taskAtom: TaskAtom<T>): TaskState<T> {
+    // TaskAtom now directly holds the TaskState value
+    return taskAtom._value;
 }
 
 /**
@@ -128,7 +130,8 @@ export function getTaskState<T>(taskAtom: TaskAtom<T>): TaskState<T> | null {
  * @returns An unsubscribe function.
  */
 export function subscribeToTask<T>(taskAtom: TaskAtom<T>, listener: Listener<TaskState<T>>): Unsubscribe {
-    return subscribeToAtom(taskAtom._stateAtom, listener);
+    // Subscribe directly to the TaskAtom using the core subscribe function
+    return subscribeToCoreAtom(taskAtom, listener);
 }
 
 // Removed temporary UpdatedTaskAtom type and updatedCreateTask function

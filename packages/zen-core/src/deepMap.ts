@@ -1,17 +1,14 @@
 // Functional DeepMap atom implementation.
-import type { Atom } from './atom'; // Import Atom type
-import type { Unsubscribe, Listener, AnyAtom } from './types'; // Import from types
-// Removed unused: import type { MapAtom } from './map';
-import { atom as createAtom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional atom API, alias atom as createAtom
+import type { Unsubscribe, Listener, AnyAtom, AtomWithValue, DeepMapAtom } from './types'; // Import DeepMapAtom from types
+import { get as getCoreValue, subscribe as subscribeToCoreAtom } from './atom'; // Import core get/subscribe
+import type { Atom } from './atom'; // Import Atom type for casting
 import { listenPaths as addPathListener, _emitPathChanges, PathListener } from './events'; // Path listener logic
+import { batchDepth, queueAtomForBatch } from './batch'; // Import batch helpers
+import { notifyListeners } from './internalUtils'; // Import notifyListeners
 import { STORE_MAP_KEY_SET } from './keys'; // Symbol marker
 import { Path, setDeep, getChangedPaths } from './deepMapInternal'; // Deep object utilities
 
-// --- Type Definition ---
-/** Represents a functional DeepMap Atom structure. */
-export type DeepMapAtom<T extends object = any> = { // Added default type param
-  readonly _internalAtom: Atom<T>; // The actual atom holding the object state
-};
+// DeepMapAtom type is now defined in types.ts
 
 // --- Functional API for DeepMap ---
 
@@ -21,28 +18,21 @@ export type DeepMapAtom<T extends object = any> = { // Added default type param
  * @param initialValue The initial object state. It's used directly.
  * @returns A DeepMapAtom instance.
  */
-export function deepMap<T extends object>(initialValue: T): DeepMapAtom<T> { // Rename createDeepMap to deepMap
-  const internalAtom = createAtom<T>(initialValue); // Use createAtom
-  // Optimize: Only initialize the internal atom.
+export function deepMap<T extends object>(initialValue: T): DeepMapAtom<T> {
+  // Create the merged DeepMapAtom object directly
   const deepMapAtom: DeepMapAtom<T> = {
-    _internalAtom: internalAtom,
+    _kind: 'deepMap',
+    _value: initialValue, // Use initial value directly (deep clone happens in setDeep)
+    // Listener properties (_listeners, etc.) are initially undefined
   };
-  // Mark the internal atom so listenPaths can identify it
-  (internalAtom as any)[STORE_MAP_KEY_SET] = true;
+  // Mark the atom itself so listenPaths can identify it
+  (deepMapAtom as any)[STORE_MAP_KEY_SET] = true;
   return deepMapAtom;
 }
 
-/** Gets the current value (the whole object) of a DeepMap Atom. */
-export function get<T extends object>(deepMapAtom: DeepMapAtom<T>): T {
-  // The internal atom for a deepMap should never be null
-  return getAtomValue(deepMapAtom._internalAtom)!;
-}
-
-/** Subscribes to changes in the entire DeepMap Atom object. */
-export function subscribe<T extends object>(deepMapAtom: DeepMapAtom<T>, listener: Listener<T>): Unsubscribe {
-  // Subscribe to the internal atom
-  return subscribeToAtom(deepMapAtom._internalAtom, listener);
-}
+// get and subscribe are now handled by the core functions in atom.ts
+// Re-export core get/subscribe for compatibility
+export { getCoreValue as get, subscribeToCoreAtom as subscribe };
 
 /**
  * Sets a value at a specific path within the DeepMap Atom, creating a new object immutably.
@@ -60,18 +50,34 @@ export function setPath<T extends object>(
       return;
   }
 
-  const internalAtom = deepMapAtom._internalAtom;
-  const currentValue = get(deepMapAtom); // Use renamed get function
+  // Operate directly on deepMapAtom
+  const currentValue = deepMapAtom._value;
 
   // Use the utility to create a new object with the value set at the path.
   const nextValue = setDeep(currentValue, path, value);
 
   // Only proceed if the state actually changed or if forced.
   if (forceNotify || nextValue !== currentValue) {
-    // Emit the change for this specific path *before* setting the value
-    _emitPathChanges(internalAtom, [path], nextValue); // Remove 'as Atom<any>'
-    // Set the internal atom's value using the functional API
-    setAtomValue(internalAtom as Atom<T>, nextValue, forceNotify); // Use as Atom<T>
+    // Manual notification orchestration similar to map.setKey
+    if (batchDepth <= 0) {
+        const setLs = deepMapAtom._setListeners;
+        if (setLs?.size) {
+            for (const fn of setLs) {
+                try { fn(nextValue); } catch(e) { console.error(`Error in onSet listener for deepMap path set ${String(deepMapAtom)}:`, e); }
+            }
+        }
+    }
+
+    deepMapAtom._value = nextValue; // Update value directly
+
+    if (batchDepth > 0) {
+        queueAtomForBatch(deepMapAtom as Atom<any>, currentValue); // Cast to Atom<any> for queue
+    } else {
+        // Emit path changes first
+        _emitPathChanges(deepMapAtom as Atom<T>, [path], nextValue); // Cast for emit
+        // Notify general listeners
+        notifyListeners(deepMapAtom, nextValue, currentValue);
+    }
   }
 }
 
@@ -84,8 +90,8 @@ export function set<T extends object>(
   nextValue: T,
   forceNotify = false
 ): void {
-  const internalAtom = deepMapAtom._internalAtom;
-  const oldValue = get(deepMapAtom); // Use renamed get function
+  // Operate directly on deepMapAtom
+  const oldValue = deepMapAtom._value;
 
   if (forceNotify || !Object.is(nextValue, oldValue)) {
     // Calculate changed paths *before* setting the value
@@ -93,10 +99,24 @@ export function set<T extends object>(
 
     // Emit changes for all paths that differed *before* setting the value
     if (changedPaths.length > 0) {
-      _emitPathChanges(internalAtom, changedPaths, nextValue); // Remove 'as Atom<any>'
+      _emitPathChanges(deepMapAtom as Atom<T>, changedPaths, nextValue); // Cast for emit
     }
-    // Set the internal atom's value
-    setAtomValue(internalAtom as Atom<T>, nextValue, forceNotify); // Use as Atom<T>
+    // Set the deepMapAtom's value directly and notify
+    // Manual notification needed here
+    if (batchDepth <= 0) {
+        const setLs = deepMapAtom._setListeners;
+        if (setLs?.size) {
+            for (const fn of setLs) {
+                try { fn(nextValue); } catch(e) { console.error(`Error in onSet listener for deepMap set ${String(deepMapAtom)}:`, e); }
+            }
+        }
+    }
+    deepMapAtom._value = nextValue;
+    if (batchDepth > 0) {
+        queueAtomForBatch(deepMapAtom as Atom<any>, oldValue); // Cast to Atom<any> for queue
+    } else {
+        notifyListeners(deepMapAtom, nextValue, oldValue);
+    }
   }
 }
 
@@ -106,9 +126,8 @@ export function listenPaths<T extends object>(
     paths: Path[],
     listener: PathListener<T>
 ): Unsubscribe {
-    // Delegates to the function from events.ts, passing the internal atom
-    // Use 'as any' for internalAtom if type issues persist
-    return addPathListener(deepMapAtom._internalAtom as AnyAtom<T>, paths, listener);
+    // Delegates to the function from events.ts, passing the deepMapAtom itself
+    return addPathListener(deepMapAtom, paths, listener);
 }
 
 // Note: Factory function is now 'deepMap', path setter is 'setPath', etc.

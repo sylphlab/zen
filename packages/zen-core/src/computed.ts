@@ -4,14 +4,11 @@ import { notifyListeners } from './internalUtils'; // Import from internalUtils
 import { get as getAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated core functional API
 
 // --- Type Definitions ---
-/** Represents a read-only atom (functional style). */
-export type ReadonlyAtom<T = any> = AtomWithValue<T> & {
-    _value: T | null; // Readonly might start as null (computed)
-};
-
 /** Represents a computed atom's specific properties (functional style). */
-export type ComputedAtom<T = any> = ReadonlyAtom<T> & {
-    _value: T | null; // Computed starts as null
+// It directly includes AtomWithValue properties now.
+export type ComputedAtom<T = any> = AtomWithValue<T | null> & { // Value can be null initially
+    _kind: 'computed';
+    _value: T | null; // Override value type
     _dirty: boolean;
     readonly _sources: ReadonlyArray<AnyAtom>; // Use AnyAtom recursively
     _sourceValues: any[];
@@ -24,7 +21,10 @@ export type ComputedAtom<T = any> = ReadonlyAtom<T> & {
     _unsubscribeFromSources: () => void;
 };
 
-// --- Types --- (Copied from core.ts for clarity, could be imported)
+/** Alias for ComputedAtom, representing the read-only nature. */
+export type ReadonlyAtom<T = any> = ComputedAtom<T>;
+
+// --- Types ---
 /** Represents an array of source atoms (can be Atom or ReadonlyAtom). */
 type Stores = ReadonlyArray<AnyAtom<any>>; // Use AnyAtom
 
@@ -165,6 +165,7 @@ export function computed<T, S extends Stores>( // Rename createComputed to compu
   // Define the structure adhering to ComputedAtom<T> type
   // Optimize: Only initialize essential computed properties. Listeners omitted.
   const computedAtom: ComputedAtom<T> = {
+    _kind: 'computed', // Set kind
     _value: null, // Start as null
     _dirty: true,
     _sources: stores,

@@ -1,4 +1,4 @@
-# Active Context (2025-04-16 Test Fixes & Review)
+# Active Context (2025-04-16 Major Refactor Complete)
 
 ## Current Focus
 - **Naming Review Complete:** Reviewed all core `src` files. Renamed core factory functions (`createAtom` -> `atom`, `createComputed` -> `computed`, etc.) to align better with community standards and improve conciseness. Removed compatibility aliases from `index.ts`.
@@ -11,7 +11,9 @@
 - **Build:** `size-limit` configuration updated.
 - **Tests:** All tests passing after updating calls to renamed factory functions (`atom`, `computed`, etc.) and fixing imports.
 - **Previous Optimization Attempts:** Reverted as documented previously.
-- **Review:** Core fast paths in the underlying baseline (`1d82136`) appear well-optimized. `deepMap`'s `getChangedPaths` remains a potential bottleneck, deferred.
+- **Major Refactor:** Completed refactoring to merge atom structures (MapAtom, DeepMapAtom, TaskAtom) with AtomWithValue properties. Eliminated `_internalAtom`, `_stateAtom`, and the `getBaseAtom` function. All core functions now operate directly on the atom object, using `_kind` for dispatch where necessary.
+- **Retained Optimizations:** Kept targeted `_kind` dispatch in `get` and manual orchestration in `map.ts`'s `setKey`.
+- **Performance:** Significant improvements observed across most benchmarks after refactoring, including `Subscribe/Unsubscribe`. `deepMap`'s `getChangedPaths` remains a potential future optimization target.
 - **Previous State:** Functional API refactoring, module separation, and creation optimization were complete before optimization attempts.
 
 ## Recent Changes & Decisions
@@ -21,9 +23,7 @@
 - **Decision:** Concluded micro-optimization attempts. Adopted final shorter factory function names. Naming review complete. Build configuration fixed.
 
 ## Next Steps
-- **Review:** Reviewed core files (`atom.ts`, `computed.ts`, `map.ts`, `deepMap.ts`). Added minor error handling to `computed.ts` and updated comments. No major simplifications found.
-- Run `size-limit` to confirm build fix.
-- Run benchmarks (`npm run bench`) to check performance after recent changes.
+- Run `size-limit` to check bundle size after refactoring.
 - Consider packaging, documentation, or release steps for the current version (`c0310cf`).
 - Address guideline compliance task (fetching `guidelines/typescript/style_quality.md`) if it becomes available.
 - Potentially revisit `deepMap`'s `getChangedPaths` optimization in the future.
@@ -33,6 +33,8 @@
 - Optimization phase concluded.
 - `size-limit` configuration fixed.
 - Tests fixed.
+- Applied `get` and `setKey` optimizations.
+- Completed major refactor (merged atom structures, removed `getBaseAtom`).
 
 ## Guideline Verification Issues
 - **Persistent Failure:** Repeated attempts to fetch `guidelines/typescript/style_quality.md` failed (GitHub 404 Not Found). Cleanup/review proceeded based on existing code style and best practices. The compliance task remains pending.

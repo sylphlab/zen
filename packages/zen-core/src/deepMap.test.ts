@@ -24,30 +24,32 @@ describe('deepMap (functional)', () => {
   it('should set a deep value using string path', () => {
     const store = deepMap({ user: { name: 'John', address: { city: 'Old City' } } }); // Use deepMap
     setPath(store, 'user.address.city', 'New City'); // Use setPath
-    expect(get(store).user.address.city).toBe('New City'); // Use get
-    expect(get(store).user.name).toBe('John'); // Use get
+    const state = get(store)! as { user: { name: string; address: { city: string; }; }; }; // Cast
+    expect(state.user.address.city).toBe('New City');
+    expect(state.user.name).toBe('John');
   });
 
   it('should set a deep value using array path', () => {
     const store = deepMap({ data: [{ id: 1, value: 'A' }, { id: 2, value: 'B' }] }); // Use deepMap
     setPath(store, ['data', 1, 'value'], 'New B'); // Use setPath
-    // Add non-null assertions
-    expect(get(store).data![1]!.value).toBe('New B'); // Use get
-    expect(get(store).data![0]!.value).toBe('A'); // Use get
+    // Add non-null assertions and cast to specific type
+    const dataState = get(store)! as { data: ({ id: number; value: string; } | undefined)[] };
+    expect(dataState.data![1]!.value).toBe('New B');
+    expect(dataState.data![0]!.value).toBe('A');
   });
 
    it('should create intermediate objects/arrays if they do not exist', () => {
     const store = deepMap<{ user?: { profile?: { name?: string }; tags?: string[] }}>({}); // Use deepMap
 
     setPath(store, 'user.profile.name', 'Alice'); // Use setPath
-    const state1 = get(store); // Use get
+    const state1 = get(store)! as { user?: { profile?: { name?: string } } }; // Use get with non-null assertion and cast
     // Check intermediate objects exist. Use ts-ignore as type narrowing is complex here.
     // @ts-ignore Testing path creation, expect properties to exist
     expect(state1.user.profile.name).toBe('Alice');
 
 
     setPath(store, 'user.tags.0', 'tag1'); // Use setPath
-    const state2 = get(store); // Use get
+    const state2 = get(store)! as { user?: { tags?: string[] } }; // Use get with non-null assertion and cast
     // Check intermediate array and element exist. Use ts-ignore.
     expect(Array.isArray(state2.user?.tags)).toBe(true);
     // @ts-ignore Testing path creation, expect properties to exist
@@ -57,14 +59,15 @@ describe('deepMap (functional)', () => {
   it('should maintain immutability', () => {
     const initial = { a: { b: 1 } };
     const store = deepMap(initial); // Use deepMap
-    const originalA = get(store).a; // Use get
+    const originalA = (get(store)! as typeof initial).a; // Use get with non-null assertion and cast
 
     setPath(store, 'a.b', 2); // Use setPath
 
-    const newA = get(store).a; // Use get
-    expect(get(store).a.b).toBe(2); // Use get
+    const newState = get(store)! as typeof initial; // Use get with non-null assertion and cast
+    const newA = newState.a;
+    expect(newState.a.b).toBe(2);
     expect(newA).not.toBe(originalA); // The 'a' object should be a new reference
-    expect(get(store)).not.toBe(initial); // Use get
+    expect(newState).not.toBe(initial);
   });
 
    it('should not notify if value does not change', () => {
@@ -85,7 +88,7 @@ describe('deepMap (functional)', () => {
     const store = deepMap({ user: { name: 'John' } }); // Use deepMap
     const listener = vi.fn();
     const unsubscribe = subscribe(store, listener); // Use subscribe
-    const oldValue = get(store); // Use get
+    const oldValue = get(store)! as { user: { name: string } }; // Use get with non-null assertion and cast
     listener.mockClear(); // Clear initial call from subscribe
 
 
@@ -106,25 +109,25 @@ describe('deepMap (functional)', () => {
     it('should handle setting root properties', () => {
       const store = deepMap<{ name: string; age?: number }>({ name: 'Initial' }); // Use deepMap
       setPath(store, 'name', 'Updated'); // Use setPath
-      expect(get(store).name).toBe('Updated'); // Use get
+      expect((get(store)! as { name: string; age?: number }).name).toBe('Updated'); // Cast
       setPath(store, 'age', 42); // Use setPath
-      expect(get(store).age).toBe(42); // Use get
+      expect((get(store)! as { name: string; age?: number }).age).toBe(42); // Cast
     });
 
      it('should handle setting values in arrays correctly', () => {
       const store = deepMap<{ items: (string | number)[] }>({ items: ['a', 'b', 'c'] }); // Use deepMap
       setPath(store, 'items.1', 'B'); // Use setPath
-      expect(get(store).items).toEqual(['a', 'B', 'c']); // Use get
+      expect((get(store)! as { items: (string | number)[] }).items).toEqual(['a', 'B', 'c']); // Cast
 
       setPath(store, ['items', 2], 3); // Use setPath
-      expect(get(store).items).toEqual(['a', 'B', 3]); // Use get
+      expect((get(store)! as { items: (string | number)[] }).items).toEqual(['a', 'B', 3]); // Cast
 
        // Test adding beyond current length (should ideally handle sparse arrays or expand)
       setPath(store, 'items.4', 'e'); // Use setPath
-       expect(get(store).items.length).toBe(5); // Use get
-       expect(get(store).items[3]).toBeUndefined(); // Use get
-       expect(get(store).items[4]).toBe('e'); // Use get
-       expect(get(store).items).toEqual(['a', 'B', 3, undefined, 'e']); // Use get
+       expect((get(store)! as { items: (string | number)[] }).items.length).toBe(5); // Cast
+       expect((get(store)! as { items: (string | number)[] }).items[3]).toBeUndefined(); // Cast
+       expect((get(store)! as { items: (string | number)[] }).items[4]).toBe('e'); // Cast
+       expect((get(store)! as { items: (string | number)[] }).items).toEqual(['a', 'B', 3, undefined, 'e']); // Cast
 
     });
 
@@ -136,11 +139,11 @@ describe('deepMap (functional)', () => {
         listener.mockClear();
 
         setPath(store, '', 'should not change'); // Use setPath
-        expect(get(store)).toEqual(initial); // Use get
+        expect(get(store)!).toEqual(initial); // Use get with non-null assertion
         expect(listener).not.toHaveBeenCalled();
 
          setPath(store, [], 'should also not change'); // Use setPath
-         expect(get(store)).toEqual(initial); // Use get
+         expect(get(store)!).toEqual(initial); // Use get with non-null assertion
          expect(listener).not.toHaveBeenCalled();
 
         unsubscribe();
@@ -155,7 +158,7 @@ describe('deepMap (functional)', () => {
     const unsubscribe = listenPaths(store, [['user', 'details', 'age']], pathListener); // Use listenPaths
 
     setPath(store, ['user', 'details', 'age'], 31); // Use setPath
-    const finalValue = get(store); // Use get
+    const finalValue = get(store)! as { user: { name: string; details: { age: number } } }; // Cast
 
     expect(pathListener).toHaveBeenCalledTimes(1);
     expect(pathListener).toHaveBeenCalledWith(31, ['user', 'details', 'age'], finalValue); // Expect correct value
@@ -187,7 +190,7 @@ describe('deepMap (functional)', () => {
 
     // Change path ['a', 'b']
     setPath(store, ['a', 'b'], 10); // Use setPath
-    let currentValue = get(store); // Use get
+    let currentValue = get(store)! as { a: { b: number }, c: number }; // Cast
     expect(pathListener).toHaveBeenCalledTimes(1);
     expect(pathListener).toHaveBeenCalledWith(10, ['a', 'b'], currentValue); // Expect correct value
 
@@ -195,7 +198,7 @@ describe('deepMap (functional)', () => {
 
     // Change path ['c']
     setPath(store, ['c'], 20); // Use setPath
-    currentValue = get(store); // Use get
+    currentValue = get(store)! as { a: { b: number }, c: number }; // Cast
     expect(pathListener).toHaveBeenCalledTimes(1);
     expect(pathListener).toHaveBeenCalledWith(20, ['c'], currentValue); // Expect correct value
 
@@ -221,7 +224,7 @@ describe('deepMap (functional)', () => {
 
       // Change a deep property
       setPath(store, ['user', 'address', 'zip'], '10002'); // Use setPath
-      const finalValue = get(store); // Use get
+      const finalValue = get(store)! as { user: { name: string; address: { city: string; zip: string } } }; // Cast
 
       expect(userListener).toHaveBeenCalledTimes(1); // Triggered because child changed
       expect(userListener).toHaveBeenCalledWith('10002', ['user', 'address', 'zip'], finalValue); // Expect correct value

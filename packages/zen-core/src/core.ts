@@ -4,12 +4,10 @@
 // Base types from types.ts
 export type { Listener, Unsubscribe, TaskState, AtomWithValue } from './types';
 
-// Specific atom types from their respective files
+// Specific atom types (MapAtom, DeepMapAtom, TaskAtom now from types.ts)
 export type { Atom } from './atom';
 export type { ReadonlyAtom, ComputedAtom } from './computed';
-export type { MapAtom } from './map';
-export type { DeepMapAtom } from './deepMap';
-export type { TaskAtom } from './task';
+export type { MapAtom, DeepMapAtom, TaskAtom } from './types';
 
 // Union type (assuming it will be defined and exported from types.ts later)
 export type { AnyAtom } from './types';
@@ -19,7 +17,7 @@ export { isAtom, isComputedAtom, isMapOrDeepMapAtom, isTaskAtom } from './typeGu
 
 // Internal utilities from internalUtils.ts (re-exported for internal use only)
 // These should NOT be part of the public API exported via index.ts
-export { getBaseAtom, notifyListeners } from './internalUtils';
+export { notifyListeners } from './internalUtils'; // getBaseAtom removed
 
 // Lifecycle listener type (needed by AtomWithValue in types.ts)
 // Re-export from events.ts

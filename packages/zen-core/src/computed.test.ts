@@ -99,8 +99,9 @@ describe('computed (functional)', () => {
 
   it('should handle dependencies on other computed atoms', () => {
     const base = atom(10); // Use atom
-    const double = computed([base], val => val * 2); // Use computed
-    const quadruple = computed([double], val => val * 2); // Use computed
+    // Ensure null check is present
+    const double = computed([base], val => (val ?? 0) * 2);
+    const quadruple = computed([double], val => (val ?? 0) * 2);
     const listener = vi.fn();
 
     const unsubscribe = subscribeToAtom(quadruple, listener); // Use subscribeToAtom (mock target)

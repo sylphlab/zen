@@ -4,12 +4,10 @@
 // --- Core Types ---
 // Base types
 export type { Listener, Unsubscribe, TaskState, AtomWithValue, AnyAtom } from './types';
-// Specific atom types
+// Specific atom types (MapAtom, DeepMapAtom, TaskAtom now from types.ts)
 export type { Atom } from './atom';
 export type { ReadonlyAtom, ComputedAtom } from './computed';
-export type { MapAtom } from './map';
-export type { DeepMapAtom } from './deepMap';
-export type { TaskAtom } from './task';
+export type { MapAtom, DeepMapAtom, TaskAtom } from './types';
 // Event listener types
 export type { LifecycleListener, KeyListener, PathListener } from './events';
 // Other types
@@ -23,9 +21,9 @@ export { deepMap } from './deepMap';
 export { task } from './task';
 
 // --- Core Functions ---
-export { get, set, subscribe } from './atom'; // Core functions for all atoms (get/subscribe) or basic atoms (set)
-export { setKey as setMapKey, set as setMapValue, listenKeys as listenMapKeys } from './map'; // Map-specific functions (Removed getMapValue, subscribeToMap)
-export { setPath as setDeepMapPath, set as setDeepMapValue, listenPaths as listenDeepMapPaths } from './deepMap'; // DeepMap-specific functions (Removed getDeepMapValue, subscribeToDeepMap)
+export { get, set, subscribe } from './atom'; // Core functions
+export { setKey as setMapKey, set as setMapValue, listenKeys as listenMapKeys } from './map'; // Map-specific functions
+export { setPath as setDeepMapPath, set as setDeepMapValue, listenPaths as listenDeepMapPaths } from './deepMap'; // DeepMap-specific functions
 export { getTaskState, subscribeToTask, runTask } from './task'; // Task-specific functions
 export { batch } from './batch';
 

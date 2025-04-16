@@ -1,16 +1,13 @@
 // Functional Map atom implementation.
 import type { Atom } from './atom'; // Import Atom type
-import type { Unsubscribe, Listener, AnyAtom } from './types'; // Import from types
-import { atom as createAtom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional atom API, alias atom as createAtom
-import { listenKeys as addKeyListener, _emitKeyChanges, KeyListener } from './events'; // Key listener logic from events
+import type { Unsubscribe, Listener, AnyAtom, AtomWithValue, MapAtom } from './types'; // Import MapAtom from types
+import { get as getCoreValue, subscribe as subscribeToCoreAtom } from './atom'; // Import core get/subscribe
+import { listenKeys as addKeyListener, KeyListener, _emitKeyChanges } from './events'; // Import key listener logic AND _emitKeyChanges
 import { STORE_MAP_KEY_SET } from './keys'; // Symbol marker for map atoms
+import { batchDepth, queueAtomForBatch } from './batch'; // Import batch helpers
+import { notifyListeners } from './internalUtils'; // Import notifyListeners
 
-// --- Type Definition ---
-/** Type definition for the functional Map Atom structure. */
-export type MapAtom<T extends object = any> = { // Added default type param
-  readonly _internalAtom: Atom<T>; // Internal atom holding the object state
-  // Key listeners are managed by the events module via WeakMap
-};
+// MapAtom type is now defined in types.ts
 
 // --- Functional API for Map ---
 
@@ -20,28 +17,20 @@ export type MapAtom<T extends object = any> = { // Added default type param
  * @param initialValue The initial object state. A shallow copy is made.
  * @returns A MapAtom instance.
  */
-export function map<T extends object>(initialValue: T): MapAtom<T> { // Rename createMap to map
-  const internalAtom = createAtom<T>({ ...initialValue }); // Use createAtom
-  // Optimize: Only initialize the internal atom.
+export function map<T extends object>(initialValue: T): MapAtom<T> {
+  // Create the merged MapAtom object directly
   const mapAtom: MapAtom<T> = {
-    _internalAtom: internalAtom,
+    _kind: 'map',
+    _value: { ...initialValue }, // Shallow copy initial value
+    // Listener properties (_listeners, etc.) are initially undefined
   };
-  // Mark the internal atom so listenKeys can identify it
-  (internalAtom as any)[STORE_MAP_KEY_SET] = true;
+  // Mark the atom itself so listenKeys can identify it
+  (mapAtom as any)[STORE_MAP_KEY_SET] = true;
   return mapAtom;
 }
 
-/** Gets the current value (the whole object) of a Map Atom. */
-export function get<T extends object>(mapAtom: MapAtom<T>): T {
-  // The internal atom for a map should never be null
-  return getAtomValue(mapAtom._internalAtom)!;
-}
-
-/** Subscribes to changes in the entire Map Atom object. */
-export function subscribe<T extends object>(mapAtom: MapAtom<T>, listener: Listener<T>): Unsubscribe {
-  // Subscribe to the internal atom
-  return subscribeToAtom(mapAtom._internalAtom, listener);
-}
+// Re-export core get/subscribe for compatibility with tests expecting them from map.ts
+export { getCoreValue as get, subscribeToCoreAtom as subscribe };
 
 /**
  * Sets a specific key in the Map Atom, creating a new object immutably.
@@ -53,17 +42,46 @@ export function setKey<T extends object, K extends keyof T>(
   value: T[K],
   forceNotify = false
 ): void {
-  const internalAtom = mapAtom._internalAtom;
-  const currentValue = get(mapAtom); // Use renamed get function
-
+  // Operate directly on the mapAtom
+  const oldValue = mapAtom._value;
 
   // Only proceed if the value for the key has actually changed or if forced.
-  if (forceNotify || !Object.is(currentValue[key], value)) {
-    const nextValue = { ...currentValue, [key]: value };
-    // Emit key change *before* setting the value and triggering general listeners
-    _emitKeyChanges(internalAtom, [key] as (keyof T)[], nextValue); // Remove 'as Atom<any>'
-    // Set the internal atom's value using the functional API
-    setAtomValue(internalAtom as Atom<T>, nextValue, forceNotify); // Use as Atom<T>
+  if (forceNotify || !Object.is(oldValue[key], value)) {
+    const nextValue = { ...oldValue, [key]: value };
+
+    // --- Manual Notification Orchestration ---
+
+    // 1. Handle onSet (only outside batch)
+    if (batchDepth <= 0) {
+      const setLs = mapAtom._setListeners; // Use mapAtom
+      if (setLs?.size) { // Use size for Set
+        for (const fn of setLs) { // Iterate Set
+          try { fn(nextValue); } catch(e) { console.error(`Error in onSet listener for map key set ${String(mapAtom)}:`, e); }
+        }
+      }
+    }
+
+    // 2. Update value DIRECTLY
+    mapAtom._value = nextValue;
+
+    // 3. Handle Batching or Immediate Notification
+    if (batchDepth > 0) {
+      // Queue the mapAtom itself, storing the value *before* this setKey call
+      queueAtomForBatch(mapAtom as Atom<T>, oldValue); // Cast for queue
+    } else {
+      // --- Immediate Notifications (Outside Batch) ---
+
+      // a. Notify key-specific listeners for the changed key using _emitKeyChanges
+      // Pass the mapAtom (cast needed as _emitKeyChanges expects Atom<T>)
+      _emitKeyChanges(mapAtom as Atom<T>, [key], nextValue);
+
+      // b. Notify general value listeners and onNotify listeners
+      // Use the standard notifyListeners, passing the mapAtom
+      notifyListeners(mapAtom, nextValue, oldValue);
+
+      // --- End Immediate Notifications ---
+    }
+    // --- End Manual Notification Orchestration ---
   }
 }
 
@@ -76,8 +94,8 @@ export function set<T extends object>(
   nextValue: T,
   forceNotify = false
 ): void {
-  const internalAtom = mapAtom._internalAtom;
-  const oldValue = get(mapAtom); // Use renamed get function
+  // Operate directly on mapAtom
+  const oldValue = mapAtom._value;
 
   if (forceNotify || !Object.is(nextValue, oldValue)) {
     // --- Calculate changed keys efficiently ---
@@ -97,12 +115,25 @@ export function set<T extends object>(
 
     // Emit changes for all keys that differed *before* setting the value
     if (changedKeys.length > 0) {
-       // Use 'as any' for changedKeys array type assertion if needed, but not for internalAtom
-      _emitKeyChanges(internalAtom, changedKeys as (keyof T)[], nextValue); // Remove 'as Atom<any>'
+      _emitKeyChanges(mapAtom as Atom<T>, changedKeys as (keyof T)[], nextValue); // Pass mapAtom (cast needed)
     }
 
-    // Set the internal atom's value
-    setAtomValue(internalAtom as Atom<T>, nextValue, forceNotify); // Use as Atom<T>
+    // Set the mapAtom's value directly and notify
+    // Manual notification needed here as setAtomValue is for basic Atom
+    if (batchDepth <= 0) {
+       const setLs = mapAtom._setListeners;
+       if (setLs?.size) {
+           for (const fn of setLs) {
+               try { fn(nextValue); } catch(e) { console.error(`Error in onSet listener for map set ${String(mapAtom)}:`, e); }
+           }
+       }
+    }
+    mapAtom._value = nextValue;
+    if (batchDepth > 0) {
+        queueAtomForBatch(mapAtom as Atom<T>, oldValue); // Cast for queue
+    } else {
+        notifyListeners(mapAtom, nextValue, oldValue);
+    }
   }
 }
 
@@ -112,9 +143,8 @@ export function listenKeys<T extends object, K extends keyof T>(
     keys: K[],
     listener: KeyListener<T, K>
 ): Unsubscribe {
-    // Delegates to the function from events.ts, passing the internal atom
-    // Use 'as any' for internalAtom if type issues persist with addKeyListener
-    return addKeyListener(mapAtom._internalAtom as AnyAtom<T>, keys, listener);
+    // Delegates to the function from events.ts, passing the mapAtom itself
+    return addKeyListener(mapAtom, keys, listener);
 }
 
 // Note: Factory function is now 'map'.
