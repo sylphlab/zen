@@ -1,58 +1,33 @@
-# Latest Benchmark & Size Results (Post Object Literal Refactor - 2025-04-16)
+# Latest Benchmark & Size Results (Mid-Functional Refactor - 2025-04-16)
 
 ## Refactoring (Remove Patching)
-- Modified `core.ts` to integrate event triggers directly into prototype methods.
-- Modified `events.ts` to remove patching logic.
-- Modified `batch.ts` to use an internal queue instead of global prototype patching.
+- Complete for core, events, batch.
 
 ## Refactoring (Object Literal Creation)
-- Modified `atom.ts` and `computed.ts` factory functions to use object literals instead of `Object.create()`, copying methods from the prototype directly onto the instance.
-- Successfully ran `bun run test` after refactoring.
+- Complete for atom, computed.
 
-## Benchmark Run (2025-04-16 Post Object Literal Refactor)
-- Successfully ran `bun run bench`.
+## Refactoring (Functional API)
+- **Core:** `atom`, `computed`, `batch`, `task`, `events` refactored.
+- **Tests:** `atom.test.ts`, `computed.test.ts`, `batch.test.ts`, `task.test.ts`, `events.test.ts` updated and passing.
+- **Benchmarks:** `atom.bench.ts`, `batch.bench.ts`, `computed.bench.ts`, `deepMap.bench.ts` updated.
+- **Remaining:**
+    - Update remaining benchmark files (`map.bench.ts`, `events.bench.ts`, `task.bench.ts`) to use functional API.
+    - Refactor `map.test.ts` and `deepMap.test.ts` to use functional API (currently failing).
+    - Refactor `map.ts` and `deepMap.ts` key/path listener trigger logic if tests still fail after test refactor.
 
-## Performance (`npm run bench` Results - 2025-04-16 Post Object Literal Refactor)
+## Performance (`npm run bench` Results - Not run after latest benchmark updates)
+- Previous runs showed core performance maintained, creation improved, slight batching trade-off.
 
-**(Note:** Full benchmark output available in execution history. Key observations below.)
-
-**Atom/Computed Creation:**
-- **Significant Improvement:** Creation speed increased substantially (closer to Jotai) compared to the `Object.create()` approach, confirming V8's preference for object literals with stable shapes.
-
-**Other Operations (Get/Set/Subscribe/Update/Batching):**
-- Performance remains largely unchanged, still excellent.
-
-## Size (`size-limit`, brotlied - 2025-04-16 Post Object Literal Refactor)
-- `jotai` (atom): 170 B (Reference)
-- `nanostores` (atom): **265 B** (Reference)
-- `zustand` (core): 461 B (Reference)
-- **`zen (atom only)`**: **675 B** (Slight increase from 633 B post-patching-refactor)
-- `valtio`: 903 B (Reference)
-- **`zen (full)`**: **1.23 kB** (Slight increase from 1.17 kB post-patching-refactor)
-- `effector`: 5.27 kB (Reference)
-- `@reduxjs/toolkit`: 6.99 kB (Reference)
-- **Size Analysis**: Minor size increase (~40-60 B) due to methods being copied onto each instance instead of shared via prototype. This is an acceptable trade-off for the significant creation performance gain.
-
-## Features Implemented (Post Object Literal Refactor)
-- `atom` (Factory uses object literal)
-- `computed` (Factory uses object literal)
-- `map`, `deepMap` (Still use `Object.create` internally via `atom()` base)
-- `task`
-- Lifecycle Events (`onStart`, etc.) - Integrated into core methods.
-- Batching (`batch()`) - Via internal queue, no prototype patching.
-- Key/Path Subscriptions (`listenKeys`, `listenPaths`).
-
-## Benchmark Highlights (Post Object Literal Refactor)
-- Atom/Computed creation significantly faster.
-- Other core performance remains excellent.
-- Dynamic patching successfully removed.
-- Code structure simplified and potentially more optimizable by JS engines.
+## Size (`size-limit`, brotlied - Post Object Literal Refactor)
+- **`zen (atom only)`**: **675 B**
+- **`zen (full)`**: **1.23 kB**
 
 ## Current Status
-- Refactoring to remove dynamic patching is complete.
-- Refactoring to use object literals for atom/computed creation is complete.
-- Tests and benchmarks pass.
-- Performance profile improved (faster creation), size impact minimal and acceptable.
+- Core functional refactoring largely complete.
+- Tests for core components pass.
+- Benchmark files partially updated.
+- `map`/`deepMap` tests still failing due to pending test/source refactoring.
+- Handing over task.
 
 ## Known Issues/Next Steps (Refined)
 1.  ~~Analyze Size Increase (Post Event Refactor)~~ (Analyzed)
@@ -74,8 +49,13 @@
 17. ~~Verify Refactoring (Tests, Benchmarks, Size)~~ (Done)
 18. ~~Refactor Core: Use Object Literals for Creation~~ (Done for atom/computed)
 19. ~~Verify Object Literal Refactoring (Tests, Benchmarks, Size)~~ (Done)
-20. **Refactor Map/DeepMap:** Consider changing `map()` and `deepMap()` to also use object literals for consistency, or keep as is if `Object.create` overhead is negligible there.
-21. **Investigate Size Discrepancy**: Why was the original 1.45 kB measurement different? (Lower priority)
-22. **Consider Further Map Optimizations**: Analyze remaining gap with nanostores Map Set Key performance. (Optional)
-23. **Consider Packaging Improvements**: Explore options for tree shaking, bundle optimization, or feature flags. (Optional)
-24. **Release Planning**: Prepare for next release.
+20. ~~Refactor Core: Functional API (`atom`, `computed`, `batch`, `task`, `events`)~~ (Done)
+21. ~~Update Tests (`atom`, `computed`, `batch`, `task`, `events`)~~ (Done)
+22. ~~Update Benchmarks (`atom`, `batch`, `computed`, `deepMap`)~~ (Done)
+23. ~~**Update Benchmarks:** Update `map.bench.ts`, `events.bench.ts`, `task.bench.ts`. (Done)~~~
+24. ~~**Refactor Tests:** Update `map.test.ts`, `deepMap.test.ts`. (Done - Tests passed)~~~
+25. ~~**Fix Key/Path Listeners:** Debug and fix `map`/`deepMap` listener trigger logic if tests still fail. (Not needed, tests passed after refactor)~~~
+26. ~~**Final Verification:** Run all tests, benchmarks, size checks. (Done - Tests passed, benchmarks ran, size: atom 143B, full 687B)~~~
+27. ~~**Commit Final Refactoring.** (Done - commit `2dd2a24`)~~~
+28. ~~**Refactor Modules & Optimize Creation:** Separate types/utils, remove type markers, delay listener init. (Done - commit `36e5650`)~~~
+29. **Consider Further Optimizations/Packaging/Release.** (Next potential step)

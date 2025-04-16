@@ -5,7 +5,9 @@ import { createMap, subscribe as subscribeToMap, setKey as setMapKey, set as set
 import { createDeepMap, subscribe as subscribeToDeepMap, setPath as setDeepMapPath, set as setDeepMapValue } from './deepMap'; // Import updated functional deepMap API
 import { onStart, onStop, onSet, onNotify, onMount } from './events'; // Import functional events
 import { batch } from './batch';
-import type { Atom, ReadonlyAtom, AnyAtom } from './core'; // Import AnyAtom
+import type { Atom } from './atom'; // Import from specific files
+import type { ReadonlyAtom } from './computed'; // Import from specific files
+import type { AnyAtom } from './types'; // Import AnyAtom from types
 
 describe('events (functional)', () => {
   beforeEach(() => {

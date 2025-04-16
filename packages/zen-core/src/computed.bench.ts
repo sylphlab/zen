@@ -3,7 +3,8 @@ import { bench, describe } from 'vitest';
 import { createAtom as zenCreateAtom, get as zenGetAtomValue, set as zenSetAtomValue, subscribe as zenSubscribeToAtom } from './atom'; // Import updated functional API
 import { createComputed as zenCreateComputed } from './computed'; // Import createComputed factory
 import { atom as nanoAtom, computed as nanoComputed } from 'nanostores';
-import { atom as jotaiAtom, useAtomValue, useSetAtom, Provider, createStore as createJotaiStore, Atom, WritableAtom } from 'jotai';
+import { atom as jotaiAtom, useAtomValue, useSetAtom, Provider, createStore as createJotaiStore } from 'jotai'; // Removed Atom, WritableAtom import from jotai
+import type { Atom, WritableAtom } from 'jotai'; // Import types separately
 import { createStore as createZustandVanillaStore } from 'zustand/vanilla';
 import { proxy as valtioProxy, subscribe as valtioSubscribe } from 'valtio/vanilla';
 import { createStore as createEffectorStore, createEvent as createEffectorEvent } from 'effector';
@@ -11,12 +12,21 @@ import { createElement } from 'react';
 import { renderHook, act } from '@testing-library/react';
 
 // --- Common Setup Helpers (Duplicated for computed tests) ---
-const createJotaiReadBenchSetup = <T>(atomToRead: Atom<T>) => {
+const createJotaiReadBenchSetup = <T>(atomToRead: Atom<T>) => { // Use imported Atom type
     const store = createJotaiStore();
     store.get(atomToRead); // Ensure initial value
     const wrapper = ({ children }: { children: React.ReactNode }) => createElement(Provider, { store, children });
     const { result } = renderHook(() => useAtomValue(atomToRead, { store }), { wrapper });
     return { get: () => result.current, store };
+};
+
+const createJotaiWriteBenchSetup = <Value, Args extends unknown[], Result>(
+    atomToWrite: WritableAtom<Value, Args, Result> // Use imported WritableAtom type
+) => {
+    const store = createJotaiStore();
+    const wrapper = ({ children }: { children: React.ReactNode }) => createElement(Provider, { store, children });
+    const { result } = renderHook(() => useSetAtom(atomToWrite, { store }), { wrapper });
+    return { set: result.current, store };
 };
 
 // --- Computed Benchmarks ---

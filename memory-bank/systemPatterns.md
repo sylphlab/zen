@@ -2,15 +2,18 @@
 
 ## Core Architecture
 - **Event-driven/Reactive:** State changes trigger updates to subscribers.
-- **Atom-based:** The fundamental unit of state is an "atom" or similar concept, holding a single piece of data.
-- **Minimalism:** Every feature and line of code must justify its existence in terms of bundle size and performance impact. Avoid unnecessary abstractions.
+- **Atom-based:** The fundamental unit of state is represented by simple objects (`Atom`, `ComputedAtom`, `MapAtom`, etc.), holding data and minimal internal state.
+- **Minimalism:** Extreme focus on bundle size and performance. Features justify existence via impact. Avoid unnecessary abstractions and dependencies.
+- **Functional API:** Public interaction via imported functions (`createAtom`, `get`, `set`, `subscribe`, etc.) rather than methods on atom objects.
+- **Module Structure:** Core types (`types.ts`), type guards (`typeGuards.ts`), internal utilities (`internalUtils.ts`), and specific atom logic (`atom.ts`, `computed.ts`, etc.) are separated to improve organization and prevent circular dependencies.
 
 ## Key Design Patterns
-- **Observer Pattern:** Atoms act as subjects, listeners/subscribers act as observers.
-- **Lazy Evaluation (Potential):** Consider if derived state computations should only run when their value is requested or dependencies change.
-- **Immutability (Potential):** Explore whether enforcing immutable state updates simplifies logic or improves predictability, weighing against potential performance overhead for simple cases.
+- **Observer Pattern:** Internal `_listeners` sets manage subscriptions.
+- **Lazy Listener Initialization:** Listener sets (`_listeners`, `_startListeners`, etc.) are only added to atom objects when the first listener of that type is attached, minimizing creation overhead.
+- **Structural Type Differentiation:** Internal logic uses type guards based on property checks (e.g., `'_calculation' in atom`) for runtime type distinction, avoiding classes/`instanceof` and type markers.
+- **Immutability:** Map/DeepMap updates create new objects (`{...spread}` or deep cloning logic).
 
 ## API Design Philosophy
-- Mirror Nanostores' simplicity where feasible.
-- Functions should be small, focused, and highly tree-shakeable.
-- Prioritize raw performance and minimal code over developer ergonomics if a significant trade-off exists.
+- Mirror Nanostores' simplicity where feasible (unified `get`, `subscribe`).
+- Functions are small, focused, and highly tree-shakeable.
+- Prioritize raw performance (especially creation speed) and minimal code footprint.

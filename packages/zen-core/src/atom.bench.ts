@@ -2,7 +2,8 @@
 import { bench, describe } from 'vitest';
 import { createAtom as zenCreateAtom, get as zenGetAtomValue, set as zenSetAtomValue, subscribe as zenSubscribeToAtom } from './atom'; // Import updated functional API
 import { atom as nanoAtom } from 'nanostores';
-import { atom as jotaiAtom, useAtomValue, useSetAtom, Provider, createStore as createJotaiStore, Atom, WritableAtom } from 'jotai';
+import { atom as jotaiAtom, useAtomValue, useSetAtom, Provider, createStore as createJotaiStore } from 'jotai'; // Removed Atom, WritableAtom import from jotai
+import type { Atom, WritableAtom } from 'jotai'; // Import types separately
 import { createStore as createZustandVanillaStore } from 'zustand/vanilla';
 import type { StoreApi, UseBoundStore } from 'zustand';
 import { proxy as valtioProxy, subscribe as valtioSubscribe } from 'valtio/vanilla';
@@ -11,7 +12,7 @@ import { createElement } from 'react';
 import { renderHook, act } from '@testing-library/react';
 
 // --- Common Setup Helpers (Duplicated from original index.bench.ts for atom tests) ---
-const createJotaiReadBenchSetup = <T>(atomToRead: Atom<T>) => {
+const createJotaiReadBenchSetup = <T>(atomToRead: Atom<T>) => { // Use imported Atom type
     const store = createJotaiStore();
     store.get(atomToRead); // Ensure initial value
     const wrapper = ({ children }: { children: React.ReactNode }) => createElement(Provider, { store, children });
@@ -20,7 +21,7 @@ const createJotaiReadBenchSetup = <T>(atomToRead: Atom<T>) => {
 };
 
 const createJotaiWriteBenchSetup = <Value, Args extends unknown[], Result>(
-    atomToWrite: WritableAtom<Value, Args, Result>
+    atomToWrite: WritableAtom<Value, Args, Result> // Use imported WritableAtom type
 ) => {
     const store = createJotaiStore();
     const wrapper = ({ children }: { children: React.ReactNode }) => createElement(Provider, { store, children });

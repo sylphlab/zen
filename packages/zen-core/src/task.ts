@@ -1,32 +1,20 @@
 // Task atom implementation for managing asynchronous operations.
-import { Atom, Listener, Unsubscribe } from './core'; // Keep core types
+import type { Atom } from './atom'; // Import Atom type
+import type { Listener, Unsubscribe, AtomWithValue, TaskState } from './types'; // Import from types
 import { createAtom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional atom API
 // Removed duplicate: import { atom } from './atom';
-// Remove self-import: import type { TaskState } from './task';
+// Removed TaskState definition, imported from types.ts
 
-/**
- * Represents the possible states of a task atom.
- * @property loading - True if the task is currently running.
- * @property error - An Error object if the last run failed.
- * @property data - The data returned from the last successful run.
- */
-export type TaskState<T = any> = {
-  loading: boolean;
-  error?: Error;
-  data?: T;
-};
-
+// --- Type Definition ---
 /**
  * Represents a Task Atom, which wraps an asynchronous function
  * and provides its state (loading, error, data) reactively.
- * The state itself is accessed via `getTaskState` and `subscribeToTask`.
  */
 export type TaskAtom<T = any> = {
-  // Internal state atom - not directly exposed in the type ideally
   readonly _stateAtom: Atom<TaskState<T>>;
-  // Removed run method from type, it will be a separate function
-  // run(...args: any[]): Promise<T>;
+  readonly _asyncFn: (...args: any[]) => Promise<T>; // Store the async function
 };
+
 
 // --- Internal state for tracking running promises ---
 // WeakMap to associate TaskAtom instances with their currently running promise.

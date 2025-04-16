@@ -2,10 +2,17 @@
 // This file re-exports all public APIs.
 
 // --- Core Types ---
-export type { Atom, ReadonlyAtom, ComputedAtom, MapAtom, DeepMapAtom, AnyAtom, Listener, Unsubscribe } from './core'; // Remove TaskState from here
-export { AtomTypes } from './core'; // Export AtomTypes enum/const
-export type { TaskState } from './task'; // Import TaskState from task.ts
+// Base types
+export type { Listener, Unsubscribe, TaskState, AtomWithValue, AnyAtom } from './types';
+// Specific atom types
+export type { Atom } from './atom';
+export type { ReadonlyAtom, ComputedAtom } from './computed';
+export type { MapAtom } from './map';
+export type { DeepMapAtom } from './deepMap';
+export type { TaskAtom } from './task';
+// Event listener types
 export type { LifecycleListener, KeyListener, PathListener } from './events';
+// Other types
 export type { Path } from './deepMapInternal'; // Export Path type
 
 // --- Core Factories ---

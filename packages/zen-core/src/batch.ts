@@ -1,5 +1,6 @@
 // Batching implementation without global prototype patching.
-import { Atom, Listener, notifyListeners } from './core'; // Import notifyListeners from core
+import type { Atom } from './atom'; // Import Atom type
+import { notifyListeners } from './internalUtils'; // Import from internalUtils
 
 // --- Batching Internals ---
 
