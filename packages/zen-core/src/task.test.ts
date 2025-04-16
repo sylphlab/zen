@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createTask, runTask, getTaskState, subscribeToTask } from './task'; // Import updated functional API
-import type { TaskState } from './task'; // Import type
+import { task, runTask, getTaskState, subscribeToTask } from './task'; // Import updated functional API
+import type { TaskState } from './types'; // Import type from types.ts
 
 // Helper to wait for next tick might be needed if tests rely on microtask timing
 // const wait = (ms: number = 0) => new Promise(resolve => setTimeout(resolve, ms));
@@ -8,13 +8,13 @@ import type { TaskState } from './task'; // Import type
 describe('task (functional)', () => {
   it('should initialize with loading: false', () => {
     const mockAsyncFn = vi.fn().mockResolvedValue('done');
-    const myTask = createTask(mockAsyncFn); // Use createTask
+    const myTask = task(mockAsyncFn); // Use task
     expect(getTaskState(myTask)!).toEqual({ loading: false }); // Add ! assertion
   });
 
   it('should set loading: true when run starts', async () => {
     const mockAsyncFn = vi.fn().mockResolvedValue('done');
-    const myTask = createTask(mockAsyncFn); // Use createTask
+    const myTask = task(mockAsyncFn); // Use task
     const listener = vi.fn();
     const unsubscribe = subscribeToTask(myTask, listener);
 
@@ -37,7 +37,7 @@ describe('task (functional)', () => {
 
   it('should set data and loading: false on successful completion', async () => {
     const mockAsyncFn = vi.fn().mockResolvedValue('Success Data');
-    const myTask = createTask(mockAsyncFn); // Use createTask
+    const myTask = task(mockAsyncFn); // Use task
     const listener = vi.fn();
     const unsubscribe = subscribeToTask(myTask, listener);
 
@@ -58,7 +58,7 @@ describe('task (functional)', () => {
   it('should set error and loading: false on failure', async () => {
     const error = new Error('Task Failed');
     const mockAsyncFn = vi.fn().mockRejectedValue(error);
-    const myTask = createTask(mockAsyncFn); // Use createTask
+    const myTask = task(mockAsyncFn); // Use task
     const listener = vi.fn();
     const unsubscribe = subscribeToTask(myTask, listener);
 
@@ -82,7 +82,7 @@ describe('task (functional)', () => {
    it('should handle non-Error rejection values', async () => {
      const rejectionValue = 'Something went wrong';
      const mockAsyncFn = vi.fn().mockRejectedValue(rejectionValue);
-     const myTask = createTask(mockAsyncFn); // Use createTask
+     const myTask = task(mockAsyncFn); // Use task
 
      try {
        await runTask(myTask); // Use runTask
@@ -102,7 +102,7 @@ describe('task (functional)', () => {
     const promise = new Promise<string>(resolve => { resolvePromise = resolve; });
     const mockAsyncFn = vi.fn().mockReturnValue(promise);
 
-    const myTask = createTask(mockAsyncFn); // Use createTask
+    const myTask = task(mockAsyncFn); // Use task
     const listener = vi.fn();
     const unsubscribe = subscribeToTask(myTask, listener);
     listener.mockClear(); // Ignore initial
@@ -131,7 +131,7 @@ describe('task (functional)', () => {
           .mockResolvedValueOnce('First')
           .mockResolvedValueOnce('Second');
 
-      const myTask = createTask(mockAsyncFn); // Use createTask
+      const myTask = task(mockAsyncFn); // Use task
 
       await runTask(myTask); // Use runTask
       expect(getTaskState(myTask)!.data).toBe('First'); // Add ! assertion

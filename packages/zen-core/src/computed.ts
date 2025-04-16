@@ -95,8 +95,12 @@ function computedSourceChanged<T>(atom: ComputedAtom<T>): void {
         // Let's assume updateComputedValue is sufficient for now.
         const changed = updateComputedValue(atom); // Directly call update logic
         if (changed) {
-            // Use the exported notifyListeners from atom.ts
-            notifyListeners(atom, atom._value!, oldValue); // Notify downstream listeners
+            // Use the exported notifyListeners from internalUtils.ts
+            try {
+                notifyListeners(atom, atom._value!, oldValue); // Notify downstream listeners
+            } catch (e) {
+                console.error(`Error notifying listeners for computed atom ${String(atom)}:`, e);
+            }
         }
     }
     // If no listeners, we just stay dirty until the next `getAtomValue()`.

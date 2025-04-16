@@ -1,12 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createDeepMap, get, setPath, set, subscribe, listenPaths } from './deepMap'; // Import updated functional API
+import { deepMap, get, setPath, set, subscribe, listenPaths } from './deepMap'; // Import updated functional API
 import { batch } from './batch';
 import type { Path } from './deepMapInternal'; // Import Path type if needed
 
 describe('deepMap (functional)', () => {
   it('should create a deep map store', () => {
     const initial = { user: { name: 'John', age: 30 }, settings: { theme: 'dark' } };
-    const store = createDeepMap(initial); // Use createDeepMap
+    const store = deepMap(initial); // Use deepMap
     expect(get(store)).toEqual(initial); // Use get
     // Check if functions exist
     expect(typeof setPath).toBe('function'); // Use setPath
@@ -17,19 +17,19 @@ describe('deepMap (functional)', () => {
 
   it('should get the initial value', () => {
     const initial = { a: { b: { c: 1 } } };
-    const store = createDeepMap(initial); // Use createDeepMap
+    const store = deepMap(initial); // Use deepMap
     expect(get(store)).toEqual(initial); // Use get
   });
 
   it('should set a deep value using string path', () => {
-    const store = createDeepMap({ user: { name: 'John', address: { city: 'Old City' } } }); // Use createDeepMap
+    const store = deepMap({ user: { name: 'John', address: { city: 'Old City' } } }); // Use deepMap
     setPath(store, 'user.address.city', 'New City'); // Use setPath
     expect(get(store).user.address.city).toBe('New City'); // Use get
     expect(get(store).user.name).toBe('John'); // Use get
   });
 
   it('should set a deep value using array path', () => {
-    const store = createDeepMap({ data: [{ id: 1, value: 'A' }, { id: 2, value: 'B' }] }); // Use createDeepMap
+    const store = deepMap({ data: [{ id: 1, value: 'A' }, { id: 2, value: 'B' }] }); // Use deepMap
     setPath(store, ['data', 1, 'value'], 'New B'); // Use setPath
     // Add non-null assertions
     expect(get(store).data![1]!.value).toBe('New B'); // Use get
@@ -37,7 +37,7 @@ describe('deepMap (functional)', () => {
   });
 
    it('should create intermediate objects/arrays if they do not exist', () => {
-    const store = createDeepMap<{ user?: { profile?: { name?: string }; tags?: string[] }}>({}); // Use createDeepMap
+    const store = deepMap<{ user?: { profile?: { name?: string }; tags?: string[] }}>({}); // Use deepMap
 
     setPath(store, 'user.profile.name', 'Alice'); // Use setPath
     const state1 = get(store); // Use get
@@ -56,7 +56,7 @@ describe('deepMap (functional)', () => {
 
   it('should maintain immutability', () => {
     const initial = { a: { b: 1 } };
-    const store = createDeepMap(initial); // Use createDeepMap
+    const store = deepMap(initial); // Use deepMap
     const originalA = get(store).a; // Use get
 
     setPath(store, 'a.b', 2); // Use setPath
@@ -68,7 +68,7 @@ describe('deepMap (functional)', () => {
   });
 
    it('should not notify if value does not change', () => {
-    const store = createDeepMap({ user: { name: 'John' } }); // Use createDeepMap
+    const store = deepMap({ user: { name: 'John' } }); // Use deepMap
     const listener = vi.fn();
     const unsubscribe = subscribe(store, listener); // Use subscribe
 
@@ -82,7 +82,7 @@ describe('deepMap (functional)', () => {
   });
 
   it('should notify listeners when a deep value changes via setPath', () => { // Renamed test
-    const store = createDeepMap({ user: { name: 'John' } }); // Use createDeepMap
+    const store = deepMap({ user: { name: 'John' } }); // Use deepMap
     const listener = vi.fn();
     const unsubscribe = subscribe(store, listener); // Use subscribe
     const oldValue = get(store); // Use get
@@ -104,7 +104,7 @@ describe('deepMap (functional)', () => {
   */
 
     it('should handle setting root properties', () => {
-      const store = createDeepMap<{ name: string; age?: number }>({ name: 'Initial' }); // Use createDeepMap
+      const store = deepMap<{ name: string; age?: number }>({ name: 'Initial' }); // Use deepMap
       setPath(store, 'name', 'Updated'); // Use setPath
       expect(get(store).name).toBe('Updated'); // Use get
       setPath(store, 'age', 42); // Use setPath
@@ -112,7 +112,7 @@ describe('deepMap (functional)', () => {
     });
 
      it('should handle setting values in arrays correctly', () => {
-      const store = createDeepMap<{ items: (string | number)[] }>({ items: ['a', 'b', 'c'] }); // Use createDeepMap
+      const store = deepMap<{ items: (string | number)[] }>({ items: ['a', 'b', 'c'] }); // Use deepMap
       setPath(store, 'items.1', 'B'); // Use setPath
       expect(get(store).items).toEqual(['a', 'B', 'c']); // Use get
 
@@ -130,7 +130,7 @@ describe('deepMap (functional)', () => {
 
       it('should handle empty path input gracefully', () => {
         const initial = { a: 1 };
-        const store = createDeepMap(initial); // Use createDeepMap
+        const store = deepMap(initial); // Use deepMap
         const listener = vi.fn();
         const unsubscribe = subscribe(store, listener); // Use subscribe
         listener.mockClear();
@@ -149,7 +149,7 @@ describe('deepMap (functional)', () => {
   // --- Path Subscription Tests ---
 
   it('listenPaths should be called when a specified path is changed via setPath', () => { // Use listenPaths, setPath
-    const store = createDeepMap({ user: { name: 'John', details: { age: 30 } } }); // Use createDeepMap
+    const store = deepMap({ user: { name: 'John', details: { age: 30 } } }); // Use deepMap
     const pathListener = vi.fn();
     // Listen to a specific deep path
     const unsubscribe = listenPaths(store, [['user', 'details', 'age']], pathListener); // Use listenPaths
@@ -168,7 +168,7 @@ describe('deepMap (functional)', () => {
   });
 
   it('listenPaths should be called when a path is changed via set', () => { // Use listenPaths, set
-    const store = createDeepMap({ user: { name: 'John', details: { age: 30 } } }); // Use createDeepMap
+    const store = deepMap({ user: { name: 'John', details: { age: 30 } } }); // Use deepMap
     const pathListener = vi.fn();
     const unsubscribe = listenPaths(store, [['user', 'name']], pathListener); // Use listenPaths
 
@@ -181,7 +181,7 @@ describe('deepMap (functional)', () => {
   });
 
   it('listenPaths should handle multiple paths', () => { // Use listenPaths
-    const store = createDeepMap({ a: { b: 1 }, c: 2 }); // Use createDeepMap
+    const store = deepMap({ a: { b: 1 }, c: 2 }); // Use deepMap
     const pathListener = vi.fn();
     const unsubscribe = listenPaths(store, [['a', 'b'], ['c']], pathListener); // Use listenPaths
 
@@ -212,7 +212,7 @@ describe('deepMap (functional)', () => {
   });
 
     it('listenPaths should trigger for parent path listeners', () => { // Use listenPaths
-      const store = createDeepMap({ user: { name: 'John', address: { city: 'NY', zip: '10001' } } }); // Use createDeepMap
+      const store = deepMap({ user: { name: 'John', address: { city: 'NY', zip: '10001' } } }); // Use deepMap
       const userListener = vi.fn();
       const addressListener = vi.fn();
 
@@ -234,7 +234,7 @@ describe('deepMap (functional)', () => {
 
 
    it('listenPaths should not be called after unsubscribing', () => { // Use listenPaths
-    const store = createDeepMap({ a: { b: 1 } }); // Use createDeepMap
+    const store = deepMap({ a: { b: 1 } }); // Use deepMap
     const pathListener = vi.fn();
     const unsubscribe = listenPaths(store, [['a', 'b']], pathListener); // Use listenPaths
 

@@ -1,5 +1,5 @@
 import { test, expect, vi, describe, beforeEach } from 'vitest';
-import { createAtom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional API
+import { atom, get as getAtomValue, set as setAtomValue, subscribe as subscribe } from './atom'; // Import updated functional API
 import { batch, isInBatch } from './batch';
 import { onSet } from './events';
 import type { Atom } from './core'; // Import Atom type if needed
@@ -13,13 +13,13 @@ describe('batch (functional)', () => {
   })
 
   test('should group multiple set calls into one', () => {
-    let $a = createAtom(0) // Use createAtom
-    let $b = createAtom('initial') // Use createAtom
+    let $a = atom(0) // Use atom
+    let $b = atom('initial') // Use atom
     let listenerA = vi.fn()
     let listenerB = vi.fn();
 
-    const unsubA = subscribeToAtom($a, listenerA);
-    const unsubB = subscribeToAtom($b, listenerB);
+    const unsubA = subscribe($a, listenerA);
+    const unsubB = subscribe($b, listenerB);
 
     // Store initial values for oldValue check
     const initialA = getAtomValue($a);
@@ -49,13 +49,13 @@ describe('batch (functional)', () => {
   })
 
   test('should handle nested batches correctly', () => {
-    let $a = createAtom(0) // Use createAtom
-    let $b = createAtom(10) // Use createAtom
+    let $a = atom(0) // Use atom
+    let $b = atom(10) // Use atom
     let listenerA = vi.fn()
     let listenerB = vi.fn();
 
-    const unsubA = subscribeToAtom($a, listenerA);
-    const unsubB = subscribeToAtom($b, listenerB);
+    const unsubA = subscribe($a, listenerA);
+    const unsubB = subscribe($b, listenerB);
 
     // Store initial values
     const initialA = getAtomValue($a);
@@ -95,9 +95,9 @@ describe('batch (functional)', () => {
   })
 
   test('should handle errors within the batch', () => {
-    let $a = createAtom(0); // Use createAtom
+    let $a = atom(0); // Use atom
     let listenerA = vi.fn();
-    const unsubA = subscribeToAtom($a, listenerA); // Use subscribe
+    const unsubA = subscribe($a, listenerA); // Use subscribe
 
     // Store initial value
     const initialA = getAtomValue($a);
@@ -131,13 +131,13 @@ describe('batch (functional)', () => {
   })
 
   test('onSet listener should NOT be called within batch', () => {
-    let $a = createAtom(0) // Use createAtom
+    let $a = atom(0) // Use atom
     let onSetListener = vi.fn()
     let finalListener = vi.fn()
 
     // Attach onSet listener
     onSet($a, onSetListener); // onSet still works by attaching to the atom structure
-    const unsubFinal = subscribeToAtom($a, finalListener); // finalListener is the regular subscriber
+    const unsubFinal = subscribe($a, finalListener); // finalListener is the regular subscriber
 
     // Store initial value
     const initialA = getAtomValue($a);
@@ -167,9 +167,9 @@ describe('batch (functional)', () => {
 
   test('batching should only apply to atoms with patched set', () => {
     // Create a real atom
-    let $plain = createAtom(100); // Use createAtom
+    let $plain = atom(100); // Use atom
     let plainListener = vi.fn();
-    const unsubPlain = subscribeToAtom($plain, plainListener); // Use subscribe
+    const unsubPlain = subscribe($plain, plainListener); // Use subscribe
 
     // Store initial value
     const initialPlain = getAtomValue($plain);

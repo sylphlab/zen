@@ -1,10 +1,10 @@
 import { bench, describe } from 'vitest';
-import { createMap, get, set, setKey } from './map'; // Import functional API
+import { map, get, set, setKey } from './map'; // Import functional API
 import { map as nanoMap } from 'nanostores';
 
 describe('Map Creation', () => {
     bench('zen', () => {
-        createMap({ name: 'John', age: 30 });
+        map({ name: 'John', age: 30 });
     });
 
     bench('nanostores', () => {
@@ -13,7 +13,7 @@ describe('Map Creation', () => {
 });
 
 describe('Map Get', () => {
-    const zMap = createMap({ name: 'John', age: 30 });
+    const zMap = map({ name: 'John', age: 30 });
     const nMap = nanoMap({ name: 'John', age: 30 });
 
     bench('zen', () => {
@@ -26,7 +26,7 @@ describe('Map Get', () => {
 });
 
 describe('Map Set Key (No Listeners)', () => {
-    const zMap = createMap({ name: 'John', age: 30 });
+    const zMap = map({ name: 'John', age: 30 });
     const nMap = nanoMap({ name: 'John', age: 30 });
     let i = 0;
 
@@ -40,7 +40,7 @@ describe('Map Set Key (No Listeners)', () => {
 });
 
 describe('Map Set Full Object (No Listeners)', () => {
-    const zMap = createMap({ name: 'John', age: 30 });
+    const zMap = map({ name: 'John', age: 30 });
     // const nMap = nanoMap({ name: 'John', age: 30 }); // Nanostores doesn't have this
     let i = 0;
 

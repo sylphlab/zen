@@ -54,31 +54,30 @@ pnpm add @sylph/zen
 
 ## Core Usage 🧑‍💻
 
-*(Usage examples remain the same as previous version - atom, computed, map, deepMap, task)*
-
 ### `atom`
 
 The fundamental building block for reactive state.
 
 ```typescript
-import { atom } from '@sylph/zen';
+import { atom, get, set, subscribe } from '@sylph/zen';
 
 const counter = atom(0);
 
-const unsubscribe = counter.subscribe((value, oldValue) => {
+const unsubscribe = subscribe(counter, (value, oldValue) => {
   console.log(`Counter changed from ${oldValue} to ${value}`);
 });
+// Output: Counter changed from undefined to 0 (Initial call)
 
-console.log(counter.get()); // Output: 0
+console.log(get(counter)); // Output: 0
 
-counter.set(1); // Output: Counter changed from 0 to 1
-console.log(counter.get()); // Output: 1
+set(counter, 1); // Output: Counter changed from 0 to 1
+console.log(get(counter)); // Output: 1
 
-counter.set(1); // No output, value didn't change
+set(counter, 1); // No output, value didn't change
 
 unsubscribe();
 
-counter.set(2); // No output, unsubscribed
+set(counter, 2); // No output, unsubscribed
 ```
 
 ### `computed`
@@ -86,7 +85,7 @@ counter.set(2); // No output, unsubscribed
 Create derived state based on one or more atoms.
 
 ```typescript
-import { atom, computed } from '@sylph/zen';
+import { atom, computed, get, set, subscribe } from '@sylph/zen';
 
 const count = atom(10);
 const message = atom(' apples');
@@ -97,20 +96,20 @@ const double = computed([count], (value) => value * 2);
 // Computed value based on multiple atoms
 const fullMessage = computed([count, message], (num, msg) => `${num}${msg}`);
 
-const unsubDouble = double.subscribe(value => console.log('Double:', value));
-// Output: Double: 20
+const unsubDouble = subscribe(double, value => console.log('Double:', value));
+// Output: Double: 20 (Initial call)
 
-const unsubMsg = fullMessage.subscribe(value => console.log('Message:', value));
-// Output: Message: 10 apples
+const unsubMsg = subscribe(fullMessage, value => console.log('Message:', value));
+// Output: Message: 10 apples (Initial call)
 
-console.log(double.get()); // Output: 20
-console.log(fullMessage.get()); // Output: 10 apples
+console.log(get(double)); // Output: 20
+console.log(get(fullMessage)); // Output: 10 apples
 
-count.set(15);
+set(count, 15);
 // Output: Double: 30
 // Output: Message: 15 apples
 
-message.set(' oranges');
+set(message, ' oranges');
 // Output: Message: 15 oranges
 // (Double listener not called as 'double' didn't change)
 
@@ -123,26 +122,27 @@ unsubMsg();
 Optimized for object state where you often update/listen to individual keys.
 
 ```typescript
-import { map } from '@sylph/zen';
+import { map, get, subscribe, setMapKey, setMapValue, listenMapKeys } from '@sylph/zen';
 
 const profile = map({ name: 'John', age: 30, city: 'New York' });
 
-const unsub = profile.subscribe(value => console.log('Profile updated:', value));
+const unsub = subscribe(profile, value => console.log('Profile updated:', value));
+// Output: Profile updated: { name: 'John', age: 30, city: 'New York' } (Initial call)
 
 // Listen to specific key changes
-const unsubAge = profile.listenKeys(['age'], (value, key, fullObject) => {
+const unsubAge = listenMapKeys(profile, ['age'], (value, key, fullObject) => {
   console.log(`Key '${key}' changed to: ${value}`);
 });
 
-profile.setKey('age', 31);
+setMapKey(profile, 'age', 31);
 // Output: Key 'age' changed to: 31
 // Output: Profile updated: { name: 'John', age: 31, city: 'New York' }
 
-profile.setKey('name', 'Jane');
+setMapKey(profile, 'name', 'Jane');
 // Output: Profile updated: { name: 'Jane', age: 31, city: 'New York' }
 // (Age listener not called)
 
-profile.set({ name: 'Peter', age: 40, city: 'London' }); // Update whole object
+setMapValue(profile, { name: 'Peter', age: 40, city: 'London' }); // Update whole object
 // Output: Key 'age' changed to: 40
 // Output: Profile updated: { name: 'Peter', age: 40, city: 'London' }
 
@@ -155,37 +155,39 @@ unsubAge();
 Efficiently manage and subscribe to changes within nested objects/arrays.
 
 ```typescript
-import { deepMap } from '@sylph/zen';
+import { deepMap, get, subscribe, setDeepMapPath, setDeepMapValue, listenDeepMapPaths } from '@sylph/zen';
 
 const settings = deepMap({
   user: { name: 'Anon', preferences: { theme: 'light', notifications: true } },
   data: [10, 20, 30]
 });
 
-const unsub = settings.subscribe(value => console.log('Settings updated:', value));
+const unsub = subscribe(settings, value => console.log('Settings updated:', value));
+// Output: Settings updated: { user: { name: 'Anon', preferences: { theme: 'light', notifications: true } }, data: [ 10, 20, 30 ] } (Initial call)
 
 // Listen to a deep path
-const unsubTheme = settings.listenPaths([['user', 'preferences', 'theme']], (value, path, fullObject) => {
-  console.log(`Path '${path.join('.')}' changed to: ${value}`);
+const unsubTheme = listenDeepMapPaths(settings, [['user', 'preferences', 'theme']], (value, path, fullObject) => {
+  // Note: path received might be string or array depending on how it was registered/changed
+  console.log(`Path '${Array.isArray(path) ? path.join('.') : path}' changed to: ${value}`);
 });
 
 // Listen to an array element path
-const unsubData = settings.listenPaths([['data', 1]], (value, path, fullObject) => {
+const unsubData = listenDeepMapPaths(settings, [['data', 1]], (value, path, fullObject) => {
  console.log(`Path 'data[1]' changed to: ${value}`);
 });
 
 // Update deep value using string path
-settings.setPath('user.preferences.theme', 'dark');
+setDeepMapPath(settings, 'user.preferences.theme', 'dark');
 // Output: Path 'user.preferences.theme' changed to: dark
 // Output: Settings updated: { user: {..., preferences: { theme: 'dark', ... }}, ... }
 
 // Update deep value using array path
-settings.setPath(['data', 1], 25);
+setDeepMapPath(settings, ['data', 1], 25);
 // Output: Path 'data[1]' changed to: 25
 // Output: Settings updated: { ..., data: [10, 25, 30] }
 
 // Update unrelated path
-settings.setPath('user.name', 'Alice');
+setDeepMapPath(settings, 'user.name', 'Alice');
 // Output: Settings updated: { user: { name: 'Alice', ...}, ... }
 // (Theme and data listeners not called)
 
@@ -199,8 +201,7 @@ unsubData();
 Handle async operations gracefully.
 
 ```typescript
-import { task } from '@sylph/zen';
-import { computed } from '@sylph/zen'; // Can be used with task state
+import { task, computed, get, subscribe, runTask, getTaskState } from '@sylph/zen';
 
 const fetchData = async (userId: number): Promise<{ id: number; name: string }> => {
   // Simulate API call
@@ -211,6 +212,7 @@ const fetchData = async (userId: number): Promise<{ id: number; name: string }> 
 
 const userTask = task(fetchData);
 
+// Use core 'get' to read the task state atom
 const userStatus = computed([userTask], (state) => {
   if (state.loading) return 'Loading user...';
   if (state.error) return `Error: ${state.error.message}`;
@@ -218,11 +220,12 @@ const userStatus = computed([userTask], (state) => {
   return 'Enter a user ID';
 });
 
-userStatus.subscribe(status => console.log(status));
-// Output: Enter a user ID
+// Use core 'subscribe'
+subscribe(userStatus, status => console.log(status));
+// Output: Enter a user ID (Initial call)
 
-// Run the task
-userTask.run(123)
+// Run the task using runTask
+runTask(userTask, 123)
   .then(data => console.log('Success:', data))
   .catch(err => console.error('Caught Error:', err));
 
@@ -232,13 +235,16 @@ userTask.run(123)
 // Output: Success: { id: 123, name: 'User 123' }
 
 // Run with invalid ID
-userTask.run(0)
+runTask(userTask, 0)
   .catch(err => console.error('Caught Error:', err.message));
 
 // Output: Loading user...
 // (after ~50ms)
 // Output: Error: Invalid ID
 // Output: Caught Error: Invalid ID
+
+// You can also get the current state directly
+console.log(getTaskState(userTask)); // Output: { loading: false, error: Error: Invalid ID, data: undefined }
 ```
 
 ---
@@ -247,20 +253,23 @@ userTask.run(0)
 
 ### Lifecycle Events
 
-Listen to internal atom events.
+Listen to internal atom events using `onStart`, `onStop`, `onSet`, `onNotify`, `onMount`.
 
 ```typescript
-import { atom, listen, LIFECYCLE } from '@sylph/zen';
+import { atom, set, subscribe, onStart, onStop, onSet, onNotify } from '@sylph/zen';
 
 const myAtom = atom(0);
 
-const unsubStart = listen(myAtom, LIFECYCLE.onStart, () => console.log('First listener subscribed!'));
-const unsubStop = listen(myAtom, LIFECYCLE.onStop, () => console.log('Last listener unsubscribed!'));
-const unsubSet = listen(myAtom, LIFECYCLE.onSet, (newValue) => console.log(`Setting value to ${newValue}...`));
-const unsubNotify = listen(myAtom, LIFECYCLE.onNotify, (newValue) => console.log(`Notified with value ${newValue}!`));
+const unsubStart = onStart(myAtom, () => console.log('First listener subscribed!'));
+const unsubStop = onStop(myAtom, () => console.log('Last listener unsubscribed!'));
+const unsubSet = onSet(myAtom, (newValue) => console.log(`Setting value to ${newValue}...`)); // Only called outside batch
+const unsubNotify = onNotify(myAtom, (newValue) => console.log(`Notified with value ${newValue}!`));
 
-const sub1 = myAtom.subscribe(() => {}); // Output: First listener subscribed!
-myAtom.set(1);
+const sub1 = subscribe(myAtom, () => {});
+// Output: First listener subscribed!
+// Output: Notified with value 0! (Initial subscribe calls listener, which triggers notify)
+
+set(myAtom, 1);
 // Output: Setting value to 1...
 // Output: Notified with value 1!
 
@@ -274,7 +283,7 @@ unsubNotify();
 
 ### Key/Path Listening
 
-Already demonstrated in `map` and `deepMap` examples above. Use `listenKeys` for `map` and `listenPaths` for `deepMap`.
+Efficiently subscribe to changes in specific parts of `map` or `deepMap` atoms using `listenMapKeys` and `listenDeepMapPaths`. See `map` and `deepMap` examples above.
 
 ---
 
@@ -282,45 +291,44 @@ Already demonstrated in `map` and `deepMap` examples above. Use `listenKeys` for
 
 Zen achieves extreme speed by focusing on a minimal, hyper-optimized core. Benchmarks show significant advantages over popular libraries (ops/sec, higher is better):
 
-*(Results from 2025-04-16, may vary slightly)*
+*(Results from 2025-04-16, commit `1d82136`, may vary slightly)*
 
 **Core Atom Operations:**
 
 | Benchmark                 | Zen (ops/s)       | Nanostores | Zustand (Vanilla) | Jotai      | Valtio (Vanilla) | Effector   | Winner |
 | :------------------------ | :---------------- | :--------- | :---------------- | :--------- | :--------------- | :--------- | :----- |
-| **Atom Creation**         | **~7.5M**         | ~1.0M      | ~6.2M             | ~5.9M      | ~0.15M           | ~6.7k      | 🏆 Zen |
-| **Atom Get**              | **~20.7M**        | ~8.4M      | ~17.0M            | ~17.2M     | ~11.6M           | ~16.4M     | 🏆 Zen |
-| **Atom Set (No Listeners)** | **~9.0M**         | ~7.9M      | ~4.3M             | ~0.67M     | ~2.4M            | ~1.6M      | 🏆 Zen |
-| **Subscribe/Unsubscribe** | ~2.8M             | ~1.4M      | **~3.1M**         | ~0.07M     | ~0.26M           | ~9.2k      | Zustand |
+| **Atom Creation**         | **~18.5M**        | ~2.6M      | ~16.7M            | ~10.7M     | ~0.6M            | ~24.7k     | 🏆 Zen |
+| **Atom Get**              | ~16.9M            | ~12.7M     | ~22.4M            | ~17.0M     | ~18.8M           | **~22.9M** | Effector |
+| **Atom Set (No Listeners)** | **~13.7M**        | ~10.5M     | ~9.6M             | ~1.6M      | ~3.4M            | ~3.2M      | 🏆 Zen |
+| **Subscribe/Unsubscribe** | ~1.9M             | ~1.8M      | **~7.0M**         | ~0.12M     | ~0.3M            | ~26.0k     | Zustand |
 
 **Computed Operations (1 Dependency):**
 
 | Benchmark                 | Zen (ops/s)       | Nanostores | Zustand (Selector) | Jotai (Hook) | Valtio (Getter) | Effector (Derived) | Winner |
 | :------------------------ | :---------------- | :--------- | :----------------- | :----------- | :-------------- | :----------------- | :----- |
-| **Computed Creation**     | ~12.0M            | ~0.5M      | -                  | **~13.0M**   | -               | ~6.5k              | Jotai  |
-| **Computed Get**          | ~17.3M            | ~2.2M      | ~16.6M             | **~18.0M**   | ~14.6M          | ~17.4M             | Jotai  |
-| **Computed Update Prop.** | ~4.5M             | ~4.3M      | **~5.7M**          | ~0.15M       | ~2.1M           | ~1.0M              | Zustand |
+| **Computed Creation**     | **~22.6M**        | ~0.4M      | -                  | ~13.7M       | -               | ~6.7k              | 🏆 Zen |
+| **Computed Get**          | ~19.5M            | ~2.3M      | **~20.4M**         | ~19.0M       | ~17.8M          | ~19.7M             | Zustand |
+| **Computed Update Prop.** | ~8.0M             | **~8.9M**  | ~8.1M              | ~0.2M        | ~2.1M           | ~0.6M              | Nanostores |
 
 **Map/DeepMap Operations:**
 
 | Benchmark                     | Zen (ops/s)        | Nanostores | Winner |
 | :---------------------------- | :----------------- | :--------- | :----- |
-| **Map Creation**              | **~7.5M**          | ~2.4M      | 🏆 Zen |
-| **Map Get**                   | **~20.7M**         | ~6.4M      | 🏆 Zen |
-| **Map Set Key**               | ~9.0M              | **~10.9M** | Nanostores |
-| **DeepMap Creation**          | **~7.5M**          | ~2.4M      | 🏆 Zen |
-| **DeepMap setPath (Shallow)** | **~9.0M**          | ~2.4M      | 🏆 Zen |
-| **DeepMap setPath (1 Lvl)**   | **~6.1M**          | ~2.5M      | 🏆 Zen |
-| **DeepMap setPath (2 Lvl)**   | **~4.8M**          | ~2.5M      | 🏆 Zen |
-| **DeepMap setPath (Array)**   | **~10.9M**         | ~2.2M      | 🏆 Zen |
-| **DeepMap setPath (Create)**  | **~8.3M**          | ~2.5M      | 🏆 Zen |
+| **Map Creation**              | **~13.6M**         | ~1.4M      | 🏆 Zen |
+| **Map Get**                   | ~11.3M             | **~14.8M** | Nanostores |
+| **Map Set Key**               | ~7.5M              | **~11.1M** | Nanostores |
+| **DeepMap Creation**          | **~13.7M**         | ~2.5M      | 🏆 Zen |
+| **DeepMap setPath (Shallow)** | **~2.8M**          | ~1.0M      | 🏆 Zen |
+| **DeepMap setPath (1 Lvl)**   | **~2.0M**          | ~0.8M      | 🏆 Zen |
+| **DeepMap setPath (2 Lvl)**   | **~2.1M**          | ~0.7M      | 🏆 Zen |
+| **DeepMap setPath (Array)**   | **~3.9M**          | ~0.5M      | 🏆 Zen |
+| **DeepMap setPath (Create)**  | **~1.8M**          | ~0.4M      | 🏆 Zen |
 
 **Key Takeaways:**
 
-*   Zen's minimalist design leads to dominant performance in core atom speed (Get/Set) and all DeepMap operations.
-*   Highly competitive in Atom Creation, Subscribe/Unsubscribe, and Computed Get.
-*   Computed Update performance is vastly improved and near the top.
-*   Map Set Key is the only area where Nanostores is slightly faster.
+*   Zen's minimalist design leads to dominant performance in Atom Creation, Atom Set, Computed Creation, and all DeepMap operations.
+*   Highly competitive in Atom Get, Subscribe/Unsubscribe, Computed Get, and Computed Update.
+*   Map operations (Get, Set Key) are areas where Nanostores currently holds an edge.
 
 ---
 
@@ -333,9 +341,9 @@ Zen's minimalist philosophy results in an incredibly small bundle size.
 | Jotai (atom)      | 170 B                |
 | Nanostores (atom) | 265 B                |
 | Zustand (core)    | 461 B                |
-| **Zen (atom only)** | **786 B**            |
+| **Zen (atom only)** | **786 B**            | <!-- Placeholder: Re-run size-limit if needed -->
 | Valtio            | 903 B                |
-| **Zen (full)**    | **1.45 kB**          |
+| **Zen (full)**    | **1.45 kB**          | <!-- Placeholder: Re-run size-limit if needed -->
 | Effector          | 5.27 kB              |
 | Redux Toolkit     | 6.99 kB              |
 
@@ -344,7 +352,7 @@ Zen's minimalist philosophy results in an incredibly small bundle size.
 ## Current Limitations & Issues
 
 *   **TypeScript Guidelines:** We currently cannot automatically verify against specific internal TypeScript style guidelines due to a temporary issue fetching the rules file (`guidelines/typescript/style_quality.md` from `sylphlab/Playbook` resulted in a 'Not Found' error). We are proceeding with best practices in the meantime.
-*   **Map Set Key Performance:** While fast (~9.0M ops/s), Nanostores is slightly faster (~10.9M ops/s) in this specific benchmark. Further investigation is optional.
+*   **Map Performance:** Nanostores shows better performance for Map Get and Map Set Key operations in current benchmarks. Further investigation is optional.
 
 ---
 

@@ -117,4 +117,4 @@ export function listenKeys<T extends object, K extends keyof T>(
     return addKeyListener(mapAtom._internalAtom as AnyAtom<T>, keys, listener);
 }
 
-// Note: Old 'map' export removed. Use 'createMap'.
+// Note: Factory function is now 'map'.

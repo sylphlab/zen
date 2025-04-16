@@ -1,23 +1,38 @@
-# Active Context (2025-04-16 Cleanup & Review Complete)
+# Active Context (2025-04-16 Test Fixes & Review)
 
 ## Current Focus
-- **Cleanup & Review Complete:** Code cleanup (removed comments, unused imports) and review for fast-path optimizations in `packages/zen-core/src` are complete.
-- **Status:**
-    - **Cleanup:** Removed commented-out code and unused imports from `atom.ts`, `computed.ts`, `map.ts`, `deepMap.ts`, `events.ts`. Added explanatory comment to `_emitPathChanges` in `events.ts`.
-    - **Review:** Core fast paths (`get`, `set`, `subscribe`, `notifyListeners`, `batch`) appear well-optimized. Map/DeepMap `set` operations use standard immutability patterns (`{...spread}`). `deepMap`'s `getChangedPaths` remains a potential bottleneck for very large/deep objects, but optimizing it further carries risks and complexity, deferred for now based on "stable performance" requirement.
-    - **Previous State:** Functional API refactoring, module separation, and creation optimization were already complete (Commits: `f0c4085`, `36e5650`). Tests passed, benchmarks improved, bundle size low (atom: 143B, full: 687B - pre-cleanup).
+- **Naming Review Complete:** Reviewed all core `src` files. Renamed core factory functions (`createAtom` -> `atom`, `createComputed` -> `computed`, etc.) to align better with community standards and improve conciseness. Removed compatibility aliases from `index.ts`.
+- **Build Fix:** Updated `size-limit` configuration in `package.json` to use the new, shorter factory function names, resolving build errors.
+- **Optimization Concluded:** Previous attempts at micro-optimizations were reverted as they caused performance regressions in core paths. The stable baseline is commit `1d82136`.
+
+## Status
+- **Code State:** Current commit is `c0310cf` ("fix(build): update size-limit config to use new function names"). This commit includes the naming changes and the build fix.
+- **Naming:** Factory functions now use shorter names (`atom`, `computed`, `map`, `deepMap`, `task`) and are exported directly without aliases. Other reviewed files have clear and standard naming.
+- **Build:** `size-limit` configuration updated.
+- **Tests:** All tests passing after updating calls to renamed factory functions (`atom`, `computed`, etc.) and fixing imports.
+- **Previous Optimization Attempts:** Reverted as documented previously.
+- **Review:** Core fast paths in the underlying baseline (`1d82136`) appear well-optimized. `deepMap`'s `getChangedPaths` remains a potential bottleneck, deferred.
+- **Previous State:** Functional API refactoring, module separation, and creation optimization were complete before optimization attempts.
 
 ## Recent Changes & Decisions
-- Performed code cleanup and review as requested.
-- Identified no low-risk, high-impact fast-path optimizations beyond existing structure. Deferred complex `getChangedPaths` optimization.
+- **Fixed `size-limit` Config:** Updated `package.json` to use new function names in `size-limit` imports. (Commit: `c0310cf`)
+- **Finalized Naming:** Applied shorter, conventional names (`atom`, `computed`, etc.) to factory functions and removed compatibility aliases from `index.ts`. (Commit: `75be59c`, amended into `c0310cf` implicitly by the fix commit)
+- **Reverted Inlining Optimization:** Reverted the last optimization attempt before renaming. (Reset to `1d82136`)
+- **Decision:** Concluded micro-optimization attempts. Adopted final shorter factory function names. Naming review complete. Build configuration fixed.
 
 ## Next Steps
-- Commit the cleanup changes.
-- Consider further optimizations (e.g., `getChangedPaths`), packaging, or release steps.
+- **Review:** Reviewed core files (`atom.ts`, `computed.ts`, `map.ts`, `deepMap.ts`). Added minor error handling to `computed.ts` and updated comments. No major simplifications found.
+- Run `size-limit` to confirm build fix.
+- Run benchmarks (`npm run bench`) to check performance after recent changes.
+- Consider packaging, documentation, or release steps for the current version (`c0310cf`).
 - Address guideline compliance task (fetching `guidelines/typescript/style_quality.md`) if it becomes available.
+- Potentially revisit `deepMap`'s `getChangedPaths` optimization in the future.
 
 ## Active Decisions
-- Cleanup and review completed. No immediate further optimizations planned for core fast paths.
+- Factory functions renamed and exported directly. Naming review complete.
+- Optimization phase concluded.
+- `size-limit` configuration fixed.
+- Tests fixed.
 
 ## Guideline Verification Issues
 - **Persistent Failure:** Repeated attempts to fetch `guidelines/typescript/style_quality.md` failed (GitHub 404 Not Found). Cleanup/review proceeded based on existing code style and best practices. The compliance task remains pending.

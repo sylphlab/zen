@@ -1,22 +1,22 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createAtom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional API
+import { atom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional API
 
 describe('atom (functional)', () => {
   it('should initialize with the correct value', () => {
     const initialValue = 0;
-    const count = createAtom(initialValue); // Use createAtom
+    const count = atom(initialValue); // Use atom
     expect(getAtomValue(count)).toBe(initialValue); // Use get
   });
 
   it('should update the value with setAtomValue()', () => {
-    const count = createAtom(0); // Use createAtom
+    const count = atom(0); // Use atom
     const newValue = 5;
     setAtomValue(count, newValue); // Use set
     expect(getAtomValue(count)).toBe(newValue); // Use get
   });
 
   it('should not notify listeners if the value has not changed', () => {
-    const count = createAtom(0); // Use createAtom
+    const count = atom(0); // Use atom
     const listener = vi.fn();
 
     // Subscribe *after* initial value to only catch updates
@@ -34,7 +34,7 @@ describe('atom (functional)', () => {
 
   it('should notify listeners immediately upon subscription with the current value', () => {
     const initialValue = 10;
-    const count = createAtom(initialValue); // Use createAtom
+    const count = atom(initialValue); // Use atom
     const listener = vi.fn();
 
     const unsubscribe = subscribeToAtom(count, listener); // Use subscribe
@@ -47,7 +47,7 @@ describe('atom (functional)', () => {
   });
 
   it('should notify listeners when the value changes', () => {
-    const count = createAtom(0); // Use createAtom
+    const count = atom(0); // Use atom
     const listener = vi.fn();
 
     // Subscribe and ignore the initial call
@@ -70,7 +70,7 @@ describe('atom (functional)', () => {
   });
 
   it('should allow multiple listeners', () => {
-    const count = createAtom(0); // Use createAtom
+    const count = atom(0); // Use atom
     const listener1 = vi.fn();
     const listener2 = vi.fn();
 
@@ -97,7 +97,7 @@ describe('atom (functional)', () => {
   });
 
   it('should stop notifying listeners after unsubscribing', () => {
-    const count = createAtom(0); // Use createAtom
+    const count = atom(0); // Use atom
     const listener = vi.fn();
 
     const unsubscribe = subscribeToAtom(count, listener); // Use subscribe
@@ -117,19 +117,19 @@ describe('atom (functional)', () => {
 
   it('should handle different data types', () => {
     // String
-    const text = createAtom("hello"); // Use createAtom
+    const text = atom("hello"); // Use atom
     expect(getAtomValue(text)).toBe("hello"); // Use get
     setAtomValue(text, "world"); // Use set
     expect(getAtomValue(text)).toBe("world"); // Use get
 
     // Boolean
-    const flag = createAtom(true); // Use createAtom
+    const flag = atom(true); // Use atom
     expect(getAtomValue(flag)).toBe(true); // Use get
     setAtomValue(flag, false); // Use set
     expect(getAtomValue(flag)).toBe(false); // Use get
 
     // Object
-    const obj = createAtom({ a: 1 }); // Use createAtom
+    const obj = atom({ a: 1 }); // Use atom
     const listenerObj = vi.fn();
     const unsubObj = subscribeToAtom(obj, listenerObj); // Use subscribe
     expect(getAtomValue(obj)).toEqual({ a: 1 }); // Use get
@@ -142,7 +142,7 @@ describe('atom (functional)', () => {
     unsubObj();
 
     // Array
-    const arr = createAtom([1, 2]); // Use createAtom
+    const arr = atom([1, 2]); // Use atom
     const listenerArr = vi.fn();
     const unsubArr = subscribeToAtom(arr, listenerArr); // Use subscribe
     expect(getAtomValue(arr)).toEqual([1, 2]); // Use get

@@ -1,18 +1,18 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createMap, get, setKey, set, subscribe, listenKeys } from './map'; // Import updated functional API
+import { map, get, setKey, set, subscribe, listenKeys } from './map'; // Import updated functional API
 import { batch } from './batch'; // Import batch from batch.ts
 
 describe('map (functional)', () => {
   it('should create a map atom with initial value', () => {
     const initialData = { name: 'John', age: 30 };
-    const profile = createMap(initialData); // Use createMap
+    const profile = map(initialData); // Use map
     // Check if it's a copy initially
     expect(get(profile)).toEqual(initialData); // Use get
     expect(get(profile)).not.toBe(initialData); // map should create a copy
   });
 
   it('should update value using setKey and notify listeners', () => {
-    const profile = createMap({ name: 'John', age: 30 }); // Use createMap
+    const profile = map({ name: 'John', age: 30 }); // Use map
     const listener = vi.fn();
     const unsubscribe = subscribe(profile, listener); // Use subscribe
     const oldValue = get(profile); // Use get
@@ -28,7 +28,7 @@ describe('map (functional)', () => {
   });
 
   it('should not notify listeners if setKey value is the same', () => {
-    const profile = createMap({ name: 'John', age: 30 }); // Use createMap
+    const profile = map({ name: 'John', age: 30 }); // Use map
     const listener = vi.fn();
     const unsubscribe = subscribe(profile, listener); // Use subscribe
     listener.mockClear(); // Ignore initial call
@@ -41,7 +41,7 @@ describe('map (functional)', () => {
   });
 
   it('should update the whole object using set() and notify listeners', () => {
-    const profile = createMap({ name: 'John', age: 30 }); // Use createMap
+    const profile = map({ name: 'John', age: 30 }); // Use map
     const listener = vi.fn();
     const unsubscribe = subscribe(profile, listener); // Use subscribe
     const oldValue = get(profile); // Use get
@@ -58,7 +58,7 @@ describe('map (functional)', () => {
 
    it('setKey should create a new object reference', () => {
      const initialValue = { name: 'John', age: 30 };
-     const profile = createMap(initialValue); // Use createMap
+     const profile = map(initialValue); // Use map
      const originalRef = get(profile); // Use get
      setKey(profile, 'age', 31); // Use setKey
      const newRef = get(profile); // Use get
@@ -69,7 +69,7 @@ describe('map (functional)', () => {
 
    it('set() should create a new object reference if the input is different', () => {
      const initialValue = { name: 'John', age: 30 };
-     const profile = createMap(initialValue); // Use createMap
+     const profile = map(initialValue); // Use map
      const originalRef = get(profile); // Use get
 
      const newValue = { name: 'Jane', age: 25 };
@@ -82,7 +82,7 @@ describe('map (functional)', () => {
 
     it('set() should not notify if the exact same internal object reference is set', () => {
         const initialValue = { name: 'John', age: 30 };
-        const profile = createMap(initialValue); // Use createMap
+        const profile = map(initialValue); // Use map
         const listener = vi.fn();
         const currentInternalRef = get(profile); // Use get
         const unsubscribe = subscribe(profile, listener); // Use subscribe
@@ -97,7 +97,7 @@ describe('map (functional)', () => {
   // --- Key Subscription Tests ---
 
   it('listenKeys should be called when a specified key is changed via setKey', () => {
-    const store = createMap({ name: 'John', age: 30, city: 'New York' }); // Use createMap
+    const store = map({ name: 'John', age: 30, city: 'New York' }); // Use map
     const keyListener = vi.fn();
     const unsubscribe = listenKeys(store, ['age'], keyListener); // Use listenKeys
 
@@ -113,7 +113,7 @@ describe('map (functional)', () => {
   });
 
   it('listenKeys should be called when a specified key is changed via set', () => {
-    const store = createMap({ name: 'John', age: 30 }); // Use createMap
+    const store = map({ name: 'John', age: 30 }); // Use map
     const keyListener = vi.fn();
     const unsubscribe = listenKeys(store, ['name'], keyListener); // Use listenKeys
 
@@ -126,7 +126,7 @@ describe('map (functional)', () => {
   });
 
    it('listenKeys should handle multiple keys', () => {
-    const store = createMap({ name: 'John', age: 30, city: 'New York' }); // Use createMap
+    const store = map({ name: 'John', age: 30, city: 'New York' }); // Use map
     const keyListener = vi.fn();
     const unsubscribe = listenKeys(store, ['name', 'age'], keyListener); // Use listenKeys
 
@@ -163,7 +163,7 @@ describe('map (functional)', () => {
   });
 
    it('listenKeys should not be called after unsubscribing', () => {
-    const store = createMap({ name: 'John', age: 30 }); // Use createMap
+    const store = map({ name: 'John', age: 30 }); // Use map
     const keyListener = vi.fn();
     const unsubscribe = listenKeys(store, ['age'], keyListener); // Use listenKeys
 
@@ -174,7 +174,7 @@ describe('map (functional)', () => {
   });
 
   it('listenKeys should handle multiple listeners for the same key', () => {
-    const store = createMap({ name: 'John', age: 30 }); // Use createMap
+    const store = map({ name: 'John', age: 30 }); // Use map
     const listener1 = vi.fn();
     const listener2 = vi.fn();
 

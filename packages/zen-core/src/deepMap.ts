@@ -111,4 +111,4 @@ export function listenPaths<T extends object>(
     return addPathListener(deepMapAtom._internalAtom as AnyAtom<T>, paths, listener);
 }
 
-// Note: Old deepMap exports removed. Use createDeepMap, setDeepMapPath, etc.
+// Note: Factory function is now 'deepMap', path setter is 'setPath', etc.

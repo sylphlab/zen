@@ -21,10 +21,9 @@ export type Atom<T = any> = AtomWithValue<T> & {
 export function get<T>(atom: AnyAtom<T>): T | null { // Return type allows null for computed initial
     // Use type guard to check if it's a computed atom
     if (isComputedAtom(atom)) {
-        const computed = atom as ComputedAtom<T>; // Explicit cast after type guard
         // Ensure _update exists (it should based on the type) and call it if dirty or initially null
-        if ((computed._dirty || computed._value === null)) {
-             computed._update(); // Use the explicitly cast 'computed' variable
+        if ((atom._dirty || atom._value === null)) {
+             atom._update(); // Update if dirty or initially null
         }
     }
     // Return the potentially updated value from the base atom

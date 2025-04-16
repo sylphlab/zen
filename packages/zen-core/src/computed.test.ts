@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { createAtom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional API
-import { createComputed } from './computed'; // Import createComputed
+import { atom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional API
+import { computed } from './computed'; // Import computed
 
 // Mock the internal subscribe/unsubscribe functions for dependency tracking test
 vi.mock('./atom', async (importOriginal) => {
@@ -20,14 +20,14 @@ describe('computed (functional)', () => {
   });
 
   it('should compute initial value correctly', () => {
-    const count = createAtom(10); // Use createAtom
-    const double = createComputed([count], value => value * 2); // Use createComputed
+    const count = atom(10); // Use atom
+    const double = computed([count], value => value * 2); // Use computed
     expect(getAtomValue(double)).toBe(20);
   });
 
   it('should update when a dependency atom changes', () => {
-    const count = createAtom(10); // Use createAtom
-    const double = createComputed([count], value => value * 2); // Use createComputed
+    const count = atom(10); // Use atom
+    const double = computed([count], value => value * 2); // Use computed
 
     // Subscribe to activate dependency tracking
     const unsub = subscribeToAtom(double, () => {});
@@ -40,8 +40,8 @@ describe('computed (functional)', () => {
   });
 
   it('should notify listeners when computed value changes', () => {
-    const count = createAtom(10); // Use createAtom
-    const double = createComputed([count], value => value * 2); // Use createComputed
+    const count = atom(10); // Use atom
+    const double = computed([count], value => value * 2); // Use computed
     const listener = vi.fn();
 
     const unsubscribe = subscribeToAtom(double, listener); // Use subscribeToAtom (mock target)
@@ -58,8 +58,8 @@ describe('computed (functional)', () => {
   });
 
   it('should not notify listeners if computed value does not change', () => {
-    const count = createAtom(10); // Use createAtom
-    const parity = createComputed([count], value => (value % 2 === 0 ? 'even' : 'odd')); // Use createComputed
+    const count = atom(10); // Use atom
+    const parity = computed([count], value => (value % 2 === 0 ? 'even' : 'odd')); // Use computed
     const listener = vi.fn();
 
     const unsubscribe = subscribeToAtom(parity, listener); // Use subscribeToAtom (mock target)
@@ -73,9 +73,9 @@ describe('computed (functional)', () => {
   });
 
   it('should handle multiple dependencies', () => {
-    const num1 = createAtom(10); // Use createAtom
-    const num2 = createAtom(5); // Use createAtom
-    const sum = createComputed([num1, num2], (n1, n2) => n1 + n2); // Use createComputed
+    const num1 = atom(10); // Use atom
+    const num2 = atom(5); // Use atom
+    const sum = computed([num1, num2], (n1, n2) => n1 + n2); // Use computed
     const listener = vi.fn();
 
     const unsubscribe = subscribeToAtom(sum, listener); // Use subscribeToAtom (mock target)
@@ -98,9 +98,9 @@ describe('computed (functional)', () => {
   });
 
   it('should handle dependencies on other computed atoms', () => {
-    const base = createAtom(10); // Use createAtom
-    const double = createComputed([base], val => val * 2); // Use createComputed
-    const quadruple = createComputed([double], val => val * 2); // Use createComputed
+    const base = atom(10); // Use atom
+    const double = computed([base], val => val * 2); // Use computed
+    const quadruple = computed([double], val => val * 2); // Use computed
     const listener = vi.fn();
 
     const unsubscribe = subscribeToAtom(quadruple, listener); // Use subscribeToAtom (mock target)
@@ -116,9 +116,9 @@ describe('computed (functional)', () => {
   });
 
   it('should unsubscribe from dependencies when last listener unsubscribes', () => {
-    const dep1 = createAtom(1); // Use createAtom
-    const dep2 = createAtom(2); // Use createAtom
-    const computedSum = createComputed([dep1, dep2], (d1, d2) => d1 + d2); // Use createComputed
+    const dep1 = atom(1); // Use atom
+    const dep2 = atom(2); // Use atom
+    const computedSum = computed([dep1, dep2], (d1, d2) => d1 + d2); // Use computed
     const listener = vi.fn();
 
     // Cast to access internal properties for testing
