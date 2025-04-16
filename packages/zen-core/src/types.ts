@@ -66,4 +66,4 @@ export type TaskAtom<T = unknown, Args extends unknown[] = unknown[]> = {
 /** Union type for any kind of atom structure recognized by the library. */
 // Use <any> for Map/DeepMap/TaskAtom as their value type isn't directly T
 // Update TaskAtom usage to include Args generic (using any[] for broad compatibility here)
-export type AnyAtom<T = unknown> = Atom<T> | ComputedAtom<T> | MapAtom<object> | DeepMapAtom<object> | TaskAtom<T, any[]>;
+export type AnyAtom<T = unknown> = Atom<T> | ComputedAtom<T> | MapAtom<object> | DeepMapAtom<object> | TaskAtom<T, unknown[]>; // Use unknown[] for TaskAtom Args

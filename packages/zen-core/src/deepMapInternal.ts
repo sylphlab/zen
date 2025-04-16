@@ -16,14 +16,15 @@ export type Path = PathString | PathArray;
  * @returns The value at the specified path or the default value.
  * @internal
  */
-export const getDeep = (obj: any, path: PathArray, defaultValue: any = undefined): any => {
-  let current = obj;
+export const getDeep = (obj: unknown, path: PathArray, defaultValue: unknown = undefined): unknown => {
+  let current: unknown = obj;
   for (const key of path) {
     // If current level is not an object or array, path doesn't exist.
     if (current === null || typeof current !== 'object') {
       return defaultValue;
     }
-    current = current[key]; // Move to the next level
+    // Use type assertion for indexing
+    current = (current as Record<string | number, unknown>)[key];
   }
   // Return the final value or default if it's undefined at the end.
   return current === undefined ? defaultValue : current;
@@ -40,7 +41,7 @@ export const getDeep = (obj: any, path: PathArray, defaultValue: any = undefined
  * @returns A new object with the value set, or the original object if no change was needed.
  * @internal
  */
-export const setDeep = (obj: any, path: Path, value: any): any => {
+export const setDeep = (obj: unknown, path: Path, value: unknown): unknown => {
   // 1. Normalize path to an array of keys/indices.
   // Handles dot notation strings and array indices within strings.
   const pathArray: PathArray = Array.isArray(path)
@@ -53,7 +54,7 @@ export const setDeep = (obj: any, path: Path, value: any): any => {
   }
 
   // 3. Recursive helper function to traverse and update.
-  const recurse = (currentLevel: any, remainingPath: PathArray): any => {
+  const recurse = (currentLevel: unknown, remainingPath: PathArray): unknown => {
     const key = remainingPath[0];
     // Base case should be handled by length check, but defensive check for TS.
     if (key === undefined) return currentLevel;
@@ -64,32 +65,36 @@ export const setDeep = (obj: any, path: Path, value: any): any => {
     // --- Leaf Node Update ---
     if (isLastKey) {
       // Check if update is needed: not an object, key missing, or value differs.
-      if (!currentIsObject || !(key in currentLevel) || !Object.is(currentLevel[key], value)) {
+      // Use type assertion for key check and value access
+      const currentLevelObj = currentLevel as Record<string | number, unknown>;
+      if (!currentIsObject || !(key in currentLevelObj) || !Object.is(currentLevelObj[key], value)) {
         // Determine if the clone should be an array or object based on the *current* key.
         const isArrayIndex = typeof key === 'number'; // More direct check
         // Clone current level or create new container if currentLevel is not an object/array.
         const currentClone = currentIsObject
-          ? (Array.isArray(currentLevel) ? [...currentLevel] : { ...currentLevel })
+          ? (Array.isArray(currentLevel) ? [...currentLevel] : { ...(currentLevel as object) }) // Assert for spread
           : (isArrayIndex ? [] : {});
 
         // Ensure array is large enough if setting by index beyond current length.
-        if (Array.isArray(currentClone) && typeof key === 'number' && key >= currentClone.length) {
+        // Assert currentClone type for array check and indexing
+        const currentCloneAsserted = currentClone as Record<string | number, unknown>;
+        if (Array.isArray(currentCloneAsserted) && typeof key === 'number' && key >= currentCloneAsserted.length) {
           // Fill sparse arrays with undefined up to the target index.
-           Object.defineProperty(currentClone, key, { value: value, writable: true, enumerable: true, configurable: true });
+           Object.defineProperty(currentCloneAsserted, key, { value: value, writable: true, enumerable: true, configurable: true });
            // Direct assignment might be sufficient if length adjusts automatically, but defineProperty is safer for sparse arrays.
-           // currentClone[key] = value; // Alternative
+           // currentCloneAsserted[key] = value; // Alternative
         } else {
-           currentClone[key] = value;
+           currentCloneAsserted[key] = value;
         }
-        return currentClone; // Return the modified clone
+        return currentCloneAsserted; // Return the modified clone
       } else {
         return currentLevel; // No change needed at this leaf, return original level.
       }
     }
 
     // --- Recursive Step ---
-    // Get the next level object/array.
-    let nextLevel = currentIsObject ? currentLevel[key] : undefined;
+    // Get the next level object/array. Use assertion for indexing
+    let nextLevel = currentIsObject ? (currentLevel as Record<string | number, unknown>)[key] : undefined;
     const nextKey = remainingPath[1]; // Look ahead to determine needed type
     const nextLevelShouldBeArray = nextKey !== undefined && /^\d+$/.test(String(nextKey));
 
@@ -109,17 +114,20 @@ export const setDeep = (obj: any, path: Path, value: any): any => {
 
     // Otherwise, changes occurred deeper. Clone the current level and update the key.
     const isArrayIndex = typeof key === 'number';
+    // Assert currentLevel type for cloning
     const currentClone = currentIsObject
-      ? (Array.isArray(currentLevel) ? [...currentLevel] : { ...currentLevel })
+      ? (Array.isArray(currentLevel) ? [...currentLevel] : { ...(currentLevel as object) })
       : (isArrayIndex ? [] : {}); // Create container if currentLevel wasn't object
 
      // Ensure array is large enough (less likely needed here than leaf, but for safety).
-     if (Array.isArray(currentClone) && typeof key === 'number' && key >= currentClone.length) {
-        Object.defineProperty(currentClone, key, { value: updatedNextLevel, writable: true, enumerable: true, configurable: true });
+     // Assert currentClone type for array check and indexing
+     const currentCloneAsserted = currentClone as Record<string | number, unknown>;
+     if (Array.isArray(currentCloneAsserted) && typeof key === 'number' && key >= currentCloneAsserted.length) {
+        Object.defineProperty(currentCloneAsserted, key, { value: updatedNextLevel, writable: true, enumerable: true, configurable: true });
      } else {
-        currentClone[key] = updatedNextLevel;
+        currentCloneAsserted[key] = updatedNextLevel;
      }
-    return currentClone; // Return the modified clone
+    return currentCloneAsserted; // Return the modified clone
   };
 
   // 4. Start the recursion.
@@ -136,12 +144,17 @@ export const setDeep = (obj: any, path: Path, value: any): any => {
  * @returns An array of Path arrays representing the locations of differences.
  * @internal
  */
-export const getChangedPaths = (objA: any, objB: any): PathArray[] => {
+export const getChangedPaths = (objA: unknown, objB: unknown): PathArray[] => {
     const paths: PathArray[] = []; // Store results as PathArray
+    const visited = new Set<unknown>(); // Track visited objects
 
-    function compare(a: any, b: any, currentPath: PathArray = []) {
+    function compare(a: unknown, b: unknown, currentPath: PathArray = []) {
         // 1. Identical values (Object.is)? Stop comparison for this branch.
         if (Object.is(a, b)) {
+            return;
+        }
+        // Handle cycles
+        if ((typeof a === 'object' && a !== null && visited.has(a)) || (typeof b === 'object' && b !== null && visited.has(b))) {
             return;
         }
 
@@ -167,16 +180,24 @@ export const getChangedPaths = (objA: any, objB: any): PathArray[] => {
         }
 
         // 5. Both are objects or arrays. Compare their contents.
-        const keysA = new Set(Object.keys(a));
-        const keysB = new Set(Object.keys(b));
+        // Add to visited set before recursing
+        visited.add(a);
+        visited.add(b);
+
+        // Assert types for key access
+        const objAAsserted = a as Record<string | number, unknown>;
+        const objBAsserted = b as Record<string | number, unknown>;
+
+        const keysA = new Set(Object.keys(objAAsserted));
+        const keysB = new Set(Object.keys(objBAsserted));
         const allKeys = new Set([...keysA, ...keysB]); // Union of keys
 
         allKeys.forEach(key => {
             // Determine the correct type for the path segment (number for array index, string otherwise)
             const pathSegment = Array.isArray(a) ? parseInt(key, 10) : key;
             const newPath = [...currentPath, pathSegment];
-            const valA = a[key];
-            const valB = b[key];
+            const valA = objAAsserted[key];
+            const valB = objBAsserted[key];
 
             // Check if key exists in one but not the other, or if values differ.
             if (!keysA.has(key) || !keysB.has(key) || !Object.is(valA, valB)) {
@@ -189,6 +210,9 @@ export const getChangedPaths = (objA: any, objB: any): PathArray[] => {
                 }
             }
         });
+        // Remove from visited after processing children (for non-tree structures)
+        // visited.delete(a); // Optional: depends if graph structures are expected
+        // visited.delete(b);
     }
 
     compare(objA, objB);

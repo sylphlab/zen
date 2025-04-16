@@ -7,7 +7,7 @@ import { notifyListeners } from './internalUtils'; // Import from internalUtils
 /** Tracks the nesting depth of batch calls. Exported for direct check in atom.ts. @internal */
 export let batchDepth = 0;
 /** Stores atoms that have changed within the current batch, along with their original value. */
-const batchQueue = new Map<Atom<any>, unknown>(); // Revert key to Atom<any>, keep value unknown
+const batchQueue = new Map<Atom<unknown>, unknown>(); // Use unknown for both key and value
 
 // --- Internal Functions (Exported for core.ts) ---
 
@@ -32,8 +32,8 @@ export function isInBatch(): boolean {
 export function queueAtomForBatch<T>(atom: Atom<T>, originalValue: T): void {
   // Only store the original value the *first* time an atom is queued in a batch.
   // Cast atom to Atom<any> for map access
-  if (!batchQueue.has(atom as Atom<any>)) {
-    batchQueue.set(atom as Atom<any>, originalValue);
+    if (!batchQueue.has(atom as Atom<unknown>)) { // Cast to unknown
+      batchQueue.set(atom as Atom<unknown>, originalValue); // Cast to unknown
   }
   // Subsequent calls for the same atom within the batch don't need to update the map,
   // as we only care about the value *before* the batch started for the final notification.
@@ -55,7 +55,7 @@ export function batch<T>(fn: () => T): T {
   let errorOccurred = false;
   let result: T;
   // Stores details of atoms that actually changed value for final notification.
-  const changesToNotify: { atom: Atom<any>; value: unknown; oldValue: unknown }[] = []; // Revert atom to Atom<any>
+    const changesToNotify: { atom: Atom<unknown>; value: unknown; oldValue: unknown }[] = []; // Use unknown for atom type
 
   try {
       result = fn(); // Execute the provided function

@@ -12,9 +12,9 @@ export type ComputedAtom<T = unknown> = AtomWithValue<T | null> & { // Value can
     _dirty: boolean;
     readonly _sources: ReadonlyArray<AnyAtom>; // Use AnyAtom recursively
         _sourceValues: unknown[]; // Use unknown[] instead of any[]
-        // Use a more specific function type matching the calculation parameter
-        readonly _calculation: (...values: any[]) => T;
-        readonly _equalityFn: (a: T, b: T) => boolean;
+            // Use a more specific function type matching the calculation parameter
+            readonly _calculation: (...values: unknown[]) => T; // Replace any[] with unknown[]
+            readonly _equalityFn: (a: T, b: T) => boolean;
     _unsubscribers?: Unsubscribe[];
     // Add internal methods needed by functional API calls
     _update: () => boolean;
@@ -247,8 +247,8 @@ export function computed<T, S extends Stores>( // Rename createComputed to compu
     _dirty: true,
     _sources: stores,
         _sourceValues: new Array(stores.length),
-        _calculation: calculation as (...values: any[]) => T, // Use the more specific type
-        _equalityFn: equalityFn,
+            _calculation: calculation as (...values: unknown[]) => T, // Use unknown[]
+            _equalityFn: equalityFn,
     // Listener properties (e.g., _listeners, _startListeners) are omitted
     // _unsubscribers will be added by _subscribeToSources when needed
     // Add back internal methods needed by core logic (get, subscribe)

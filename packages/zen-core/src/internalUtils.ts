@@ -1,5 +1,6 @@
 // Internal utility functions shared across the library.
-import type { AnyAtom, AtomWithValue, Listener, TaskState, LifecycleListener } from './types'; // Import base types and merged types
+import type { AnyAtom, AtomWithValue, Listener, TaskState } from './types'; // Import base types and merged types
+import type { LifecycleListener } from './events'; // Import LifecycleListener from events
 
 /**
  * Notifies all listeners of an atom about a value change.

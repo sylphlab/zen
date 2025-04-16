@@ -111,12 +111,12 @@ export function subscribe<T extends object>(atom: MapAtom<T>, listener: Listener
 export function subscribe<T extends object>(atom: DeepMapAtom<T>, listener: Listener<T>): Unsubscribe;
 export function subscribe<T>(atom: TaskAtom<T>, listener: Listener<TaskState<T>>): Unsubscribe;
 // General implementation signature
-export function subscribe<T>(atom: AnyAtom<T>, listener: Listener<any>): Unsubscribe { // Keep listener as any for implementation signature compatibility
+export function subscribe<T>(atom: AnyAtom<T>, listener: Listener<any>): Unsubscribe { // Revert listener to any
     // Operate directly on the atom
     const baseAtom = atom as AtomWithValue<unknown>; // Keep cast to unknown
     const isFirstListener = !baseAtom._listeners?.size;
     baseAtom._listeners ??= new Set();
-    baseAtom._listeners.add(listener as Listener<any>); // Keep listener cast as any
+                    baseAtom._listeners.add(listener as Listener<any>); // Revert listener cast to any
 
     // Trigger onStart and onMount if this is the first listener
     if (isFirstListener) {
@@ -191,10 +191,10 @@ export function subscribe<T>(atom: AnyAtom<T>, listener: Listener<any>): Unsubsc
       const baseAtom = atom as AtomWithValue<unknown>; // Keep cast to unknown
       const listeners = baseAtom._listeners;
       // Keep cast to any for Set.has check due to variance issues
-      if (!listeners?.has(listener as Listener<any>)) return;
+                              if (!listeners?.has(listener as Listener<any>)) return; // Revert listener cast to any
 
       // Keep cast to any for Set.delete due to variance issues
-      listeners.delete(listener as Listener<any>);
+                              listeners.delete(listener as Listener<any>); // Revert listener cast to any
 
       // Trigger onStop if this was the last listener
       if (!listeners.size) { // Use Set size
