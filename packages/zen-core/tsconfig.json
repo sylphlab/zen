@@ -1,0 +1,38 @@
+{
+  // Removed "extends": "../../tsconfig.base.json"
+  "compilerOptions": {
+    // Copied necessary options from tsconfig.base.json
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "target": "ESNext",
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "moduleDetection": "force",
+    "isolatedModules": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler", // Explicitly set
+    "lib": ["esnext", "dom", "dom.iterable"],
+    "declaration": true,
+    "sourceMap": false,
+    "declarationMap": false,
+    "inlineSources": false,
+    "forceConsistentCasingInFileNames": true,
+
+    // Package-specific options
+    "composite": true, // Required for project references
+    "emitDeclarationOnly": true, // Only emit .d.ts files
+    "declarationDir": "dist" // Output .d.ts files directly to dist
+    // No rootDir needed if include is specific
+  },
+  "include": ["src"], // Keep it simple
+  "exclude": ["node_modules", "dist"] // Keep it simple
+}

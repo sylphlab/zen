@@ -1,0 +1,41 @@
+{
+  // Removed "extends": "../../tsconfig.base.json"
+  "compilerOptions": {
+    // Copied necessary options from tsconfig.base.json
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "target": "ESNext",
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "moduleDetection": "force",
+    "isolatedModules": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler", // Explicitly set
+    "lib": ["esnext", "dom", "dom.iterable"],
+    "declaration": true,
+    "sourceMap": false,
+    "declarationMap": false,
+    "inlineSources": false,
+    "forceConsistentCasingInFileNames": true,
+
+    // Package-specific options
+    // No composite needed here unless other packages depend on it
+    "emitDeclarationOnly": true, // Only emit .d.ts files
+    "declarationDir": "dist", // Output .d.ts files directly to dist
+    "rootDir": "src"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.bench.ts"],
+  "references": [
+    { "path": "../zen-core" } // Reference the core package
+  ]
+}

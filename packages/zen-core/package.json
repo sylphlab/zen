@@ -1,0 +1,58 @@
+{
+  "name": "@zen/core",
+  "version": "0.0.1",
+  "description": "Core package for the zen state management library.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "bench": "vitest bench --run",
+    "bench:watch": "vitest bench",
+    "size": "size-limit",
+    "lint": "echo 'Lint script not implemented yet'"
+  },
+  "size-limit": [
+    {
+      "name": "zen (atom only)",
+      "path": "dist/index.js",
+      "import": "{ atom }",
+      "limit": "1.1 kB"
+    },
+    {
+      "name": "zen (full)",
+      "path": "dist/index.js",
+      "import": "{ atom, computed, map, task }",
+      "limit": "1.8 kB"
+    }
+  ],
+  "keywords": [
+    "state",
+    "store",
+    "state management",
+    "atom",
+    "reactive",
+    "minimal",
+    "tiny",
+    "nanostores"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+  },
+  "dependencies": {
+  }
+}

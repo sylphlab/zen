@@ -1,0 +1,40 @@
+{
+  "name": "@zen/router",
+  "version": "0.0.1",
+  "description": "Tiny URL router for zen state management.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "echo 'Lint script not implemented yet'"
+  },
+  "keywords": [
+    "zen",
+    "router",
+    "routing",
+    "state management",
+    "minimal",
+    "tiny"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+  },
+  "dependencies": {
+    "@zen/core": "workspace:*"
+  }
+}

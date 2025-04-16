@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    /* Base Options: */
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "target": "ESNext",
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "moduleDetection": "force",
+    "isolatedModules": true, // Important for build tools like tsup/esbuild
+
+    /* Strictness */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true, // Consider if needed, might require ! assertions
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+
+    /* Module settings */
+    "module": "ESNext",
+    "moduleResolution": "Bundler", // Recommended for modern tooling
+
+    /* DOM library */
+    "lib": ["esnext", "dom", "dom.iterable"],
+
+    /* Output settings (handled by tsup, but good for editor) */
+    "declaration": true,
+    "sourceMap": false, // Controlled by tsup
+    "declarationMap": false, // Controlled by tsup
+    "inlineSources": false,
+
+    /* Other */
+    "forceConsistentCasingInFileNames": true
+  },
+  "exclude": ["node_modules", "dist"] // Exclude common folders globally
+}

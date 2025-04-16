@@ -1,94 +1,29 @@
 {
-  "name": "zen",
-  "version": "0.0.1",
-  "description": "Minimal, fast state management library inspired by Nanostores.",
+  "name": "zen-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Monorepo for the zen state management library and related packages.",
   "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/types/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/types/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    }
-  },
-  "files": [
-    "dist"
+  "packageManager": "bun@1.2.9",
+  "workspaces": [
+    "packages/*"
   ],
   "scripts": {
-    "build": "tsup",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "bench": "vitest bench --run",
-    "bench:watch": "vitest bench",
-    "size": "size-limit"
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "test:watch": "turbo run test:watch",
+    "bench": "turbo run bench",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "turbo run build --filter=./packages/* && changeset publish"
   },
-  "size-limit": [
-    {
-      "name": "zen (atom only)",
-      "path": "dist/index.js",
-      "import": "{ atom }",
-      "limit": "1.1 kB"
-    },
-    {
-      "name": "zen (full)",
-      "path": "dist/index.js",
-      "import": "{ atom, computed, map, task }",
-      "limit": "1.8 kB"
-    },
-    {
-      "name": "nanostores (atom only)",
-      "path": "node_modules/nanostores/index.js",
-      "import": "{ atom }"
-    },
-    {
-      "name": "nanostores (map)",
-      "path": "node_modules/nanostores/index.js",
-      "import": "{ map }"
-    },
-    {
-      "name": "jotai",
-      "path": "node_modules/jotai/esm/index.mjs",
-      "import": "{ atom }"
-    },
-    {
-      "name": "zustand",
-      "path": "node_modules/zustand/esm/index.mjs",
-      "import": "{ create }",
-      "ignore": [
-        "react"
-      ]
-    },
-    {
-      "name": "valtio",
-      "path": "node_modules/valtio/esm/index.mjs",
-      "import": "{ proxy }"
-    },
-    {
-      "name": "redux-toolkit",
-      "path": "node_modules/@reduxjs/toolkit/dist/redux-toolkit.modern.mjs",
-      "import": "{ configureStore, createSlice }"
-    },
-    {
-      "name": "effector",
-      "path": "node_modules/effector/effector.mjs",
-      "import": "{ createStore, createEvent }"
-    }
-  ],
-  "keywords": [
-    "state",
-    "store",
-    "state management",
-    "atom",
-    "reactive",
-    "minimal",
-    "tiny",
-    "nanostores"
-  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@changesets/cli": "^2.27.7",
     "@reduxjs/toolkit": "^2.6.1",
     "@size-limit/preset-small-lib": "^11.2.0",
     "@testing-library/react": "^16.3.0",
@@ -99,10 +34,12 @@
     "jotai": "^2.12.3",
     "jsdom": "^26.1.0",
     "nanostores": "^1.0.1",
+    "prettier": "^3.3.3",
     "react": "^19.1.0",
     "size-limit": "^11.2.0",
     "terser": "^5.39.0",
     "tsup": "^8.4.0",
+    "turbo": "^2.5.0",
     "typescript": "^5.8.3",
     "valtio": "^2.1.4",
     "vitest": "^3.1.1",
