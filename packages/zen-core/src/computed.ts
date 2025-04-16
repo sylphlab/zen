@@ -6,12 +6,12 @@ import { get as getAtomValue, subscribe as subscribeToAtom } from './atom'; // I
 // --- Type Definitions ---
 /** Represents a computed atom's specific properties (functional style). */
 // It directly includes AtomWithValue properties now.
-export type ComputedAtom<T = any> = AtomWithValue<T | null> & { // Value can be null initially
+export type ComputedAtom<T = unknown> = AtomWithValue<T | null> & { // Value can be null initially
     _kind: 'computed';
     _value: T | null; // Override value type
     _dirty: boolean;
     readonly _sources: ReadonlyArray<AnyAtom>; // Use AnyAtom recursively
-    _sourceValues: any[];
+    _sourceValues: unknown[]; // Use unknown[] instead of any[]
     readonly _calculation: Function;
     readonly _equalityFn: (a: T, b: T) => boolean;
     _unsubscribers?: Unsubscribe[];
@@ -22,11 +22,11 @@ export type ComputedAtom<T = any> = AtomWithValue<T | null> & { // Value can be 
 };
 
 /** Alias for ComputedAtom, representing the read-only nature. */
-export type ReadonlyAtom<T = any> = ComputedAtom<T>;
+export type ReadonlyAtom<T = unknown> = ComputedAtom<T>;
 
 // --- Types ---
 /** Represents an array of source atoms (can be Atom or ReadonlyAtom). */
-type Stores = ReadonlyArray<AnyAtom<any>>; // Use AnyAtom
+type Stores = ReadonlyArray<AnyAtom<unknown>>; // Use AnyAtom<unknown>
 
 /** Utility type to extract the value types from an array of Stores. */
 type StoreValues<S extends Stores> = {
@@ -48,11 +48,36 @@ function updateComputedValue<T>(atom: ComputedAtom<T>): boolean {
     const calc = atom._calculation;
     const old = atom._value; // Capture value BEFORE recalculation (could be null)
 
-    // 1. Get current values from all source atoms using the functional API
+    // 1. Get current values from all source atoms (inlining get() logic)
     for (let i = 0; i < srcs.length; i++) {
         const source = srcs[i];
         if (source) { // Check if source exists
-            vals[i] = getAtomValue(source); // Use getAtomValue
+            // Inline getAtomValue logic to avoid overload resolution issues
+            let sourceValue: unknown;
+            switch (source._kind) {
+                case 'atom':
+                    sourceValue = source._value;
+                    break;
+                case 'computed':
+                    // Need to cast to ComputedAtom to access _update
+                    const computedSource = source as ComputedAtom<unknown>;
+                    if (computedSource._dirty || computedSource._value === null) {
+                        computedSource._update();
+                    }
+                    sourceValue = computedSource._value;
+                    break;
+                case 'map':
+                case 'deepMap':
+                case 'task':
+                    sourceValue = source._value; // Value is object or TaskState
+                    break;
+                default:
+                    console.error("Unknown atom kind in computed source:", source);
+                    const exhaustiveCheck: never = source;
+                    sourceValue = undefined; // Fallback
+                    break;
+            }
+            vals[i] = sourceValue;
         } else {
             vals[i] = undefined; // Or handle missing source appropriately
         }
@@ -119,8 +144,58 @@ function subscribeComputedToSources<T>(atom: ComputedAtom<T>): void {
     for (let i = 0; i < sources.length; i++) {
         const source = sources[i];
         if (source) {
-            // Subscribe to each source using the functional API
-            atom._unsubscribers[i] = subscribeToAtom(source, onChangeHandler);
+            // Inline subscribeToAtom logic to avoid overload resolution issues
+            const baseSource = source as AtomWithValue<any>; // Cast for listener access
+            const isFirstSourceListener = !baseSource._listeners?.size;
+            baseSource._listeners ??= new Set();
+            baseSource._listeners.add(onChangeHandler); // Add the computed's handler
+
+            // Trigger source's onStart/onMount if needed (simplified from subscribeToAtom)
+            if (isFirstSourceListener) {
+                // Trigger onMount first (if exists)
+                const mountLs = baseSource._mountListeners;
+                if (mountLs?.size) {
+                    for (const fn of mountLs) { try { fn(undefined); } catch(e) { console.error(`Error in source onMount listener:`, e); } }
+                }
+                delete baseSource._mountListeners; // Clean up
+
+                // Then trigger onStart
+                const startLs = baseSource._startListeners;
+                if (startLs?.size) {
+                    for (const fn of startLs) { try { fn(undefined); } catch(e) { console.error(`Error in source onStart listener:`, e); } }
+                }
+                // If the source is itself computed, trigger its source subscription
+                if (source._kind === 'computed') { // Check kind directly
+                     const computedSource = source as ComputedAtom<unknown>; // Cast
+                     if (typeof computedSource._subscribeToSources === 'function') {
+                        computedSource._subscribeToSources();
+                     }
+                }
+            }
+            // Don't call the listener immediately here, computed handles initial calc
+
+            // Store the unsubscribe logic for this specific source
+            atom._unsubscribers[i] = () => {
+                const baseSrc = source as AtomWithValue<any>;
+                const srcListeners = baseSrc._listeners;
+                if (!srcListeners?.has(onChangeHandler)) return;
+
+                srcListeners.delete(onChangeHandler);
+
+                if (!srcListeners.size) {
+                    delete baseSrc._listeners;
+                    const stopLs = baseSrc._stopListeners;
+                    if (stopLs?.size) {
+                        for (const fn of stopLs) { try { fn(undefined); } catch(e) { console.error(`Error in source onStop listener:`, e); } }
+                    }
+                    if (source._kind === 'computed') {
+                        const computedSource = source as ComputedAtom<unknown>;
+                        if (typeof computedSource._unsubscribeFromSources === 'function') {
+                            computedSource._unsubscribeFromSources();
+                        }
+                    }
+                }
+            };
         }
     }
 }

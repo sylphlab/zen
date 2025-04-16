@@ -15,7 +15,7 @@ import { notifyListeners } from './internalUtils'; // Import notifyListeners
 
 // --- Internal state for tracking running promises ---
 // WeakMap to associate TaskAtom instances with their currently running promise.
-const runningPromises = new WeakMap<TaskAtom<any>, Promise<any>>();
+const runningPromises = new WeakMap<TaskAtom<any>, Promise<any>>(); // Revert to any
 
 /**
  * Creates a Task Atom to manage the state of an asynchronous operation.
@@ -24,11 +24,12 @@ const runningPromises = new WeakMap<TaskAtom<any>, Promise<any>>();
  * @param asyncFn The asynchronous function to execute when `runTask` is called.
  * @returns A TaskAtom instance.
  */
-export function task<T = void>( // Rename createTask to task
-  asyncFn: (...args: any[]) => Promise<T>
-): TaskAtom<T> {
-  // Create the merged TaskAtom object directly
-  const taskAtom: TaskAtom<T> = {
+ // Add Args generic parameter matching TaskAtom type
+ export function task<T = void, Args extends any[] = any[]>(
+   asyncFn: (...args: Args) => Promise<T>
+ ): TaskAtom<T, Args> { // Return TaskAtom with Args
+   // Create the merged TaskAtom object directly
+   const taskAtom: TaskAtom<T, Args> = { // Use TaskAtom with Args
     _kind: 'task',
     _value: { loading: false }, // Initial TaskState
     _asyncFn: asyncFn,
@@ -48,12 +49,14 @@ export function task<T = void>( // Rename createTask to task
  * @param args Arguments to pass to the asynchronous function.
  * @returns A promise that resolves with the result or rejects with the error.
  */
-export function runTask<T>(taskAtom: TaskAtom<T>, ...args: any[]): Promise<T> {
+// Add Args generic parameter matching TaskAtom type
+export function runTask<T, Args extends any[]>(taskAtom: TaskAtom<T, Args>, ...args: Args): Promise<T> {
   // Operate directly on taskAtom
   // const stateAtom = taskAtom._stateAtom; // Removed
 
   // Check if a promise is already running for this task using the WeakMap.
-  const existingPromise = runningPromises.get(taskAtom);
+  // Cast taskAtom for WeakMap key compatibility
+  const existingPromise = runningPromises.get(taskAtom as TaskAtom<any>);
   if (existingPromise) {
     // console.log('Task already running, returning existing promise.'); // Optional debug log
     return existingPromise;
@@ -69,7 +72,8 @@ export function runTask<T>(taskAtom: TaskAtom<T>, ...args: any[]): Promise<T> {
 
     // Call the stored async function and store the promise.
     const promise = taskAtom._asyncFn(...args);
-    runningPromises.set(taskAtom, promise); // Track this promise using the WeakMap.
+    // Cast taskAtom for WeakMap key compatibility
+    runningPromises.set(taskAtom as TaskAtom<any>, promise); // Track this promise using the WeakMap.
 
     try {
       // Wait for the async function to complete.
@@ -77,13 +81,15 @@ export function runTask<T>(taskAtom: TaskAtom<T>, ...args: any[]): Promise<T> {
 
       // **Crucially**, only update the state if this *specific* promise instance
       // is still the one tracked in the WeakMap.
-      if (runningPromises.get(taskAtom) === promise) {
+      // Cast taskAtom for WeakMap key compatibility
+      if (runningPromises.get(taskAtom as TaskAtom<any>) === promise) {
         // console.log('Task succeeded, updating state.'); // Optional debug log
         const oldStateSuccess = taskAtom._value;
         taskAtom._value = { loading: false, data: result, error: undefined };
         // Notify listeners directly attached to TaskAtom
         notifyListeners(taskAtom, taskAtom._value, oldStateSuccess);
-        runningPromises.delete(taskAtom); // Clear the running promise tracker.
+        // Cast taskAtom for WeakMap key compatibility
+        runningPromises.delete(taskAtom as TaskAtom<any>); // Clear the running promise tracker.
       } else {
         // console.log('Task succeeded, but a newer run is active. Ignoring result.'); // Optional debug log
       }
@@ -91,7 +97,8 @@ export function runTask<T>(taskAtom: TaskAtom<T>, ...args: any[]): Promise<T> {
       return result; // Return the successful result.
     } catch (error) {
       // Similar check for race conditions on error.
-      if (runningPromises.get(taskAtom) === promise) {
+      // Cast taskAtom for WeakMap key compatibility
+      if (runningPromises.get(taskAtom as TaskAtom<any>) === promise) {
         // console.error('Task failed, updating state:', error); // Optional debug log
         // Ensure the error stored is always an Error instance.
         const errorObj = error instanceof Error ? error : new Error(String(error ?? 'Unknown error'));
@@ -99,7 +106,8 @@ export function runTask<T>(taskAtom: TaskAtom<T>, ...args: any[]): Promise<T> {
         taskAtom._value = { loading: false, error: errorObj, data: undefined };
         // Notify listeners directly attached to TaskAtom
         notifyListeners(taskAtom, taskAtom._value, oldStateError);
-        runningPromises.delete(taskAtom); // Clear the running promise tracker.
+        // Cast taskAtom for WeakMap key compatibility
+        runningPromises.delete(taskAtom as TaskAtom<any>); // Clear the running promise tracker.
       } else {
          // console.error('Task failed, but a newer run is active. Ignoring error.'); // Optional debug log
       }

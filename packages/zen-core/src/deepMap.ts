@@ -41,7 +41,7 @@ export { getCoreValue as get, subscribeToCoreAtom as subscribe };
 export function setPath<T extends object>(
   deepMapAtom: DeepMapAtom<T>,
   path: Path,
-  value: any,
+  value: unknown, // Use unknown instead of any
   forceNotify = false
 ): void {
   // Prevent errors with empty paths.
@@ -127,7 +127,8 @@ export function listenPaths<T extends object>(
     listener: PathListener<T>
 ): Unsubscribe {
     // Delegates to the function from events.ts, passing the deepMapAtom itself
-    return addPathListener(deepMapAtom, paths, listener);
+    // Cast to AnyAtom<any> to bypass strict check, as listenPaths internals are compatible
+    return addPathListener(deepMapAtom as AnyAtom<any>, paths, listener);
 }
 
 // Note: Factory function is now 'deepMap', path setter is 'setPath', etc.

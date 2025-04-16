@@ -1,5 +1,6 @@
 // Functional atom implementation
-import type { Listener, Unsubscribe, AnyAtom, AtomWithValue, TaskState, TaskAtom } from './types'; // Import from types (including TaskAtom)
+import type { Listener, Unsubscribe, AnyAtom, AtomWithValue, TaskState, TaskAtom, MapAtom, DeepMapAtom } from './types'; // Import from types (including TaskAtom, MapAtom, DeepMapAtom)
+// Remove duplicate import line
 import type { ComputedAtom } from './computed'; // Import ComputedAtom from computed.ts
 import { isComputedAtom } from './typeGuards'; // Import from typeGuards
 // Removed TaskAtom import from './task'
@@ -15,35 +16,47 @@ export type Atom<T = any> = AtomWithValue<T> & {
 // --- Core Functional API ---
 
 /**
- * Gets the current value of an atom.
+ * Gets the current value of an atom. Provides specific return types based on atom kind.
  * @param atom The atom to read from.
  * @returns The current value.
  */
-export function get<T>(atom: AnyAtom<T>): T | TaskState<any> | null { // Adjusted return type for TaskState
-    // Dispatch based on atom kind for potential optimization
-    if ('_kind' in atom) { // Check if _kind exists (basic atoms, computed)
-        switch (atom._kind) {
-            case 'computed':
-                const computed = atom as ComputedAtom<T>;
-                if (computed._dirty || computed._value === null) {
-                    computed._update();
-                }
-                return computed._value;
-            case 'atom':
-                return (atom as Atom<T>)._value;
-            // For map/deepMap/taskState, _kind is on the internal atom.
-            // Fall through to getBaseAtom logic below.
-        }
+// Overloads for specific atom types
+export function get<T>(atom: Atom<T>): T;
+export function get<T>(atom: ComputedAtom<T>): T | null; // Computed can be null initially
+export function get<T extends object>(atom: MapAtom<T>): T;
+export function get<T extends object>(atom: DeepMapAtom<T>): T;
+export function get<T>(atom: TaskAtom<T>): TaskState<T>;
+// General implementation signature (covers AnyAtom and allows internal logic)
+export function get<T>(atom: AnyAtom<T>): T | TaskState<unknown> | object | null {
+    // Use switch for type narrowing and direct value access
+    switch (atom._kind) {
+        case 'atom':
+            // Type is narrowed to Atom<T>, _value is T
+            return atom._value;
+        case 'computed':
+            // Explicit cast needed despite switch
+            const computed = atom as ComputedAtom<T>;
+            if (computed._dirty || computed._value === null) {
+                computed._update();
+            }
+            return computed._value;
+        case 'map':
+        case 'deepMap':
+            // Type is narrowed to MapAtom<any> | DeepMapAtom<any>
+            // Value is object | null, but should always be object for these types
+            // Overload ensures atom._value is T (object)
+            return atom._value;
+        case 'task':
+            // Type is narrowed to TaskAtom<T>
+            // Overload ensures atom._value is TaskState<T>
+            return atom._value;
+        default:
+            // Handle unknown kind - should not happen with AnyAtom
+            // Fallback to satisfy TS, though ideally unreachable
+            console.error("Unknown atom kind in get():", atom);
+            const exhaustiveCheck: never = atom; // Ensure all cases are handled
+            return null;
     }
-
-    // Fallback for Map, DeepMap, Task, or unknown
-    // Operate directly on the atom as it now includes AtomWithValue properties
-    if (atom._kind === 'task') {
-        // TaskAtom directly holds TaskState in _value
-        return (atom as AtomWithValue<TaskState<any>>)._value;
-    }
-    // For Map, DeepMap, or unknown fallback
-    return (atom as AtomWithValue<T>)._value; // Assume AtomWithValue structure
 }
 
 /**
@@ -89,7 +102,14 @@ export function set<T>(atom: Atom<T>, value: T, force = false): void {
  * @param listener The function to call on value changes.
  * @returns A function to unsubscribe the listener.
  */
-export function subscribe<T>(atom: AnyAtom<T>, listener: Listener<T>): Unsubscribe {
+// Overloads for specific atom types
+export function subscribe<T>(atom: Atom<T>, listener: Listener<T>): Unsubscribe;
+export function subscribe<T>(atom: ComputedAtom<T>, listener: Listener<T | null>): Unsubscribe; // Computed can be null
+export function subscribe<T extends object>(atom: MapAtom<T>, listener: Listener<T>): Unsubscribe;
+export function subscribe<T extends object>(atom: DeepMapAtom<T>, listener: Listener<T>): Unsubscribe;
+export function subscribe<T>(atom: TaskAtom<T>, listener: Listener<TaskState<T>>): Unsubscribe;
+// General implementation signature
+export function subscribe<T>(atom: AnyAtom<T>, listener: Listener<any>): Unsubscribe { // Use Listener<any> for implementation flexibility
     // Operate directly on the atom
     const baseAtom = atom as AtomWithValue<any>; // Cast for listener access
     const isFirstListener = !baseAtom._listeners?.size;
@@ -129,10 +149,35 @@ export function subscribe<T>(atom: AnyAtom<T>, listener: Listener<T>): Unsubscri
     // Initial call to the new listener
     // The very first value notification should always have `undefined` as oldValue.
     try {
-        const currentValue = get(atom); // Use updated get function
-        // Cast to T, assuming listener matches the atom's expected value type.
-        // TaskState is handled by subscribeToTask which provides the correct listener type.
-        listener(currentValue as T, undefined); // Explicitly pass undefined for initial call
+        // Replicate get() logic here to avoid nested overload resolution issues
+        let currentValue: T | TaskState<unknown> | object | null;
+        switch (atom._kind) {
+            case 'atom':
+                currentValue = atom._value;
+                break;
+            case 'computed':
+                const computed = atom as ComputedAtom<T>;
+                if (computed._dirty || computed._value === null) {
+                    computed._update();
+                }
+                currentValue = computed._value;
+                break;
+            case 'map':
+            case 'deepMap':
+                currentValue = atom._value; // Overloads ensure this is T (object)
+                break;
+            case 'task':
+                currentValue = atom._value; // Overloads ensure this is TaskState<T>
+                break;
+            default:
+                 // Should be unreachable due to AnyAtom type
+                 console.error("Unknown atom kind in subscribe initial call:", atom);
+                 const exhaustiveCheck: never = atom;
+                 currentValue = null; // Fallback
+                 break;
+        }
+        // The subscribe overloads ensure the listener type matches currentValue type now.
+        listener(currentValue, undefined);
     } catch (e) {
         console.error(`Error in initial listener call for atom ${String(atom)}:`, e);
     }
