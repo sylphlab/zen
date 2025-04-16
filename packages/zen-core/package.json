@@ -29,13 +29,13 @@
     {
       "name": "zen (atom only)",
       "path": "dist/index.js",
-      "import": "{ createAtom }",
+      "import": "{ atom }",
       "limit": "1.1 kB"
     },
     {
       "name": "zen (full)",
       "path": "dist/index.js",
-      "import": "{ createAtom, createComputed, createMap, createTask }",
+      "import": "{ atom, computed, map, task }",
       "limit": "1.8 kB"
     }
   ],
