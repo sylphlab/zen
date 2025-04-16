@@ -1,13 +1,12 @@
 // Functional Map atom implementation.
-import { Atom, Unsubscribe, AtomTypes, Listener, AnyAtom } from './core'; // Import AnyAtom
+import { Atom, Unsubscribe, Listener, AnyAtom } from './core'; // Removed AtomTypes
 import { createAtom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional atom API
 import { listenKeys as addKeyListener, _emitKeyChanges, KeyListener } from './events'; // Key listener logic from events
 import { STORE_MAP_KEY_SET } from './keys'; // Symbol marker for map atoms
 
 /** Type definition for the functional Map Atom structure. */
 export type MapAtom<T extends object> = {
-  readonly $$id: symbol;
-  readonly $$type: typeof AtomTypes.Map;
+  // Removed $$id and $$type
   readonly _internalAtom: Atom<T>; // Internal atom holding the object state
   // Key listeners are managed by the events module via WeakMap
 };
@@ -22,9 +21,8 @@ export type MapAtom<T extends object> = {
  */
 export function createMap<T extends object>(initialValue: T): MapAtom<T> {
   const internalAtom = createAtom<T>({ ...initialValue }); // Use createAtom
+  // Optimize: Only initialize the internal atom.
   const mapAtom: MapAtom<T> = {
-    $$id: Symbol('createMap'), // Changed symbol description for clarity
-    $$type: AtomTypes.Map,
     _internalAtom: internalAtom,
   };
   // Mark the internal atom so listenKeys can identify it

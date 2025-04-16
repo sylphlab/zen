@@ -46,10 +46,8 @@ export function createTask<T = void>(
   const stateAtom = createAtom<TaskState<T>>({ loading: false }); // Use createAtom
 
   // 2. Create the TaskAtom object, storing the async function.
+  // Optimize: Only initialize essential properties.
   const taskAtom: TaskAtom<T> = {
-    // Add required properties based on updated core.ts TaskAtom type
-    $$id: Symbol('createTask'), // Add ID
-    $$type: -1, // Placeholder type, maybe define TaskType later
     _stateAtom: stateAtom,
     _asyncFn: asyncFn, // Store the async function
   };

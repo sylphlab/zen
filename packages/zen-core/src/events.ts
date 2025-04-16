@@ -1,5 +1,5 @@
 // Event system implementation for functional atoms.
-import { Atom, ReadonlyAtom, Listener, Unsubscribe, AnyAtom, AtomTypes, getBaseAtom, MapAtom, DeepMapAtom, AtomWithValue } from './core'; // Import necessary types and getBaseAtom from core
+import { Atom, ReadonlyAtom, Listener, Unsubscribe, AnyAtom, getBaseAtom, MapAtom, DeepMapAtom, AtomWithValue } from './core'; // Removed AtomTypes
 import { STORE_MAP_KEY_SET } from './keys'; // Symbol to identify map/deepMap atoms
 import { Path, PathArray, getDeep } from './deepMapInternal'; // Utilities for deepMap
 
@@ -16,8 +16,9 @@ export type KeyListener<T, K extends keyof T = keyof T> = (value: T[K] | undefin
 
 /** Type guard to check if an atom is mutable (not computed). */
 function isMutableAtom<T>(a: AnyAtom<T>): a is Atom<T> | MapAtom<any> | DeepMapAtom<any> { // Return type includes Map/DeepMap
-  // Check the internal type marker. Map/DeepMap are mutable via specific functions.
-  return a.$$type === AtomTypes.Regular || a.$$type === AtomTypes.Map || a.$$type === AtomTypes.DeepMap;
+  // Check if it's NOT a computed atom (which is the only truly immutable type here)
+  // Computed atoms have a _calculation property.
+  return !('_calculation' in a);
 }
 
 // --- Internal Helper for Removing Listeners ---

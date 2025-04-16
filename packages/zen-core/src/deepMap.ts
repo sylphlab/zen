@@ -1,5 +1,5 @@
 // Functional DeepMap atom implementation.
-import { Atom, Unsubscribe, AtomTypes, Listener, AnyAtom, MapAtom, DeepMapAtom } from './core'; // Import MapAtom & DeepMapAtom
+import { Atom, Unsubscribe, Listener, AnyAtom, MapAtom, DeepMapAtom } from './core'; // Removed AtomTypes
 import { createAtom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional atom API
 import { listenPaths as addPathListener, _emitPathChanges, PathListener } from './events'; // Path listener logic
 import { STORE_MAP_KEY_SET } from './keys'; // Symbol marker
@@ -17,9 +17,8 @@ import { Path, setDeep, getChangedPaths } from './deepMapInternal'; // Deep obje
  */
 export function createDeepMap<T extends object>(initialValue: T): DeepMapAtom<T> {
   const internalAtom = createAtom<T>(initialValue); // Use createAtom
+  // Optimize: Only initialize the internal atom.
   const deepMapAtom: DeepMapAtom<T> = {
-    $$id: Symbol('createDeepMap'), // Changed symbol description
-    $$type: AtomTypes.DeepMap,
     _internalAtom: internalAtom,
   };
   // Mark the internal atom so listenPaths can identify it

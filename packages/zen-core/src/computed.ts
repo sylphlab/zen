@@ -6,7 +6,7 @@ import {
   Unsubscribe,
   ComputedAtom,
   AnyAtom,
-  AtomTypes,
+  // Removed AtomTypes
   notifyListeners // Import notifyListeners from core
 } from './core';
 import { get as getAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated core functional API
@@ -146,34 +146,25 @@ export function createComputed<T, S extends Stores>( // Rename factory function
 ): ReadonlyAtom<T> {
 
   // Define the structure adhering to ComputedAtom<T> type
+  // Optimize: Only initialize essential computed properties. Listeners omitted.
   const computedAtom: ComputedAtom<T> = {
-    $$id: Symbol('computed'),
-    $$type: AtomTypes.Computed,
     _value: null, // Start as null
     _dirty: true,
     _sources: stores,
     _sourceValues: new Array(stores.length),
     _calculation: calculation as Function,
     _equalityFn: equalityFn,
-    // Listeners and unsubscribers initialized lazily
-    _listeners: undefined,
-    _startListeners: undefined,
-    _stopListeners: undefined,
-    _notifyListeners: undefined,
-    _mountListeners: undefined,
-    _unsubscribers: undefined,
-    // Add back internal methods needed by core logic (getAtomValue, subscribeToAtom)
+    // Listener properties (e.g., _listeners, _startListeners) are omitted
+    // _unsubscribers will be added by _subscribeToSources when needed
+    // Add back internal methods needed by core logic (get, subscribe)
     _subscribeToSources: () => subscribeComputedToSources(computedAtom),
     _unsubscribeFromSources: () => unsubscribeComputedFromSources(computedAtom),
     _update: () => updateComputedValue(computedAtom),
     // _onChange is not directly called externally, computedSourceChanged handles it
   };
 
-   // Trigger onMount immediately after creation if listeners exist
-   computedAtom._mountListeners?.forEach(fn => {
-      try { fn(undefined); } catch(e) { console.error(`Error in onMount listener during computed creation:`, e); }
-   });
-   delete computedAtom._mountListeners; // Clean up mount listeners
+   // DO NOT trigger onMount immediately after creation anymore.
+   // It will be triggered by the first subscribe call (handled in atom.ts).
 
   // The getAtomValue in atom.ts now calls updateComputedValue if dirty.
   // The subscribeToAtom in atom.ts now calls subscribeComputedToSources/unsubscribeComputedFromSources.

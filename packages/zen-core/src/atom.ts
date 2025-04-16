@@ -1,5 +1,5 @@
 // Functional atom implementation
-import { Atom, Listener, Unsubscribe, AtomTypes, AnyAtom, ComputedAtom, notifyListeners, getBaseAtom } from './core'; // Import getBaseAtom
+import { Atom, Listener, Unsubscribe, AnyAtom, ComputedAtom, notifyListeners, getBaseAtom } from './core'; // Removed AtomTypes
 import { isInBatch, queueAtomForBatch, batchDepth } from './batch'; // Import batch helpers AND batchDepth
 
 // --- Core Functional API ---
@@ -10,8 +10,8 @@ import { isInBatch, queueAtomForBatch, batchDepth } from './batch'; // Import ba
  * @returns The current value.
  */
 export function get<T>(atom: AnyAtom<T>): T | null { // Return type allows null for computed initial
-    // Check if it's a computed atom and needs updating
-    if (atom.$$type === AtomTypes.Computed) {
+    // Check if it's a computed atom by checking for _calculation property
+    if ('_calculation' in atom) {
         const computed = atom as ComputedAtom<T>; // Cast to ComputedAtom
         // Ensure _update exists (it should based on the type) and call it if dirty or initially null
         if ((computed._dirty || computed._value === null)) {
@@ -29,11 +29,13 @@ export function get<T>(atom: AnyAtom<T>): T | null { // Return type allows null 
  * @param force If true, notify listeners even if the value is the same.
  */
 export function set<T>(atom: Atom<T>, value: T, force = false): void {
-    if (atom.$$type !== AtomTypes.Regular) {
-        // In the future, maybe allow setting map/deepMap atoms here too
-        console.warn('set called on a non-regular atom.');
-        return;
-    }
+    // Check if it's a regular atom by ensuring it's not computed, map, deepMap, or task
+    // This check is less robust without $$type. Consider if needed or rely on TypeScript.
+    // For now, let's assume the caller passes a valid Atom<T>.
+    // if (!('_value' in atom) || '_calculation' in atom || '_internalAtom' in atom || '_stateAtom' in atom) {
+    //     console.warn('set called on a non-regular atom.');
+    //     return;
+    // }
 
     const oldValue = atom._value;
     if (force || !Object.is(value, oldValue)) {
@@ -71,13 +73,21 @@ export function subscribe<T>(atom: AnyAtom<T>, listener: Listener<T>): Unsubscri
     baseAtom._listeners ??= new Set();
     baseAtom._listeners.add(listener);
 
-    // Trigger onStart if this is the first listener
+    // Trigger onStart and onMount if this is the first listener
     if (isFirstListener) {
+        // Trigger onMount first (if exists)
+        baseAtom._mountListeners?.forEach(fn => {
+            try { fn(undefined); } catch(e) { console.error(`Error in onMount listener during first subscribe:`, e); }
+        });
+        // Clean up mount listeners after first call
+        delete baseAtom._mountListeners;
+
+        // Then trigger onStart
         baseAtom._startListeners?.forEach(fn => {
             try { fn(undefined); } catch(e) { console.error(`Error in onStart listener for atom ${String(atom)}:`, e); }
         });
         // If it's a computed atom, trigger its source subscription logic
-        if (atom.$$type === AtomTypes.Computed) {
+        if ('_calculation' in atom) { // Check if computed
              const computed = atom as ComputedAtom<T>;
              // Ensure the method exists before calling
              if (typeof computed._subscribeToSources === 'function') {
@@ -85,7 +95,7 @@ export function subscribe<T>(atom: AnyAtom<T>, listener: Listener<T>): Unsubscri
              }
         }
     }
-    // onMount is handled by the onMount function itself
+    // onMount is now handled above on first listener
 
     // Initial call to the new listener
     // The very first value notification should always have `undefined` as oldValue.
@@ -110,7 +120,7 @@ export function subscribe<T>(atom: AnyAtom<T>, listener: Listener<T>): Unsubscri
             try { fn(undefined); } catch(e) { console.error(`Error in onStop listener for atom ${String(atom)}:`, e); }
         });
         // If it's a computed atom, trigger its source unsubscription logic
-        if (atom.$$type === AtomTypes.Computed) {
+        if ('_calculation' in atom) { // Check if computed
             const computed = atom as ComputedAtom<T>;
              // Ensure the method exists before calling
              if (typeof computed._unsubscribeFromSources === 'function') {
@@ -130,24 +140,14 @@ export function subscribe<T>(atom: AnyAtom<T>, listener: Listener<T>): Unsubscri
  * @returns An Atom instance.
  */
 export function createAtom<T>(initialValue: T): Atom<T> {
+  // Optimize: Only initialize the value. Listener properties will be added on demand.
   const newAtom: Atom<T> = {
-    $$id: Symbol('createAtom'), // Changed symbol description
-    $$type: AtomTypes.Regular,
     _value: initialValue,
-    // Listeners are initialized lazily by subscribeToAtom or event functions
-    _listeners: undefined,
-    _startListeners: undefined,
-    _stopListeners: undefined,
-    _setListeners: undefined,
-    _notifyListeners: undefined,
-    _mountListeners: undefined,
+    // Listener properties (e.g., _listeners, _startListeners) are omitted
+    // and will be added dynamically by subscribe/event functions if needed.
   };
-  // Trigger onMount immediately after creation if listeners exist (added via onMount)
-  newAtom._mountListeners?.forEach(fn => {
-      try { fn(undefined); } catch(e) { console.error(`Error in onMount listener during atom creation:`, e); }
-  });
-  // Clean up mount listeners after initial call as they only run once
-  delete newAtom._mountListeners;
+  // DO NOT trigger onMount immediately after creation anymore.
+  // It will be triggered by the first subscribe call.
 
   return newAtom;
 }

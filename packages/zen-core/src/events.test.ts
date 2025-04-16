@@ -201,15 +201,8 @@ describe('events (functional)', () => {
       expect(setListener).not.toHaveBeenCalled();
     })
 
-    test('should not be called for computed (throws error)', () => {
-      let $a = createAtom(0) // Use createAtom
-      let $c = createComputed([$a], (a) => a + 1) // Use createComputed
-      let setListener = vi.fn()
-      // Expect onSet to throw when used with a ReadonlyAtom
-      // Use type assertion `as any` to bypass compile-time check for this specific test case
-      expect(() => onSet($c as any, setListener)).toThrow()
-      expect(setListener).not.toHaveBeenCalled()
-    })
+    // Removed test 'should not be called for computed (throws error)'
+    // as the runtime check was removed from onSet in favor of TypeScript static check.
 
      test('should call listener immediately when setKey is called (map)', () => {
       let $m = createMap<{ a?: number; b?: string }>({ a: 1 }) // Use createMap
