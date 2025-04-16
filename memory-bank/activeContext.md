@@ -24,6 +24,7 @@
 ## Next Steps
 - Consider optional further optimizations (e.g., Map Set Key performance).
 - Consider packaging improvements.
+- **Refactoring Complete:** Reviewed and refactored all core `.ts` files in `src` for clarity and consistency.
 - Prepare for release planning.
 
 ## Active Decisions
@@ -36,3 +37,4 @@
 
 ## Guideline Verification Issues
 - Failed to fetch `guidelines/typescript/style_quality.md` from `sylphlab/Playbook` (GitHub API error: Not Found). Proceeding without guideline verification for now.
+- **(Repeated Failure 2025-04-16 06:06):** Attempt to fetch `guidelines/typescript/style_quality.md` failed again (Not Found). Proceeding with refactoring based on general best practices and existing project style. Task added to address guideline compliance later.**

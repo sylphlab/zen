@@ -1,9 +1,12 @@
-// Ultra-optimized atom implementation - Monster Edition
+// Optimized atom implementation
 import { Atom, AtomProto as CoreAtomProto } from './core'; // Import Core AtomProto and Atom type
 
 /**
- * Create a monster-optimized atom for state management
- * @param initialValue Initial state value
+ * Creates a new atom, the basic unit of state.
+ * Atoms hold a value and allow subscriptions to changes.
+ * Event and batching logic are applied via patching (see events.ts, batch.ts).
+ * @param initialValue The initial value of the atom.
+ * @returns An Atom instance.
  */
 export function atom<T>(initialValue: T): Atom<T> {
   // Create instance inheriting from the CORE prototype

@@ -200,7 +200,8 @@ describe('events', () => {
       let $c = computed([$a], (a) => a + 1) // Pass stores as array
       let setListener = vi.fn()
       // Expect onSet to throw when used with a ReadonlyAtom
-      expect(() => onSet($c, setListener)).toThrow()
+      // Use type assertion `as any` to bypass compile-time check for this specific test case
+      expect(() => onSet($c as any, setListener)).toThrow()
       expect(setListener).not.toHaveBeenCalled()
     })
 

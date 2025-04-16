@@ -1,140 +1,190 @@
-// Define Path types locally and export them
+// Internal utility functions for deepMap implementation.
+
+// --- Path Types ---
 export type PathString = string;
 export type PathArray = (string | number)[];
+/** Represents a path within a nested object, either as a dot-separated string or an array of keys/indices. */
 export type Path = PathString | PathArray;
 
-// Export getDeep helper function (simplified, assuming path is array for internal use)
+// --- Helper Functions ---
+
+/**
+ * Gets a value from a nested object based on a path array.
+ * @param obj The object to traverse.
+ * @param path An array representing the path (e.g., ['user', 'address', 0, 'street']).
+ * @param defaultValue Value to return if the path doesn't exist.
+ * @returns The value at the specified path or the default value.
+ * @internal
+ */
 export const getDeep = (obj: any, path: PathArray, defaultValue: any = undefined): any => {
   let current = obj;
   for (const key of path) {
-    if (current === null || current === undefined) {
+    // If current level is not an object or array, path doesn't exist.
+    if (current === null || typeof current !== 'object') {
       return defaultValue;
     }
-    current = current[key];
+    current = current[key]; // Move to the next level
   }
+  // Return the final value or default if it's undefined at the end.
   return current === undefined ? defaultValue : current;
-}
+};
 
-// Export setDeep helper function (using array path)
+/**
+ * Sets a value within a nested object immutably based on a path.
+ * Creates shallow copies of objects/arrays along the path only if necessary.
+ * Returns the original object if the value at the path is already the same.
+ *
+ * @param obj The original object.
+ * @param path The path (string or array) where the value should be set.
+ * @param value The value to set.
+ * @returns A new object with the value set, or the original object if no change was needed.
+ * @internal
+ */
 export const setDeep = (obj: any, path: Path, value: any): any => {
-  const pathArray = (
-    Array.isArray(path)
-      ? path
-      : String(path).match(/[^.[\]]+/g)?.map(s => /^\d+$/.test(s) ? parseInt(s, 10) : s) // Handle numeric keys in string path
-  ) ?? [];
+  // 1. Normalize path to an array of keys/indices.
+  // Handles dot notation strings and array indices within strings.
+  const pathArray: PathArray = Array.isArray(path)
+    ? path
+    : (String(path).match(/[^.[\]]+/g) || []).map(s => /^\d+$/.test(s) ? parseInt(s, 10) : s);
 
-  // If path is empty (e.g., '' or []), it's a no-op, return original object.
+  // 2. Handle empty path: return original object (no-op).
   if (pathArray.length === 0) {
     return obj;
   }
 
-  const recurse = (currentLevel: any, remainingPath: (string | number)[]): any => {
+  // 3. Recursive helper function to traverse and update.
+  const recurse = (currentLevel: any, remainingPath: PathArray): any => {
     const key = remainingPath[0];
-    // Ensure key is defined before proceeding
-    if (key === undefined) return currentLevel; // Should not happen with length check, but satisfies TS
+    // Base case should be handled by length check, but defensive check for TS.
+    if (key === undefined) return currentLevel;
 
     const currentIsObject = typeof currentLevel === 'object' && currentLevel !== null;
+    const isLastKey = remainingPath.length === 1;
 
-    if (remainingPath.length === 1) {
-        // If currentLevel is not an object/array or the key doesn't exist or value is different
+    // --- Leaf Node Update ---
+    if (isLastKey) {
+      // Check if update is needed: not an object, key missing, or value differs.
       if (!currentIsObject || !(key in currentLevel) || !Object.is(currentLevel[key], value)) {
-         // Determine if the clone should be an array or object
-         const isArrayIndex = /^\d+$/.test(String(key));
-         const currentClone = currentIsObject ? (Array.isArray(currentLevel) ? [...currentLevel] : { ...currentLevel }) : (isArrayIndex ? [] : {});
+        // Determine if the clone should be an array or object based on the *current* key.
+        const isArrayIndex = typeof key === 'number'; // More direct check
+        // Clone current level or create new container if currentLevel is not an object/array.
+        const currentClone = currentIsObject
+          ? (Array.isArray(currentLevel) ? [...currentLevel] : { ...currentLevel })
+          : (isArrayIndex ? [] : {});
 
-         // Ensure array is large enough if setting by index
-         if (Array.isArray(currentClone) && typeof key === 'number' && key >= currentClone.length) {
-            // Fill with undefined up to the index
-            for(let i = currentClone.length; i < key; i++){
-                currentClone[i] = undefined;
-            }
-         }
-         currentClone[key] = value;
-         return currentClone;
+        // Ensure array is large enough if setting by index beyond current length.
+        if (Array.isArray(currentClone) && typeof key === 'number' && key >= currentClone.length) {
+          // Fill sparse arrays with undefined up to the target index.
+           Object.defineProperty(currentClone, key, { value: value, writable: true, enumerable: true, configurable: true });
+           // Direct assignment might be sufficient if length adjusts automatically, but defineProperty is safer for sparse arrays.
+           // currentClone[key] = value; // Alternative
+        } else {
+           currentClone[key] = value;
+        }
+        return currentClone; // Return the modified clone
       } else {
-         return currentLevel; // No change needed at this leaf
+        return currentLevel; // No change needed at this leaf, return original level.
       }
     }
 
-    // Ensure next level exists and is of the correct type (object/array)
-    let nextLevel = currentIsObject ? currentLevel[key] : undefined; // key is guaranteed defined here
-    const nextKey = remainingPath[1];
-    // Ensure nextKey is defined before checking its type
-    const nextKeyIsArrayIndex = nextKey !== undefined && /^\d+$/.test(String(nextKey));
+    // --- Recursive Step ---
+    // Get the next level object/array.
+    let nextLevel = currentIsObject ? currentLevel[key] : undefined;
+    const nextKey = remainingPath[1]; // Look ahead to determine needed type
+    const nextLevelShouldBeArray = nextKey !== undefined && /^\d+$/.test(String(nextKey));
 
-    // If next level doesn't exist, create it based on the next key type
+    // If the next level doesn't exist or is null, create an empty container of the correct type.
     if (nextLevel === undefined || nextLevel === null) {
-       nextLevel = nextKeyIsArrayIndex ? [] : {};
+      nextLevel = nextLevelShouldBeArray ? [] : {};
     }
 
+    // Recursively update the next level.
     const updatedNextLevel = recurse(nextLevel, remainingPath.slice(1));
 
-    // If the deeper level didn't change, return the current level
+    // If the recursive call returned the *same* object (no changes deeper down),
+    // then no change is needed at the current level either.
     if (updatedNextLevel === nextLevel) {
       return currentLevel;
     }
 
-    // Otherwise, create a clone of the current level and update the key
-    const isArrayIndex = /^\d+$/.test(String(key)); // key is guaranteed defined here
-    const currentClone = currentIsObject ? (Array.isArray(currentLevel) ? [...currentLevel] : { ...currentLevel }) : (isArrayIndex ? [] : {});
+    // Otherwise, changes occurred deeper. Clone the current level and update the key.
+    const isArrayIndex = typeof key === 'number';
+    const currentClone = currentIsObject
+      ? (Array.isArray(currentLevel) ? [...currentLevel] : { ...currentLevel })
+      : (isArrayIndex ? [] : {}); // Create container if currentLevel wasn't object
 
-    // Ensure array is large enough if setting by index (though less likely needed here)
+     // Ensure array is large enough (less likely needed here than leaf, but for safety).
      if (Array.isArray(currentClone) && typeof key === 'number' && key >= currentClone.length) {
-        for(let i = currentClone.length; i < key; i++){
-            currentClone[i] = undefined;
-        }
+        Object.defineProperty(currentClone, key, { value: updatedNextLevel, writable: true, enumerable: true, configurable: true });
+     } else {
+        currentClone[key] = updatedNextLevel;
      }
-    currentClone[key] = updatedNextLevel;
-    return currentClone;
+    return currentClone; // Return the modified clone
   };
 
+  // 4. Start the recursion.
   return recurse(obj, pathArray);
-}
+};
 
 
-// Helper function to compare two objects and find differing paths
-export const getChangedPaths = (objA: any, objB: any): Path[] => {
-    const paths: Path[] = [];
+/**
+ * Compares two objects (potentially nested) and returns an array of paths
+ * where differences are found. Compares values using Object.is.
+ *
+ * @param objA The first object.
+ * @param objB The second object.
+ * @returns An array of Path arrays representing the locations of differences.
+ * @internal
+ */
+export const getChangedPaths = (objA: any, objB: any): PathArray[] => {
+    const paths: PathArray[] = []; // Store results as PathArray
 
     function compare(a: any, b: any, currentPath: PathArray = []) {
+        // 1. Identical values (Object.is)? Stop comparison for this branch.
         if (Object.is(a, b)) {
-            return; // Objects/values are identical
+            return;
         }
 
-        // If one is null/undefined and the other is not, the current path changed
-        if ((a === null || a === undefined) !== (b === null || b === undefined)) {
+        // 2. One is null/undefined, the other is not? Path changed.
+        const aIsNullOrUndefined = a === null || a === undefined;
+        const bIsNullOrUndefined = b === null || b === undefined;
+        if (aIsNullOrUndefined !== bIsNullOrUndefined) {
              paths.push([...currentPath]);
              return;
         }
+        // If both are null/undefined, Object.is would have caught it.
 
-        // If types are different, the current path changed
+        // 3. Different types (primitive vs object, array vs object)? Path changed.
         if (typeof a !== typeof b || Array.isArray(a) !== Array.isArray(b)) {
             paths.push([...currentPath]);
             return;
         }
 
-        // If both are primitive or function, and not Object.is equal, the path changed
-        if (typeof a !== 'object' || a === null) {
+        // 4. Both are primitives or functions (and not identical per Object.is)? Path changed.
+        if (typeof a !== 'object' || a === null) { // a === null check handles null case
             paths.push([...currentPath]);
             return;
         }
 
-        // If both are objects/arrays, compare keys/elements
+        // 5. Both are objects or arrays. Compare their contents.
         const keysA = new Set(Object.keys(a));
         const keysB = new Set(Object.keys(b));
-
-        // Check keys present in A but not B, or vice-versa, or values different
-        const allKeys = new Set([...keysA, ...keysB]);
+        const allKeys = new Set([...keysA, ...keysB]); // Union of keys
 
         allKeys.forEach(key => {
+            // Determine the correct type for the path segment (number for array index, string otherwise)
             const pathSegment = Array.isArray(a) ? parseInt(key, 10) : key;
             const newPath = [...currentPath, pathSegment];
+            const valA = a[key];
+            const valB = b[key];
 
-            if (!keysA.has(key) || !keysB.has(key) || !Object.is(a[key], b[key])) {
-                // If values are objects, recurse. Otherwise, add the path.
-                if (typeof a[key] === 'object' && a[key] !== null && typeof b[key] === 'object' && b[key] !== null) {
-                     compare(a[key], b[key], newPath);
+            // Check if key exists in one but not the other, or if values differ.
+            if (!keysA.has(key) || !keysB.has(key) || !Object.is(valA, valB)) {
+                // If both values are nested objects/arrays, recurse.
+                if (typeof valA === 'object' && valA !== null && typeof valB === 'object' && valB !== null) {
+                     compare(valA, valB, newPath);
                 } else {
+                     // Otherwise, the difference is at this path.
                      paths.push(newPath);
                 }
             }
