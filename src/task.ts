@@ -2,19 +2,19 @@
 import { Atom, Listener, Unsubscribe } from './core';
 import { atom } from './atom';
 
-// Task state interface
-export interface TaskState<T = any> {
+// Task state type alias
+export type TaskState<T = any> = {
   loading: boolean;
   error?: Error;
   data?: T;
-}
+};
 
-// Task atom interface
-export interface TaskAtom<T = any> {
+// Task atom type alias
+export type TaskAtom<T = any> = {
   get(): TaskState<T>;
   subscribe(listener: Listener<TaskState<T>>): Unsubscribe;
   run(...args: any[]): Promise<T>;
-}
+};
 
 /**
  * Create a task atom for managing async operations

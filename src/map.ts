@@ -1,15 +1,15 @@
 // Ultra-optimized map implementation - Monster Edition
-import { Atom, Listener, Unsubscribe, batchDepth, batchQueue } from './core';
+import { Atom, Listener, Unsubscribe } from './core';
 import { atom } from './atom';
-import { LIFECYCLE, emit, listenKeys as baseListenKeys, emitKeys, KeyListener } from './events';
+import { listenKeys, _emitKeyChanges, KeyListener } from './events'; // Use internal symbols/emit
 import { STORE_MAP_KEY_SET } from './keys';
 
-// Map interface with key subscription
-export interface MapAtom<T extends object> extends Atom<T> {
+// Map type alias with key subscription
+export type MapAtom<T extends object> = Atom<T> & {
   setKey<K extends keyof T>(key: K, value: T[K], forceNotify?: boolean): void;
   listenKeys<K extends keyof T>(keys: K[], listener: KeyListener<T, K>): Unsubscribe;
   [STORE_MAP_KEY_SET]?: boolean;
-}
+};
 
 /**
  * Create a monster-optimized Map atom for object state
@@ -26,8 +26,7 @@ export function map<T extends object>(initialValue: T): MapAtom<T> {
   // Track whether we're inside setKey to avoid duplicating work
   let isCalledBySetKey = false;
   
-  // Track changed keys for batch processing
-  let batchChangedKeys: Set<keyof T> | null = null;
+  // REMOVED batchChangedKeys tracking
   
   // Optimized setKey method
   mapAtom.setKey = function <K extends keyof T>(key: K, value: T[K], forceNotify = false): void {
@@ -44,14 +43,9 @@ export function map<T extends object>(initialValue: T): MapAtom<T> {
         // Call base set method
         baseAtom.set(newValue, forceNotify);
         
-        // Track changed keys for batching
-        if (batchDepth > 0) {
-          if (!batchChangedKeys) batchChangedKeys = new Set();
-          batchChangedKeys.add(key);
-        } else {
-          // Emit key change if not batching
-          emitKeys(this, [key], newValue);
-        }
+        // No batch tracking here. Emit immediately.
+        // Patching mechanism will intercept if batch is active.
+        _emitKeyChanges(this, [key], newValue);
       } finally {
         isCalledBySetKey = false;
       }
@@ -92,38 +86,20 @@ export function map<T extends object>(initialValue: T): MapAtom<T> {
       // Call base set method
       originalSet.call(this, newValue, forceNotify);
       
-      // Handle key emissions
-      if (batchDepth > 0) {
-        if (!batchChangedKeys) batchChangedKeys = new Set();
-        // Add all changed keys to batch
-        changedKeys.forEach(k => batchChangedKeys!.add(k));
-      } else if (changedKeys.length) {
-        // Immediate notification
-        emitKeys(this, changedKeys, newValue);
+      // Always emit key changes immediately (no batching here)
+      // Patching mechanism will intercept if batch is active.
+      if (changedKeys.length) {
+        _emitKeyChanges(this, changedKeys, newValue);
       }
     }
   };
   
   // Implement listenKeys
   mapAtom.listenKeys = function<K extends keyof T>(keys: K[], listener: KeyListener<T, K>): Unsubscribe {
-    return baseListenKeys(this, keys, listener);
+    return listenKeys(this, keys, listener);
   };
   
-  // Override _notifyBatch to handle key emissions
-  const originalNotifyBatch = baseAtom._notifyBatch;
-  mapAtom._notifyBatch = function() {
-    const oldValue = this._oldValueBeforeBatch;
-    
-    // Call original batch notification
-    originalNotifyBatch.call(this);
-    
-    // Emit key changes after batch completes
-    if (batchChangedKeys?.size && oldValue) {
-      const newValue = this._value;
-      emitKeys(this, Array.from(batchChangedKeys), newValue);
-      batchChangedKeys = null;
-    }
-  };
-  
+  // REMOVED _notifyBatch override - Batching will be handled by patching
+
   return mapAtom;
 }

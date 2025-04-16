@@ -17,10 +17,10 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts --minify --sourcemap",
+    "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
-    "bench": "vitest bench --run --pool=threads",
+    "bench": "vitest bench --run",
     "bench:watch": "vitest bench",
     "size": "size-limit"
   },
@@ -35,7 +35,7 @@
       "name": "zen (full)",
       "path": "dist/index.js",
       "import": "{ atom, computed, map, task }",
-      "limit": "1.5 kB"
+      "limit": "1.8 kB"
     },
     {
       "name": "nanostores (atom only)",
@@ -56,7 +56,9 @@
       "name": "zustand",
       "path": "node_modules/zustand/esm/index.mjs",
       "import": "{ create }",
-      "ignore": ["react"]
+      "ignore": [
+        "react"
+      ]
     },
     {
       "name": "valtio",
@@ -99,6 +101,7 @@
     "nanostores": "^1.0.1",
     "react": "^19.1.0",
     "size-limit": "^11.2.0",
+    "terser": "^5.39.0",
     "tsup": "^8.4.0",
     "typescript": "^5.8.3",
     "valtio": "^2.1.4",

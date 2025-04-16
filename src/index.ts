@@ -1,8 +1,9 @@
 // Ultra-optimized state management library - Monster Performance Edition
 
 // Re-export core types and functions
-export { batch, atom } from './core';
+export { atom } from './atom'; // Export atom from atom.ts
 export type { Atom, ReadonlyAtom, Listener, Unsubscribe } from './core';
+export { batch } from './batch'; // Export batch
 
 // Re-export computed
 export { computed } from './computed';
@@ -20,8 +21,8 @@ export { task } from './task';
 export type { TaskState, TaskAtom } from './task';
 
 // Re-export lifecycle events
-export { LIFECYCLE, listen, listenKeys } from './events';
-export type { KeyListener, PathListener } from './events';
+export { onStart, onStop, onSet, onNotify, onMount, listenKeys, listenPaths } from './events'; // Export onEvent functions
+export type { KeyListener, PathListener, LifecycleListener } from './events'; // Keep types
 
 // Re-export utility symbols
 export { STORE_MAP_KEY_SET } from './keys';

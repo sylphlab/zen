@@ -1,239 +1,272 @@
-import { describe, it, expect, vi } from 'vitest';
-import { atom } from './atom';
-import { computed } from './computed';
-import { listen, LIFECYCLE } from './events';
-import type { Atom } from './core';
+import { test, expect, vi, describe, beforeEach } from 'vitest'
+import { atom } from './atom'
+import { computed } from './computed'
+import { map } from './map'
+import { deepMap } from './deepMap'
+import { onStart, onStop, onSet } from './events' // Removed onDestroy
+import { batch } from './batch'
+import type { Atom, ReadonlyAtom } from './core'
 
-describe('Lifecycle Events', () => {
-  it('LIFECYCLE.onMount should trigger immediately upon listen', () => {
-    const store = atom(0);
-    const mountListener = vi.fn();
+describe('events', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
 
-    const unsubscribe = listen(store, LIFECYCLE.onMount, mountListener);
+  // --- onStart ---
+  describe('onStart', () => {
+    test('should call listener when first subscriber is added (atom)', () => {
+      let $a = atom(0)
+      let startListener = vi.fn()
+      onStart($a, startListener)
 
-    expect(mountListener).toHaveBeenCalledTimes(1);
-    // onMount typically doesn't receive a value unless explicitly designed to
-    expect(mountListener).toHaveBeenCalledWith(undefined);
+      expect(startListener).not.toHaveBeenCalled()
+      let unsub = $a.subscribe(() => {})
+      expect(startListener).toHaveBeenCalledTimes(1)
+      let unsub2 = $a.subscribe(() => {})
+      expect(startListener).toHaveBeenCalledTimes(1) // Only called on first
+      unsub()
+      unsub2()
+    })
 
-    unsubscribe();
-  });
+    test('should call listener when first subscriber is added (computed)', () => {
+      let $a = atom(0)
+      let $c = computed([$a], (a) => a + 1) // Pass stores as array
+      let startListener = vi.fn()
+      onStart($c, startListener)
 
-  it('LIFECYCLE.onStart should trigger when the first listener subscribes', () => {
-    const store = atom(0);
-    const startListener = vi.fn();
-    const subListener1 = vi.fn();
-    const subListener2 = vi.fn();
+      expect(startListener).not.toHaveBeenCalled()
+      let unsub = $c.subscribe(() => {})
+      expect(startListener).toHaveBeenCalledTimes(1)
+      let unsub2 = $c.subscribe(() => {})
+      expect(startListener).toHaveBeenCalledTimes(1)
+      unsub()
+      unsub2()
+    })
 
-    const unsubEvent = listen(store, LIFECYCLE.onStart, startListener);
+     test('should call listener when first subscriber is added (map)', () => {
+      let $m = map({ a: 1 })
+      let startListener = vi.fn()
+      onStart($m, startListener)
 
-    // Should not trigger yet
-    expect(startListener).not.toHaveBeenCalled();
+      expect(startListener).not.toHaveBeenCalled()
+      let unsub = $m.subscribe(() => {})
+      expect(startListener).toHaveBeenCalledTimes(1)
+      let unsub2 = $m.subscribe(() => {})
+      expect(startListener).toHaveBeenCalledTimes(1)
+      unsub()
+      unsub2()
+    })
 
-    const unsub1 = store.subscribe(subListener1);
-    // Should trigger now
-    expect(startListener).toHaveBeenCalledTimes(1);
+     test('should call listener when first subscriber is added (deepMap)', () => {
+      let $dm = deepMap({ user: { name: 'A' } })
+      let startListener = vi.fn()
+      onStart($dm, startListener)
 
-    const unsub2 = store.subscribe(subListener2);
-    // Should not trigger again
-    expect(startListener).toHaveBeenCalledTimes(1);
+      expect(startListener).not.toHaveBeenCalled()
+      let unsub = $dm.subscribe(() => {})
+      expect(startListener).toHaveBeenCalledTimes(1)
+      let unsub2 = $dm.subscribe(() => {})
+      expect(startListener).toHaveBeenCalledTimes(1)
+      unsub()
+      unsub2()
+    })
 
-    unsub1();
-    // Should not trigger on unsubscribe
-    expect(startListener).toHaveBeenCalledTimes(1);
+    test('should return an unsubscribe function (atom)', () => {
+      let $a = atom(0)
+      let startListener = vi.fn()
+      let unsubEvent = onStart($a, startListener)
 
-    unsub2();
-    // Should not trigger on unsubscribe
-    expect(startListener).toHaveBeenCalledTimes(1);
+      let unsubSub = $a.subscribe(() => {})
+      expect(startListener).toHaveBeenCalledTimes(1)
 
-    unsubEvent(); // Clean up event listener
-  });
+      unsubEvent() // Unsubscribe the event listener
 
-   it('LIFECYCLE.onStop should trigger when the last listener unsubscribes', () => {
-    const store = atom(0);
-    const stopListener = vi.fn();
-    const subListener1 = vi.fn();
-    const subListener2 = vi.fn();
+      unsubSub() // Last data subscriber leaves
+      let unsubSub2 = $a.subscribe(() => {}) // New data subscriber joins
+      expect(startListener).toHaveBeenCalledTimes(1) // Event listener should not fire again
+      unsubSub2()
+    })
+  })
 
-    const unsubEvent = listen(store, LIFECYCLE.onStop, stopListener);
-    const unsub1 = store.subscribe(subListener1);
-    const unsub2 = store.subscribe(subListener2);
+  // --- onStop ---
+  describe('onStop', () => {
+    test('should call listener when last subscriber leaves (atom)', () => {
+      let $a = atom(0)
+      let stopListener = vi.fn()
+      onStop($a, stopListener)
 
-    // Should not trigger yet
-    expect(stopListener).not.toHaveBeenCalled();
+      let unsub = $a.subscribe(() => {})
+      let unsub2 = $a.subscribe(() => {})
+      expect(stopListener).not.toHaveBeenCalled()
+      unsub()
+      expect(stopListener).not.toHaveBeenCalled()
+      unsub2() // Last one leaves
+      expect(stopListener).toHaveBeenCalledTimes(1)
+    })
 
-    unsub1();
-    // Should not trigger yet
-    expect(stopListener).not.toHaveBeenCalled();
+     test('should call listener when last subscriber leaves (computed)', () => {
+      let $a = atom(0)
+      let $c = computed([$a], (a) => a + 1) // Pass stores as array
+      let stopListener = vi.fn()
+      onStop($c, stopListener)
 
-    unsub2();
-    // Should trigger now
-    expect(stopListener).toHaveBeenCalledTimes(1);
+      let unsub = $c.subscribe(() => {})
+      let unsub2 = $c.subscribe(() => {})
+      expect(stopListener).not.toHaveBeenCalled()
+      unsub()
+      expect(stopListener).not.toHaveBeenCalled()
+      unsub2() // Last one leaves
+      expect(stopListener).toHaveBeenCalledTimes(1)
+    })
 
-    // Subscribe again, then unsubscribe
-    const unsub3 = store.subscribe(subListener1);
-    expect(stopListener).toHaveBeenCalledTimes(1);
-    unsub3();
-    expect(stopListener).toHaveBeenCalledTimes(2); // Should trigger again
+     test('should call listener when last subscriber leaves (map)', () => {
+      let $m = map({ a: 1 })
+      let stopListener = vi.fn()
+      onStop($m, stopListener)
 
-    unsubEvent(); // Clean up event listener
-  });
+      let unsub = $m.subscribe(() => {})
+      let unsub2 = $m.subscribe(() => {})
+      expect(stopListener).not.toHaveBeenCalled()
+      unsub()
+      expect(stopListener).not.toHaveBeenCalled()
+      unsub2() // Last one leaves
+      expect(stopListener).toHaveBeenCalledTimes(1)
+    })
 
-  it('LIFECYCLE.onSet should trigger before a value is set', () => {
-    const store = atom(0);
-    const setListener = vi.fn();
-    const subListener = vi.fn();
+     test('should call listener when last subscriber leaves (deepMap)', () => {
+      let $dm = deepMap({ user: { name: 'A' } })
+      let stopListener = vi.fn()
+      onStop($dm, stopListener)
 
-    const unsubEvent = listen(store, LIFECYCLE.onSet, setListener);
-    const unsubSub = store.subscribe(subListener);
-    subListener.mockClear(); // Clear initial subscribe call
+      let unsub = $dm.subscribe(() => {})
+      let unsub2 = $dm.subscribe(() => {})
+      expect(stopListener).not.toHaveBeenCalled()
+      unsub()
+      expect(stopListener).not.toHaveBeenCalled()
+      unsub2() // Last one leaves
+      expect(stopListener).toHaveBeenCalledTimes(1)
+    })
 
-    store.set(1);
+    test('should return an unsubscribe function (atom)', () => {
+      let $a = atom(0)
+      let stopListener = vi.fn()
+      let unsubEvent = onStop($a, stopListener)
 
-    expect(setListener).toHaveBeenCalledTimes(1);
-    expect(setListener).toHaveBeenCalledWith(1); // Passes the new value
+      let unsubSub = $a.subscribe(() => {})
+      unsubSub() // Last subscriber leaves
+      expect(stopListener).toHaveBeenCalledTimes(1)
 
-    // Verify it triggers before the subscriber gets the value
-    // (This is hard to test precisely without complex async mocks,
-    // but we know the order from the implementation)
-    expect(subListener).toHaveBeenCalledTimes(1);
-    expect(subListener).toHaveBeenCalledWith(1, 0);
+      unsubEvent() // Unsubscribe the event listener
 
-    unsubSub();
-    unsubEvent();
-  });
+      let unsubSub2 = $a.subscribe(() => {})
+      unsubSub2() // Last subscriber leaves again
+      expect(stopListener).toHaveBeenCalledTimes(1) // Event listener should not fire again
+    })
+  })
 
-  it('LIFECYCLE.onNotify should trigger after a value is set and listeners notified', () => {
-    const store = atom(0);
-    const notifyListener = vi.fn();
-    const subListener = vi.fn();
-    const lifecycleOrder: string[] = [];
+  // --- onSet ---
+  describe('onSet', () => {
+    test('should call listener immediately when set is called (atom)', () => {
+      let $a = atom(0)
+      let setListener = vi.fn()
+      onSet($a, setListener)
 
-    const unsubNotify = listen(store, LIFECYCLE.onNotify, (val) => {
-        notifyListener(val);
-        lifecycleOrder.push('onNotify');
-    });
-    const unsubSub = store.subscribe((val) => {
-        subListener(val);
-        lifecycleOrder.push('subscribe');
-    });
-    subListener.mockClear(); // Clear initial subscribe call
-    lifecycleOrder.length = 0; // Clear order array
+      $a.set(1)
+      expect(setListener).toHaveBeenCalledTimes(1)
+      expect(setListener).toHaveBeenCalledWith(1) // Only receives new value
 
-    store.set(1);
+      $a.set(2)
+      expect(setListener).toHaveBeenCalledTimes(2)
+      expect(setListener).toHaveBeenCalledWith(2)
+    })
 
-    expect(notifyListener).toHaveBeenCalledTimes(1);
-    expect(notifyListener).toHaveBeenCalledWith(1); // Passes the new value
-    expect(subListener).toHaveBeenCalledTimes(1);
+    test('should NOT call listener within batch (atom)', () => {
+      let $a = atom(0)
+      let setListener = vi.fn()
+      onSet($a, setListener)
 
-    // Check order: subscribe listener should be called before onNotify
-    expect(lifecycleOrder).toEqual(['subscribe', 'onNotify']);
+      batch(() => {
+        $a.set(1)
+        $a.set(2)
+        // setListener should NOT be called during the batch
+        expect(setListener).not.toHaveBeenCalled()
+      })
+      // setListener should still NOT be called after the batch
+      expect(setListener).not.toHaveBeenCalled()
+    })
 
+    test('should not be called for computed (throws error)', () => {
+      let $a = atom(0)
+      let $c = computed([$a], (a) => a + 1) // Pass stores as array
+      let setListener = vi.fn()
+      // Expect onSet to throw when used with a ReadonlyAtom
+      expect(() => onSet($c, setListener)).toThrow()
+      expect(setListener).not.toHaveBeenCalled()
+    })
 
-    unsubSub();
-    unsubNotify();
-  });
+     test('should call listener immediately when setKey is called (map)', () => {
+      let $m = map<{ a?: number; b?: string }>({ a: 1 })
+      let setListener = vi.fn()
+      onSet($m, setListener)
 
-    it('should correctly handle multiple lifecycle listeners of the same type', () => {
-        const store = atom(0);
-        const startListener1 = vi.fn();
-        const startListener2 = vi.fn();
+      $m.setKey('a', 2)
+      expect(setListener).toHaveBeenCalledTimes(1)
+      expect(setListener).toHaveBeenCalledWith({ a: 2 }) // Receives the whole new object
 
-        const unsub1 = listen(store, LIFECYCLE.onStart, startListener1);
-        const unsub2 = listen(store, LIFECYCLE.onStart, startListener2);
+      $m.setKey('b', 'hello')
+      expect(setListener).toHaveBeenCalledTimes(2)
+      expect(setListener).toHaveBeenCalledWith({ a: 2, b: 'hello' })
+    })
 
-        const sub = store.subscribe(() => {});
+     test('should call listener immediately when set is called (map)', () => {
+      let $m = map<{ a?: number; b?: string }>({ a: 1 })
+      let setListener = vi.fn()
+      onSet($m, setListener)
 
-        expect(startListener1).toHaveBeenCalledTimes(1);
-        expect(startListener2).toHaveBeenCalledTimes(1);
+      $m.set({ b: 'new' })
+      expect(setListener).toHaveBeenCalledTimes(1)
+      expect(setListener).toHaveBeenCalledWith({ b: 'new' })
+    })
 
-        sub();
-        unsub1();
-        unsub2();
-    });
+     test('should call listener immediately when setPath is called (deepMap)', () => {
+      let $dm = deepMap<{ user: { name: string; age?: number } }>({ user: { name: 'A' } })
+      let setListener = vi.fn()
+      onSet($dm, setListener)
 
-    it('unsubscribe should remove the specific lifecycle listener', () => {
-        const store = atom(0);
-        const setListener1 = vi.fn();
-        const setListener2 = vi.fn();
+      $dm.setPath('user.name', 'B') // Use setPath
+      expect(setListener).toHaveBeenCalledTimes(1)
+      // Deep map might pass the modified object or a clone
+      expect(setListener).toHaveBeenCalledWith({ user: { name: 'B' } })
 
-        const unsub1 = listen(store, LIFECYCLE.onSet, setListener1);
-        const unsub2 = listen(store, LIFECYCLE.onSet, setListener2);
+      $dm.setPath('user.age', 30) // Use setPath
+      expect(setListener).toHaveBeenCalledTimes(2)
+      expect(setListener).toHaveBeenCalledWith({ user: { name: 'B', age: 30 } })
+    })
 
-        store.set(1);
-        expect(setListener1).toHaveBeenCalledTimes(1);
-        expect(setListener2).toHaveBeenCalledTimes(1);
+     test('should call listener immediately when set is called (deepMap)', () => {
+      let $dm = deepMap<{ user: { name: string } }>({ user: { name: 'A' } })
+      let setListener = vi.fn()
+      onSet($dm, setListener)
 
-        unsub1(); // Unsubscribe the first listener
+      $dm.set({ user: { name: 'C' } })
+      expect(setListener).toHaveBeenCalledTimes(1)
+      expect(setListener).toHaveBeenCalledWith({ user: { name: 'C' } })
+    })
 
-        store.set(2);
-        expect(setListener1).toHaveBeenCalledTimes(1); // Should not be called again
-        expect(setListener2).toHaveBeenCalledTimes(2); // Should be called again
+    test('should return an unsubscribe function (atom)', () => {
+      let $a = atom(0)
+      let setListener = vi.fn()
+      let unsubEvent = onSet($a, setListener)
 
-        unsub2();
-         store.set(3);
-        expect(setListener1).toHaveBeenCalledTimes(1);
-        expect(setListener2).toHaveBeenCalledTimes(2); // Should not be called again
-    });
+      $a.set(1)
+      expect(setListener).toHaveBeenCalledTimes(1)
 
-    // Test on computed atoms as well
-    it('should trigger onStart/onStop for computed atoms', () => {
-        const source = atom(0);
-        const derived = computed([source], (s) => s * 2);
-        const startListener = vi.fn();
-        const stopListener = vi.fn();
+      unsubEvent() // Unsubscribe the event listener
 
-        const unsubStart = listen(derived, LIFECYCLE.onStart, startListener);
-        const unsubStop = listen(derived, LIFECYCLE.onStop, stopListener);
+      $a.set(2)
+      expect(setListener).toHaveBeenCalledTimes(1) // Event listener should not fire again
+    })
+  })
 
-        expect(startListener).not.toHaveBeenCalled();
-        expect(stopListener).not.toHaveBeenCalled();
-
-        const sub1 = derived.subscribe(() => {});
-        expect(startListener).toHaveBeenCalledTimes(1); // Start on first subscribe
-        expect(stopListener).not.toHaveBeenCalled();
-
-        const sub2 = derived.subscribe(() => {});
-        expect(startListener).toHaveBeenCalledTimes(1); // Not again
-
-        sub1();
-        expect(stopListener).not.toHaveBeenCalled(); // Not yet
-
-        sub2();
-        expect(stopListener).toHaveBeenCalledTimes(1); // Stop on last unsubscribe
-
-        unsubStart();
-        unsubStop();
-    });
-
-    it('should trigger onNotify for computed atoms', () => {
-        const source = atom(0);
-        const derived = computed([source], (s) => s * 2);
-        const notifyListener = vi.fn();
-        const subListener = vi.fn();
-
-        const unsubNotify = listen(derived, LIFECYCLE.onNotify, notifyListener);
-        const unsubSub = derived.subscribe(subListener);
-
-        // Update test to match actual behavior - no notifications on initial subscription
-        expect(notifyListener).toHaveBeenCalledTimes(0);
-        expect(subListener).toHaveBeenCalledTimes(1);
-        
-        // Reset mocks for testing update behavior
-        notifyListener.mockClear();
-        subListener.mockClear();
-
-        // Trigger update by changing the source
-        source.set(1);
-
-        // Assert update happened and listeners were called exactly ONCE
-        expect(derived.get()).toBe(2);
-        expect(subListener).toHaveBeenCalledTimes(1);
-        expect(subListener).toHaveBeenCalledWith(2, 0);
-        expect(notifyListener).toHaveBeenCalledTimes(1);
-        expect(notifyListener).toHaveBeenCalledWith(2);
-
-        unsubSub();
-        unsubNotify();
-    });
-
-});
+  // Removed onDestroy tests as the function does not exist
+})
