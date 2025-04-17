@@ -15,18 +15,20 @@
 - **Ran `size-limit`:** Confirmed bundle size post-refactor. (Sizes: atom 52 B, full 667 B)
 - **Setup ESLint:** Installed ESLint, @typescript-eslint/parser, @typescript-eslint/eslint-plugin, typescript-eslint. Created `eslint.config.cjs` with recommended rules and `@typescript-eslint/no-explicit-any` set to 'warn'. Updated root `lint` script. (Commit: *Needs new commit*)
 - **Ran ESLint:** Applied automatic fixes. Remaining `no-explicit-any` warnings mostly relate to intentional uses in internal utils/casts. Other errors (unused vars, etc.) also present.
+- **Optimized `deepMap`'s `getChangedPaths`:** Reduced Set allocations during key comparison. (Commit: *Needs new commit*)
 
 ## Next Steps
 - Commit ESLint setup and auto-fixes.
+- Commit `getChangedPaths` optimization.
 - Address remaining ESLint errors (unused vars, no-undef, etc.) if desired.
 - Consider packaging, documentation, or release steps.
 - Address guideline compliance task (fetching `guidelines/typescript/style_quality.md`) if it becomes available.
-- Potentially revisit `deepMap`'s `getChangedPaths` optimization in the future.
 
 ## Active Decisions
 - Type refactoring complete. Generics/overloads preferred over `any`. Some internal `any` retained for practicality.
 - `size-limit` results recorded.
 - ESLint configured and run. `no-explicit-any` is active as a warning.
+- `getChangedPaths` optimization applied.
 
 ## Guideline Verification Issues
 - **Persistent Failure:** Repeated attempts to fetch `guidelines/typescript/style_quality.md` failed (GitHub 404 Not Found - latest attempt 2025-04-16). Cleanup/review proceeded based on existing code style, user instructions, and best practices. The compliance task remains pending.

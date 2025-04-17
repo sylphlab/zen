@@ -188,28 +188,38 @@ export const getChangedPaths = (objA: unknown, objB: unknown): PathArray[] => {
         const objAAsserted = a as Record<string | number, unknown>;
         const objBAsserted = b as Record<string | number, unknown>;
 
-        const keysA = new Set(Object.keys(objAAsserted));
-        const keysB = new Set(Object.keys(objBAsserted));
-        const allKeys = new Set([...keysA, ...keysB]); // Union of keys
+        // Optimized key comparison: Iterate A, then check B for keys not in A.
+        const keysA = Object.keys(objAAsserted);
+        const processedKeys = new Set<string | number>(); // Track keys from A
 
-        allKeys.forEach(key => {
-            // Determine the correct type for the path segment (number for array index, string otherwise)
+        for (const key of keysA) {
+            processedKeys.add(key);
             const pathSegment = Array.isArray(a) ? parseInt(key, 10) : key;
             const newPath = [...currentPath, pathSegment];
             const valA = objAAsserted[key];
-            const valB = objBAsserted[key];
+            const valB = objBAsserted[key]; // Access potentially undefined value
 
-            // Check if key exists in one but not the other, or if values differ.
-            if (!keysA.has(key) || !keysB.has(key) || !Object.is(valA, valB)) {
+            // Check if key exists in B and if values differ
+            if (!(key in objBAsserted) || !Object.is(valA, valB)) {
                 // If both values are nested objects/arrays, recurse.
                 if (typeof valA === 'object' && valA !== null && typeof valB === 'object' && valB !== null) {
-                     compare(valA, valB, newPath);
+                    compare(valA, valB, newPath);
                 } else {
-                     // Otherwise, the difference is at this path.
-                     paths.push(newPath);
+                    // Otherwise, the difference is at this path (value diff or key only in A).
+                    paths.push(newPath);
                 }
             }
-        });
+        }
+
+        // Check for keys present in B but not in A
+        const keysB = Object.keys(objBAsserted);
+        for (const key of keysB) {
+            if (!processedKeys.has(key)) {
+                // Key only exists in B, difference found.
+                const pathSegment = Array.isArray(b) ? parseInt(key, 10) : key; // Use 'b' for array check
+                paths.push([...currentPath, pathSegment]);
+            }
+        }
         // Remove from visited after processing children (for non-tree structures)
         // visited.delete(a); // Optional: depends if graph structures are expected
         // visited.delete(b);

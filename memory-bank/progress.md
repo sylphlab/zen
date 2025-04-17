@@ -66,4 +66,4 @@
 34. **Commit ESLint Setup & Fixes.** (Next step)
 35. **Address Remaining ESLint Errors/Warnings.** (Optional)
 36. **Consider Packaging/Documentation/Release.**
-37. **Potentially revisit `deepMap`'s `getChangedPaths` optimization.**
+37. ~~**Potentially revisit `deepMap`'s `getChangedPaths` optimization.**~~ (Done - Optimized key comparison)
