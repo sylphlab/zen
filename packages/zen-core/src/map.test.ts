@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { map, get, setKey, set, subscribe, listenKeys } from './map'; // Import updated functional API
+import { map, get, setKey, set, subscribe } from './map'; // Import updated functional API (listenKeys removed)
 import { batch } from './batch'; // Import batch from batch.ts
 
 describe('map (functional)', () => {
@@ -94,110 +94,8 @@ describe('map (functional)', () => {
         unsubscribe();
     });
 
-  // --- Key Subscription Tests ---
-
-  it('listenKeys should be called when a specified key is changed via setKey', () => {
-    const store = map({ name: 'John', age: 30, city: 'New York' }); // Use map
-    const keyListener = vi.fn();
-    const unsubscribe = listenKeys(store, ['age'], keyListener); // Use listenKeys
-
-    setKey(store, 'age', 31); // Use setKey
-    expect(keyListener).toHaveBeenCalledTimes(1);
-    expect(keyListener).toHaveBeenCalledWith(31, 'age', { name: 'John', age: 31, city: 'New York' });
-
-    keyListener.mockClear();
-    setKey(store, 'name', 'Jane'); // Use setKey
-    expect(keyListener).not.toHaveBeenCalled();
-
-    unsubscribe();
-  });
-
-  it('listenKeys should be called when a specified key is changed via set', () => {
-    const store = map({ name: 'John', age: 30 }); // Use map
-    const keyListener = vi.fn();
-    const unsubscribe = listenKeys(store, ['name'], keyListener); // Use listenKeys
-
-    const newValue = { name: 'Jane', age: 30 };
-    set(store, newValue); // Use set
-    expect(keyListener).toHaveBeenCalledTimes(1);
-    expect(keyListener).toHaveBeenCalledWith('Jane', 'name', newValue);
-
-    unsubscribe();
-  });
-
-   it('listenKeys should handle multiple keys', () => {
-    const store = map({ name: 'John', age: 30, city: 'New York' }); // Use map
-    const keyListener = vi.fn();
-    const unsubscribe = listenKeys(store, ['name', 'age'], keyListener); // Use listenKeys
-
-    // Change 'age'
-    setKey(store, 'age', 31); // Use setKey
-    expect(keyListener).toHaveBeenCalledTimes(1);
-    expect(keyListener).toHaveBeenCalledWith(31, 'age', { name: 'John', age: 31, city: 'New York' });
-
-    keyListener.mockClear();
-
-    // Change 'name'
-    setKey(store, 'name', 'Jane'); // Use setKey
-    expect(keyListener).toHaveBeenCalledTimes(1);
-    expect(keyListener).toHaveBeenCalledWith('Jane', 'name', { name: 'Jane', age: 31, city: 'New York' });
-
-     keyListener.mockClear();
-
-    // Change 'city' (not listened to)
-    setKey(store, 'city', 'London'); // Use setKey
-     expect(keyListener).not.toHaveBeenCalled();
-
-     keyListener.mockClear();
-
-     // Change both 'name' and 'age' via set()
-     const newValue = { name: 'Peter', age: 40, city: 'London' };
-     set(store, newValue); // Use set
-     // Listener should be called twice, once for each changed key it listens to
-     expect(keyListener).toHaveBeenCalledTimes(2);
-     expect(keyListener).toHaveBeenCalledWith('Peter', 'name', newValue);
-     expect(keyListener).toHaveBeenCalledWith(40, 'age', newValue);
-
-
-    unsubscribe();
-  });
-
-   it('listenKeys should not be called after unsubscribing', () => {
-    const store = map({ name: 'John', age: 30 }); // Use map
-    const keyListener = vi.fn();
-    const unsubscribe = listenKeys(store, ['age'], keyListener); // Use listenKeys
-
-    unsubscribe(); // Unsubscribe immediately
-
-    setKey(store, 'age', 31); // Use setKey
-    expect(keyListener).not.toHaveBeenCalled();
-  });
-
-  it('listenKeys should handle multiple listeners for the same key', () => {
-    const store = map({ name: 'John', age: 30 }); // Use map
-    const listener1 = vi.fn();
-    const listener2 = vi.fn();
-
-    const unsub1 = listenKeys(store, ['age'], listener1); // Use listenKeys
-    const unsub2 = listenKeys(store, ['age'], listener2); // Use listenKeys
-
-    setKey(store, 'age', 31); // Use setKey
-    expect(listener1).toHaveBeenCalledTimes(1);
-    expect(listener2).toHaveBeenCalledTimes(1);
-    expect(listener1).toHaveBeenCalledWith(31, 'age', { name: 'John', age: 31 });
-    expect(listener2).toHaveBeenCalledWith(31, 'age', { name: 'John', age: 31 });
-
-    unsub1();
-
-    listener1.mockClear();
-    listener2.mockClear();
-
-    setKey(store, 'age', 32); // Use setKey
-    expect(listener1).not.toHaveBeenCalled();
-    expect(listener2).toHaveBeenCalledTimes(1);
-
-    unsub2();
-  });
+  // --- Key Subscription Tests Removed ---
+  // All tests using listenKeys have been removed.
 
     // Batching tests for map need to be re-evaluated with functional API
     /*

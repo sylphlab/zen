@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { deepMap, get, setPath, set, subscribe, listenPaths } from './deepMap'; // Import updated functional API
+import { deepMap, get, setPath, set, subscribe } from './deepMap'; // Import updated functional API (listenPaths removed)
 import { batch } from './batch';
 import type { Path } from './deepMapInternal'; // Import Path type if needed
 
@@ -149,103 +149,8 @@ describe('deepMap (functional)', () => {
         unsubscribe();
       });
 
-  // --- Path Subscription Tests ---
-
-  it('listenPaths should be called when a specified path is changed via setPath', () => { // Use listenPaths, setPath
-    const store = deepMap({ user: { name: 'John', details: { age: 30 } } }); // Use deepMap
-    const pathListener = vi.fn();
-    // Listen to a specific deep path
-    const unsubscribe = listenPaths(store, [['user', 'details', 'age']], pathListener); // Use listenPaths
-
-    setPath(store, ['user', 'details', 'age'], 31); // Use setPath
-    const finalValue = get(store)! as { user: { name: string; details: { age: number } } }; // Cast
-
-    expect(pathListener).toHaveBeenCalledTimes(1);
-    expect(pathListener).toHaveBeenCalledWith(31, ['user', 'details', 'age'], finalValue); // Expect correct value
-
-    pathListener.mockClear();
-    setPath(store, ['user', 'name'], 'Jane'); // Use setPath
-    expect(pathListener).not.toHaveBeenCalled();
-
-    unsubscribe();
-  });
-
-  it('listenPaths should be called when a path is changed via set', () => { // Use listenPaths, set
-    const store = deepMap({ user: { name: 'John', details: { age: 30 } } }); // Use deepMap
-    const pathListener = vi.fn();
-    const unsubscribe = listenPaths(store, [['user', 'name']], pathListener); // Use listenPaths
-
-    const newValue = { user: { name: 'Jane', details: { age: 30 } } };
-    set(store, newValue); // Use set
-    expect(pathListener).toHaveBeenCalledTimes(1);
-    expect(pathListener).toHaveBeenCalledWith('Jane', ['user', 'name'], newValue); // Expect correct value
-
-    unsubscribe();
-  });
-
-  it('listenPaths should handle multiple paths', () => { // Use listenPaths
-    const store = deepMap({ a: { b: 1 }, c: 2 }); // Use deepMap
-    const pathListener = vi.fn();
-    const unsubscribe = listenPaths(store, [['a', 'b'], ['c']], pathListener); // Use listenPaths
-
-    // Change path ['a', 'b']
-    setPath(store, ['a', 'b'], 10); // Use setPath
-    let currentValue = get(store)! as { a: { b: number }, c: number }; // Cast
-    expect(pathListener).toHaveBeenCalledTimes(1);
-    expect(pathListener).toHaveBeenCalledWith(10, ['a', 'b'], currentValue); // Expect correct value
-
-    pathListener.mockClear();
-
-    // Change path ['c']
-    setPath(store, ['c'], 20); // Use setPath
-    currentValue = get(store)! as { a: { b: number }, c: number }; // Cast
-    expect(pathListener).toHaveBeenCalledTimes(1);
-    expect(pathListener).toHaveBeenCalledWith(20, ['c'], currentValue); // Expect correct value
-
-     pathListener.mockClear();
-
-     // Change both paths via set()
-     const newValue = { a: { b: 100 }, c: 200 };
-     set(store, newValue); // Use set
-     expect(pathListener).toHaveBeenCalledTimes(2); // Called for each changed path
-     expect(pathListener).toHaveBeenCalledWith(100, ['a', 'b'], newValue); // Expect correct value
-     expect(pathListener).toHaveBeenCalledWith(200, ['c'], newValue); // Expect correct value
-
-    unsubscribe();
-  });
-
-    it('listenPaths should trigger for parent path listeners', () => { // Use listenPaths
-      const store = deepMap({ user: { name: 'John', address: { city: 'NY', zip: '10001' } } }); // Use deepMap
-      const userListener = vi.fn();
-      const addressListener = vi.fn();
-
-      const unsubUser = listenPaths(store, [['user']], userListener); // Use listenPaths
-      const unsubAddr = listenPaths(store, [['user', 'address']], addressListener); // Use listenPaths
-
-      // Change a deep property
-      setPath(store, ['user', 'address', 'zip'], '10002'); // Use setPath
-      const finalValue = get(store)! as { user: { name: string; address: { city: string; zip: string } } }; // Cast
-
-      expect(userListener).toHaveBeenCalledTimes(1); // Triggered because child changed
-      expect(userListener).toHaveBeenCalledWith('10002', ['user', 'address', 'zip'], finalValue); // Expect correct value
-      expect(addressListener).toHaveBeenCalledTimes(1); // Triggered because child changed
-      expect(addressListener).toHaveBeenCalledWith('10002', ['user', 'address', 'zip'], finalValue); // Expect correct value
-
-      unsubUser();
-      unsubAddr();
-  });
-
-
-   it('listenPaths should not be called after unsubscribing', () => { // Use listenPaths
-    const store = deepMap({ a: { b: 1 } }); // Use deepMap
-    const pathListener = vi.fn();
-    const unsubscribe = listenPaths(store, [['a', 'b']], pathListener); // Use listenPaths
-
-    unsubscribe(); // Unsubscribe immediately
-
-    setPath(store, ['a', 'b'], 2); // Use setPath
-    expect(pathListener).not.toHaveBeenCalled();
-  });
+  // --- Path Subscription Tests Removed ---
+  // All tests using listenPaths have been removed.
 
     // Batching tests need re-evaluation for functional API
     /*
