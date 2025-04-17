@@ -67,4 +67,4 @@
 35. **Address Remaining ESLint Errors/Warnings.** (Optional)
 36. **Consider Packaging/Documentation/Release.**
 37. ~~**Potentially revisit `deepMap`'s `getChangedPaths` optimization.**~~ (Done - Optimized key comparison - Commit `2a1e04e`)
-38. **Radical Simplification:** Removed key/path specific listeners (`listenKeys`, `listenPaths`) from Map/DeepMap. (Done - *Needs commit*)
+38. **Radical Simplification:** Removed key/path specific listeners (`listenKeys`, `listenPaths`) from Map/DeepMap. Tests updated and passed. Size reduced. (Done - Commits `7ee48b8`, `01860fd`)
