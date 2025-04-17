@@ -1,5 +1,5 @@
 // Functional DeepMap atom implementation.
-import type { Unsubscribe, DeepMapAtom, Listener } from './types'; // Combine types
+import type { Unsubscribe, DeepMapAtom, Listener, AnyAtom } from './types'; // Combine types, Add AnyAtom
 import { get as getCoreValue, subscribe as subscribeToCoreAtom } from './atom'; // Core get/subscribe
 import type { Atom } from './atom'; // Import Atom type for casting
 import { listenPaths as addPathListener, _emitPathChanges, PathListener } from './events'; // Path listener logic from parent
@@ -234,8 +234,8 @@ export function setPath<T extends object>(
   if (forceNotify || nextValue !== currentValue) {
     // Restore onSet logic from parent
     if (batchDepth <= 0) {
-        // Assuming _setListeners exists on DeepMapAtom type after updates
-        const setLs = (deepMapAtom as any)._setListeners as Set<Listener<T>> | undefined;
+        // Access _setListeners directly (assuming it's defined in DeepMapAtom via AtomWithValue)
+        const setLs = deepMapAtom._setListeners as Set<Listener<T>> | undefined; // Keep cast for Listener<T>
         if (setLs?.size) {
             for (const fn of setLs) {
                 try { fn(nextValue as T); } catch(e) { console.error(`Error in onSet listener for deepMap path set ${String(deepMapAtom)}:`, e); }
@@ -253,8 +253,8 @@ export function setPath<T extends object>(
         // Emit path changes first
         // Assuming _emitPathChanges exists and works with DeepMapAtom
         _emitPathChanges(deepMapAtom, [path], nextValue as T);
-        // Notify general listeners, add type assertion
-        notifyListeners(deepMapAtom as any, nextValue as T, currentValue);
+        // Notify general listeners, cast deepMapAtom to AnyAtom.
+        notifyListeners(deepMapAtom as AnyAtom, nextValue as T, currentValue);
     }
   }
 }
@@ -276,8 +276,8 @@ export function set<T extends object>(
 
     // Restore onSet logic from parent
     if (batchDepth <= 0) {
-        // Assuming _setListeners exists on DeepMapAtom type after updates
-        const setLs = (deepMapAtom as any)._setListeners as Set<Listener<T>> | undefined;
+        // Access _setListeners directly
+        const setLs = deepMapAtom._setListeners as Set<Listener<T>> | undefined; // Keep cast for Listener<T>
         if (setLs?.size) {
             for (const fn of setLs) {
                 try { fn(nextValue); } catch(e) { console.error(`Error in onSet listener for deepMap set ${String(deepMapAtom)}:`, e); }
@@ -298,8 +298,8 @@ export function set<T extends object>(
         // Cast needed as queueAtomForBatch expects Atom<T>
         queueAtomForBatch(deepMapAtom as Atom<T>, oldValue);
     } else {
-        // General listeners notified after path changes and value set, add type assertion
-        notifyListeners(deepMapAtom as any, nextValue, oldValue);
+        // General listeners notified after path changes and value set, cast deepMapAtom to AnyAtom.
+        notifyListeners(deepMapAtom as AnyAtom, nextValue, oldValue);
     }
   }
 }

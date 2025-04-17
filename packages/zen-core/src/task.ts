@@ -1,6 +1,6 @@
 // Task atom implementation for managing asynchronous operations.
 // import type { Atom } from './atom'; // Removed unused Atom import
-import type { Listener, Unsubscribe, /* AtomWithValue, */ TaskState, TaskAtom } from './types'; // Removed unused AtomWithValue
+import type { Listener, Unsubscribe, /* AtomWithValue, */ TaskState, TaskAtom, AnyAtom } from './types'; // Removed unused AtomWithValue, Add AnyAtom, Remove unused AtomValue
 import { subscribe as subscribeToCoreAtom, notifyListeners } from './atom'; // Import core subscribe AND notifyListeners
 // Removed import { notifyListeners } from './internalUtils'; // Import notifyListeners
 // Removed createAtom, getAtomValue, setAtomValue, subscribeToAtom imports
@@ -68,8 +68,8 @@ export function runTask<T, Args extends unknown[]>(taskAtom: TaskAtom<T, Args>, 
     // Set loading state immediately. Clear previous error/data.
     const oldState = taskAtom._value;
     taskAtom._value = { loading: true, error: undefined, data: undefined };
-    // Notify listeners directly attached to TaskAtom, add 'as any'
-    notifyListeners(taskAtom as any, taskAtom._value, oldState);
+    // Notify listeners directly attached to TaskAtom, cast to AnyAtom.
+    notifyListeners(taskAtom as AnyAtom, taskAtom._value, oldState);
 
     // Call the stored async function and store the promise.
     const promise = taskAtom._asyncFn(...args);
@@ -87,8 +87,8 @@ export function runTask<T, Args extends unknown[]>(taskAtom: TaskAtom<T, Args>, 
         // console.log('Task succeeded, updating state.'); // Optional debug log
         const oldStateSuccess = taskAtom._value;
         taskAtom._value = { loading: false, data: result, error: undefined };
-        // Notify listeners directly attached to TaskAtom, add 'as any'
-        notifyListeners(taskAtom as any, taskAtom._value, oldStateSuccess);
+        // Notify listeners directly attached to TaskAtom, cast to AnyAtom.
+        notifyListeners(taskAtom as AnyAtom, taskAtom._value, oldStateSuccess);
         // Cast taskAtom for WeakMap key compatibility
                 runningPromises.delete(taskAtom as TaskAtom<unknown>); // Cast to unknown
       } else {
@@ -105,8 +105,8 @@ export function runTask<T, Args extends unknown[]>(taskAtom: TaskAtom<T, Args>, 
         const errorObj = error instanceof Error ? error : new Error(String(error ?? 'Unknown error'));
         const oldStateError = taskAtom._value;
         taskAtom._value = { loading: false, error: errorObj, data: undefined };
-        // Notify listeners directly attached to TaskAtom, add 'as any'
-        notifyListeners(taskAtom as any, taskAtom._value, oldStateError);
+        // Notify listeners directly attached to TaskAtom, cast to AnyAtom.
+        notifyListeners(taskAtom as AnyAtom, taskAtom._value, oldStateError);
         // Cast taskAtom for WeakMap key compatibility
                 runningPromises.delete(taskAtom as TaskAtom<unknown>); // Cast to unknown
       } else {
@@ -139,8 +139,9 @@ export function getTaskState<T>(taskAtom: TaskAtom<T>): TaskState<T> {
  * @returns An unsubscribe function.
  */
 export function subscribeToTask<T>(taskAtom: TaskAtom<T>, listener: Listener<TaskState<T>>): Unsubscribe {
-    // Subscribe directly to the TaskAtom using the core subscribe function, add 'as any' to both args
-    return subscribeToCoreAtom(taskAtom as any, listener as any);
+    // Subscribe directly to the TaskAtom using the core subscribe function.
+    // Cast taskAtom to AnyAtom and listener to any to satisfy the generic signature.
+    return subscribeToCoreAtom(taskAtom as AnyAtom, listener as any);
 }
 
 // Removed temporary UpdatedTaskAtom type and updatedCreateTask function

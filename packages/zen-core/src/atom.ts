@@ -61,8 +61,8 @@ export function get<A extends AnyAtom>(atom: A): AtomValue<A> | null { // Return
         case 'deepMap':
         case 'task': // Add 'task' case back
             // For these types, _value directly matches AtomValue<A>
-            // Add 'as any' to handle potential mismatch with AtomValue<A>
-            return atom._value as any;
+            // Cast needed as TS struggles with inference within generic function.
+            return atom._value as AtomValue<A>;
             // No break needed here as return exits the function
         // Removed 'task' case
         case 'computed': {
@@ -105,7 +105,8 @@ export function set<T>(atom: Atom<T>, value: T, force = false): void {
         if (batchDepth > 0) {
             queueAtomForBatch(atom, oldValue);
         } else {
-            notifyListeners(atom as any, value, oldValue); // Notify immediately if not in batch
+            // Cast needed to satisfy notifyListeners<A extends AnyAtom> parameter.
+            notifyListeners(atom as AnyAtom, value, oldValue); // Notify immediately if not in batch
         }
     }
 }
@@ -142,9 +143,21 @@ export function subscribe<A extends AnyAtom>(atom: A, listener: Listener<AtomVal
 
     // Initial call to the new listener using the updated get function
     try {
-        // get() returns AtomValue<A> | null. Listener expects AtomValue<A>.
-        // Add 'as any' to get(atom) call to resolve overload mismatch.
-        listener(get(atom as any) as AtomValue<A>, undefined);
+        // Get the initial value for the listener by mimicking get() logic.
+        let initialValue: AtomValue<A> | null; // Allow null for computed initial state
+        if (atom._kind === 'computed') {
+            const computed = atom as ComputedAtom<AtomValue<A>>;
+            if (computed._dirty || computed._value === null) {
+                computed._update();
+            }
+            initialValue = computed._value;
+        } else {
+            // For other types, _value is the correct type. Cast needed.
+            initialValue = atom._value as AtomValue<A>;
+        }
+        // Listener expects AtomValue<A>, handle potential null from computed.
+        // Use non-null assertion assuming listener expects value after subscribe.
+        listener(initialValue!, undefined);
     } catch (e) {
         console.error(`Error in initial listener call for atom ${String(atom)}:`, e);
     }

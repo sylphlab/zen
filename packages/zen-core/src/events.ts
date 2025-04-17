@@ -90,8 +90,9 @@ export function onSet<T>(a: Atom<T>, fn: LifecycleListener<T>): Unsubscribe {
   // a is already AtomWithValue<T>
   a._setListeners ??= new Set();
   a._setListeners.add(fn);
-  // Pass the specific Atom<T> to _unsubscribe, add 'as any' for AnyAtom compatibility and listener type
-  return () => _unsubscribe(a as any, '_setListeners', fn as any);
+  // _unsubscribe expects A extends AnyAtom and Listener<AtomValue<A>>.
+  // Cast 'a' to AnyAtom, and 'fn' to any to satisfy the generic signature.
+  return () => _unsubscribe(a as AnyAtom, '_setListeners', fn as any);
 }
 
 /** Attaches a listener triggered *after* an atom's value listeners have been notified. */
@@ -112,8 +113,9 @@ export function onMount<A extends AnyAtom>(a: A, fn: LifecycleListener<AtomValue
   } catch (err) {
     console.error(`Error in onMount listener for atom ${String(a)}:`, err);
   }
-  // Cast args for _unsubscribe, add 'as any' for AnyAtom compatibility
-  return () => _unsubscribe(a as any, '_mountListeners', fn);
+  // _unsubscribe expects A extends AnyAtom and Listener<AtomValue<A>>.
+  // 'a' is A extends AnyAtom, 'fn' is Listener<AtomValue<A>>. Should match directly.
+  return () => _unsubscribe(a, '_mountListeners', fn);
 }
 
 

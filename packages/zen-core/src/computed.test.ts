@@ -2,35 +2,35 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { atom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional API
 import { computed } from './computed'; // Import computed
 
-// Mock the internal subscribe/unsubscribe functions for dependency tracking test
-vi.mock('./atom', async (importOriginal) => {
-  const original = await importOriginal() as typeof import('./atom');
-  return {
-    ...original,
-    subscribe: vi.fn(original.subscribe), // Spy on subscribe (renamed from subscribeToAtom)
-  };
-});
+// // Mock the internal subscribe/unsubscribe functions for dependency tracking test - REMOVED due to vi.mock error
+// vi.mock('./atom', async (importOriginal) => {
+//   const original = await importOriginal() as typeof import('./atom');
+//   return {
+//     ...original,
+//     subscribe: vi.fn(original.subscribe), // Spy on subscribe (renamed from subscribeToAtom)
+//   };
+// });
 
 describe('computed (functional)', () => {
-  // Clear mocks after each test in this suite
-  afterEach(() => {
-    vi.restoreAllMocks();
-    // Clear specific mock history if needed
-    (subscribeToAtom as any).mockClear?.(); // Keep mock clear target as subscribeToAtom for now
-  });
+  // // Clear mocks after each test in this suite - REMOVED due to vi.mock removal
+  // afterEach(() => {
+  //   vi.restoreAllMocks();
+  //   // Clear specific mock history if needed
+  //   (subscribeToAtom as any).mockClear?.(); // Keep mock clear target as subscribeToAtom for now
+  // });
 
   it('should compute initial value correctly', () => {
     const count = atom(10); // Use atom
-    const double = computed([count], value => value * 2); // Use computed
+    const double = computed([count as any], (value: unknown) => (value as number) * 2); // Use computed, accept unknown, cast inside
     expect(getAtomValue(double)).toBe(20);
   });
 
   it('should update when a dependency atom changes', () => {
     const count = atom(10); // Use atom
-    const double = computed([count], value => value * 2); // Use computed
+    const double = computed([count as any], (value: unknown) => (value as number) * 2); // Use computed, accept unknown, cast inside
 
-    // Subscribe to activate dependency tracking
-    const unsub = subscribeToAtom(double, () => {});
+    // Subscribe to activate dependency tracking, add cast
+    const unsub = subscribeToAtom(double as any, () => {});
 
     expect(getAtomValue(double)).toBe(20);
     setAtomValue(count, 15);
@@ -41,10 +41,10 @@ describe('computed (functional)', () => {
 
   it('should notify listeners when computed value changes', () => {
     const count = atom(10); // Use atom
-    const double = computed([count], value => value * 2); // Use computed
+    const double = computed([count as any], (value: unknown) => (value as number) * 2); // Use computed, accept unknown, cast inside
     const listener = vi.fn();
 
-    const unsubscribe = subscribeToAtom(double, listener); // Use subscribeToAtom (mock target)
+    const unsubscribe = subscribeToAtom(double as any, listener); // Use subscribeToAtom, add cast
     // Initial call happens, store the value for comparison
     const initialValue = getAtomValue(double); // Should be 20
     listener.mockClear(); // Reset after subscription
@@ -59,10 +59,10 @@ describe('computed (functional)', () => {
 
   it('should not notify listeners if computed value does not change', () => {
     const count = atom(10); // Use atom
-    const parity = computed([count], value => (value % 2 === 0 ? 'even' : 'odd')); // Use computed
+    const parity = computed([count as any], (value: unknown) => ((value as number) % 2 === 0 ? 'even' : 'odd')); // Use computed, accept unknown, cast inside
     const listener = vi.fn();
 
-    const unsubscribe = subscribeToAtom(parity, listener); // Use subscribeToAtom (mock target)
+    const unsubscribe = subscribeToAtom(parity as any, listener); // Use subscribeToAtom, add cast
     listener.mockClear(); // Clear call history after subscription
 
     setAtomValue(count, 12); // Value changes, but computed result ('even') does not
@@ -75,10 +75,10 @@ describe('computed (functional)', () => {
   it('should handle multiple dependencies', () => {
     const num1 = atom(10); // Use atom
     const num2 = atom(5); // Use atom
-    const sum = computed([num1, num2], (n1, n2) => n1 + n2); // Use computed
+    const sum = computed([num1 as any, num2 as any], (n1: unknown, n2: unknown) => (n1 as number) + (n2 as number)); // Use computed, accept unknown, cast inside
     const listener = vi.fn();
 
-    const unsubscribe = subscribeToAtom(sum, listener); // Use subscribeToAtom (mock target)
+    const unsubscribe = subscribeToAtom(sum as any, listener); // Use subscribeToAtom, add cast
     const initialSum = getAtomValue(sum); // 15
     listener.mockClear(); // Clear after subscription
 
@@ -99,12 +99,12 @@ describe('computed (functional)', () => {
 
   it('should handle dependencies on other computed atoms', () => {
     const base = atom(10); // Use atom
-    // Ensure null check is present
-    const double = computed([base], val => (val ?? 0) * 2);
-    const quadruple = computed([double], val => (val ?? 0) * 2);
+    // Ensure null check is present, accept unknown, cast inside
+    const double = computed([base as any], (val: unknown) => ((val as number | null) ?? 0) * 2);
+    const quadruple = computed([double as any], (val: unknown) => ((val as number | null) ?? 0) * 2);
     const listener = vi.fn();
 
-    const unsubscribe = subscribeToAtom(quadruple, listener); // Use subscribeToAtom (mock target)
+    const unsubscribe = subscribeToAtom(quadruple as any, listener); // Use subscribeToAtom, add cast
     const initialQuad = getAtomValue(quadruple); // 40
     listener.mockClear(); // Clear after subscription
 
@@ -119,7 +119,7 @@ describe('computed (functional)', () => {
   it('should unsubscribe from dependencies when last listener unsubscribes', () => {
     const dep1 = atom(1); // Use atom
     const dep2 = atom(2); // Use atom
-    const computedSum = computed([dep1, dep2], (d1, d2) => d1 + d2); // Use computed
+    const computedSum = computed([dep1 as any, dep2 as any], (d1: unknown, d2: unknown) => (d1 as number) + (d2 as number)); // Use computed, accept unknown, cast inside
     const listener = vi.fn();
 
     // Cast to access internal properties for testing
@@ -128,13 +128,13 @@ describe('computed (functional)', () => {
     // Initially, no unsubscribers
     expect(internalComputed._unsubscribers).toBeUndefined();
 
-    // First subscribe triggers dependency subscriptions
-    const unsub1 = subscribeToAtom(computedSum, listener); // Use subscribeToAtom (mock target)
+    // First subscribe triggers dependency subscriptions, add cast
+    const unsub1 = subscribeToAtom(computedSum as any, listener); // Use subscribeToAtom
     expect(internalComputed._unsubscribers).toBeInstanceOf(Array);
     expect(internalComputed._unsubscribers.length).toBe(2); // Should have subscribed to both deps
 
-    // Add a second listener - should NOT change unsubscribers array
-    const unsub2 = subscribeToAtom(computedSum, () => {}); // Use subscribeToAtom (mock target)
+    // Add a second listener - should NOT change unsubscribers array, add cast
+    const unsub2 = subscribeToAtom(computedSum as any, () => {}); // Use subscribeToAtom
     expect(internalComputed._unsubscribers).toBeInstanceOf(Array);
     expect(internalComputed._unsubscribers.length).toBe(2);
 

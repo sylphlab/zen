@@ -1,6 +1,7 @@
 // Functional Map atom implementation.
 import type { Atom } from './atom';
-import type { MapAtom, Unsubscribe } from './types'; // Import MapAtom and Unsubscribe from types
+// Remove this duplicate line
+import type { MapAtom, Unsubscribe, AnyAtom } from './types'; // Ensure AnyAtom is imported here
 import { get as getCoreValue, subscribe as subscribeToCoreAtom } from './atom'; // Import core get/subscribe
 import { listenKeys as addKeyListener, KeyListener, _emitKeyChanges } from './events'; // Import key listener logic AND _emitKeyChanges
 // Removed import { STORE_MAP_KEY_SET } from './keys';
@@ -76,7 +77,8 @@ export function setKey<T extends object, K extends keyof T>(
 
       // b. Notify general value listeners and onNotify listeners
       // Use the standard notifyListeners, passing the mapAtom, add 'as any'
-      notifyListeners(mapAtom as any, nextValue, oldValue);
+      // Cast mapAtom to AnyAtom for notifyListeners.
+      notifyListeners(mapAtom as AnyAtom, nextValue, oldValue);
 
       // --- End Immediate Notifications ---
     }
@@ -132,7 +134,9 @@ export function set<T extends object>(
     if (batchDepth > 0) {
         queueAtomForBatch(mapAtom as Atom<T>, oldValue); // Cast for queue
     } else {
-        notifyListeners(mapAtom as any, nextValue, oldValue); // Add 'as any'
+        // Cast mapAtom to AnyAtom for notifyListeners.
+        // Cast mapAtom to AnyAtom for notifyListeners. (Already done in previous step, ensure it remains)
+        notifyListeners(mapAtom as AnyAtom, nextValue, oldValue);
     }
   }
 }
