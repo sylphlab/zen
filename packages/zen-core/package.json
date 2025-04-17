@@ -35,7 +35,7 @@
     {
       "name": "zen (full)",
       "path": "dist/index.js",
-      "import": "{ atom, computed, deepMap }",
+      "import": "{ atom, computed, map, deepMap, task, batch, onMount, subscribe, get }",
       "limit": "1.8 kB"
     }
   ],
@@ -49,8 +49,16 @@
     "tiny",
     "nanostores"
   ],
-  "author": "",
+  "author": "Your Name <your.email@example.com>",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/zen.git"
+  },
+  "homepage": "https://github.com/your-username/zen#readme",
+  "bugs": {
+    "url": "https://github.com/your-username/zen/issues"
+  },
   "devDependencies": {
   },
   "dependencies": {
