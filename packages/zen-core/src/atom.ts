@@ -1,11 +1,32 @@
 // Functional atom implementation
-import type { Listener, Unsubscribe, AnyAtom, AtomValue, AtomWithValue, TaskState, TaskAtom, MapAtom, DeepMapAtom } from './types'; // Import AtomValue
+import type { Listener, Unsubscribe, AnyAtom, AtomValue, AtomWithValue, DeepMapAtom } from './types'; // Removed MapAtom, TaskState, TaskAtom
 // Remove duplicate import line
 import type { ComputedAtom } from './computed'; // Import ComputedAtom from computed.ts
 // Removed import { isComputedAtom } from './typeGuards'; // This line should already be removed, but included for context
 // Removed TaskAtom import from './task'
-import { notifyListeners } from './internalUtils'; // Import from internalUtils (getBaseAtom removed)
-import { queueAtomForBatch, batchDepth } from './batch'; // Import batch helpers AND batchDepth (Removed isInBatch)
+// Removed import from internalUtils
+// Removed batch imports
+
+// --- Internal notifyListeners function (moved from internalUtils.ts) ---
+/**
+ * Notifies all listeners of an atom about a value change.
+ * @internal - Exported for use by other modules like computed, deepMap.
+ */
+export function notifyListeners<A extends AnyAtom>(atom: A, value: AtomValue<A>, oldValue?: AtomValue<A>): void { // Add export
+    // Operate directly on the atom, casting to the base structure with the correct value type
+    const baseAtom = atom as AtomWithValue<AtomValue<A>>;
+
+    // Notify regular value listeners
+    const ls = baseAtom._listeners; // Type is already Set<Listener<AtomValue<A>>> | undefined
+    if (ls?.size) {
+        // Create a copy for iteration to handle listeners that unsubscribe themselves.
+        for (const fn of [...ls]) {
+            // Pass oldValue as null if undefined, matching previous logic
+            try { fn(value, oldValue ?? null); } catch (e) { console.error(`Error in value listener:`, e); }
+        }
+    }
+}
+
 
 // --- Type Definition ---
 /** Represents a writable atom (functional style). */
@@ -23,19 +44,21 @@ export type Atom<T = unknown> = AtomWithValue<T> & { // Default to unknown
 // Overloads remain largely the same, relying on specific atom types
 export function get<T>(atom: Atom<T>): T;
 export function get<T>(atom: ComputedAtom<T>): T | null;
-export function get<T extends object>(atom: MapAtom<T>): T;
+// Removed MapAtom overload
 export function get<T extends object>(atom: DeepMapAtom<T>): T;
-export function get<T, Args extends unknown[]>(atom: TaskAtom<T, Args>): TaskState<T>; // Use TaskAtom directly
+// Removed TaskAtom overload
 // General implementation signature using AtomValue
 export function get<A extends AnyAtom>(atom: A): AtomValue<A> | null { // Return includes null for computed initial state
     // Use switch for type narrowing and direct value access
     switch (atom._kind) {
         case 'atom':
-        case 'map':
+        // Removed 'map' case
+        // Fallthrough intended for 'atom' and 'deepMap'
         case 'deepMap':
-        case 'task':
             // For these types, _value directly matches AtomValue<A>
             return atom._value;
+            // No break needed here as return exits the function
+        // Removed 'task' case
         case 'computed': {
             // Explicit cast needed for computed-specific logic
             const computed = atom as ComputedAtom<AtomValue<A>>; // Value type is AtomValue<A>
@@ -44,6 +67,7 @@ export function get<A extends AnyAtom>(atom: A): AtomValue<A> | null { // Return
             }
             // Computed value can be null initially
             return computed._value as AtomValue<A> | null;
+            // No break needed here as return exits the function
         }
         default: {
             // Handle unknown kind - should be unreachable with AnyAtom
@@ -56,7 +80,7 @@ export function get<A extends AnyAtom>(atom: A): AtomValue<A> | null { // Return
 }
 
 /**
- * Sets the value of a writable atom.
+ * Sets the value of a writable atom. Notifies listeners immediately.
  * @param atom The atom to write to.
  * @param value The new value.
  * @param force If true, notify listeners even if the value is the same.
@@ -67,26 +91,12 @@ export function set<T>(atom: Atom<T>, value: T, force = false): void {
 
     const oldValue = atom._value;
     if (force || !Object.is(value, oldValue)) {
-        // Trigger onSet listeners BEFORE setting value, ONLY if not in batch
-        // Directly check batchDepth from batch.ts
-        if (batchDepth <= 0) { // Check if NOT in batch (depth is 0 or less)
-            const setLs = atom._setListeners;
-            if (setLs?.size) { // Use size for Set
-                for (const fn of setLs) { // Iterate Set
-                    try { fn(value); } catch(e) { console.error(`Error in onSet listener for atom ${String(atom)}:`, e); }
-                }
-            }
-        }
+        // onSet listener logic removed
 
         atom._value = value;
 
-        // Check if currently in a batch using the same direct check
-        if (batchDepth > 0) {
-            queueAtomForBatch(atom, oldValue); // Queue for later notification
-        } else {
-            // Outside batch: notify immediately.
-            notifyListeners(atom, value, oldValue);
-        }
+        // Batching logic removed, notify immediately
+        notifyListeners(atom, value, oldValue);
     }
 }
 
@@ -108,28 +118,10 @@ export function subscribe<A extends AnyAtom>(atom: A, listener: Listener<AtomVal
     baseAtom._listeners ??= new Set<Listener<AtomValue<A>>>();
     baseAtom._listeners.add(listener); // Add the correctly typed listener
 
-    // Trigger onStart and onMount if this is the first listener
+    // Trigger onStart/onMount logic removed
     if (isFirstListener) {
-        // Trigger onMount first (if exists)
-        const mountLs = baseAtom._mountListeners;
-        if (mountLs?.size) {
-            for (const fn of mountLs) {
-                try { fn(undefined); } catch(e) { console.error(`Error in onMount listener during first subscribe:`, e); }
-            }
-        }
-        delete baseAtom._mountListeners; // Clean up mount listeners
-
-        // Then trigger onStart
-        const startLs = baseAtom._startListeners;
-        if (startLs?.size) {
-            for (const fn of startLs) {
-                try { fn(undefined); } catch(e) { console.error(`Error in onStart listener for atom ${String(atom)}:`, e); }
-            }
-        }
-
         // If it's a computed atom, trigger its source subscription logic
-        // If it's a computed atom, trigger its source subscription logic (Inline check)
-        if ('_calculation' in atom) {
+        if (atom._kind === 'computed') { // Use kind check instead of 'in'
              // Cast to ComputedAtom with the correct value type
              const computed = atom as ComputedAtom<AtomValue<A>>;
              if (typeof computed._subscribeToSources === 'function') {
@@ -157,18 +149,11 @@ export function subscribe<A extends AnyAtom>(atom: A, listener: Listener<AtomVal
 
       listeners.delete(listener);
 
-      // Trigger onStop if this was the last listener
+      // Trigger onStop logic removed
       if (!listeners.size) {
         delete baseAtom._listeners; // Clean up Set if empty
-        const stopLs = baseAtom._stopListeners;
-        if (stopLs?.size) {
-            for (const fn of stopLs) {
-                try { fn(undefined); } catch(e) { console.error(`Error in onStop listener for atom ${String(atom)}:`, e); }
-            }
-        }
         // If it's a computed atom, trigger its source unsubscription logic
-        // If it's a computed atom, trigger its source unsubscription logic (Inline check)
-        if ('_calculation' in atom) {
+        if (atom._kind === 'computed') { // Use kind check instead of 'in'
             // Cast to ComputedAtom with the correct value type
             const computed = atom as ComputedAtom<AtomValue<A>>;
              if (typeof computed._unsubscribeFromSources === 'function') {
@@ -195,8 +180,7 @@ export function atom<T>(initialValue: T): Atom<T> { // Rename createAtom to atom
     // Listener properties (e.g., _listeners, _startListeners) are omitted
     // and will be added dynamically by subscribe/event functions if needed.
   };
-  // DO NOT trigger onMount immediately after creation anymore.
-  // It will be triggered by the first subscribe call.
+  // onMount logic removed
 
   return newAtom;
 }

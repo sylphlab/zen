@@ -35,7 +35,7 @@
     {
       "name": "zen (full)",
       "path": "dist/index.js",
-      "import": "{ atom, computed, map, task }",
+      "import": "{ atom, computed, deepMap }",
       "limit": "1.8 kB"
     }
   ],

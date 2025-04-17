@@ -3,32 +3,29 @@
 
 // --- Core Types ---
 // Base types
-export type { Listener, Unsubscribe, TaskState, AtomWithValue, AnyAtom } from './types';
-// Specific atom types (MapAtom, DeepMapAtom, TaskAtom now from types.ts)
+export type { Listener, Unsubscribe, AtomWithValue, AnyAtom } from './types'; // Removed TaskState
+// Specific atom types
 export type { Atom } from './atom';
 export type { ReadonlyAtom, ComputedAtom } from './computed';
-export type { MapAtom, DeepMapAtom, TaskAtom } from './types';
-// Event listener types
-export type { LifecycleListener, KeyListener, PathListener } from './events';
+export type { DeepMapAtom } from './types'; // Removed MapAtom and TaskAtom
+// Event listener types removed
 // Other types
-export type { Path } from './deepMapInternal'; // Export Path type
+export type { Path } from './deepMap'; // Updated Path export
 
 // --- Core Factories ---
 export { atom } from './atom';
 export { computed } from './computed';
-export { map } from './map';
+// Removed map factory
 export { deepMap } from './deepMap';
-export { task } from './task';
+// Removed task factory
 
 // --- Core Functions ---
 export { get, set, subscribe } from './atom'; // Core functions
-export { setKey as setMapKey, set as setMapValue, listenKeys as listenMapKeys } from './map'; // Map-specific functions
-export { setPath as setDeepMapPath, set as setDeepMapValue, listenPaths as listenDeepMapPaths } from './deepMap'; // DeepMap-specific functions
-export { getTaskState, subscribeToTask, runTask } from './task'; // Task-specific functions
-export { batch } from './batch';
+// Removed Map-specific functions
+export { setPath as setDeepMapPath, set as setDeepMapValue } from './deepMap'; // DeepMap-specific functions, removed listenDeepMapPaths
+// Removed Task-specific functions
+// Removed batch export
 
-// --- Event Functions ---
-// listenKeys and listenPaths are now exported from map/deepMap respectively
-export { onStart, onStop, onSet, onNotify, onMount } from './events';
+// --- Event Functions Removed ---
 
-// Note: Internal functions like notifyListeners, getBaseAtom, _emitKeyChanges, _emitPathChanges are not exported.
+// Note: Internal functions like notifyListeners are not exported.
