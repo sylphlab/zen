@@ -18,7 +18,7 @@
   ],
   "scripts": {
     "build": "tsup",
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "test:watch": "vitest",
     "bench": "vitest bench --run",
     "bench:watch": "vitest bench",

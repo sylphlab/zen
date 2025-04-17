@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { deepMap, get, setPath, set, subscribe } from './deepMap'; // Import updated functional API (listenPaths removed)
-import { batch } from './batch';
+import { batch } from './atom';
 import type { Path } from './deepMapInternal'; // Import Path type if needed
 
 describe('deepMap (functional)', () => {
@@ -149,8 +149,111 @@ describe('deepMap (functional)', () => {
         unsubscribe();
       });
 
+
+
+    it('should batch setPath updates', () => {
+      const initial = { user: { name: 'A', age: 1 }, settings: { theme: 'dark' } };
+      const store = deepMap(initial);
+      const listener = vi.fn();
+      const unsubscribe = subscribe(store, listener);
+      listener.mockClear(); // Clear initial call
+
+      batch(() => {
+        setPath(store, 'user.name', 'B');
+        setPath(store, 'settings.theme', 'light');
+        setPath(store, ['user', 'age'], 2);
+        expect(listener).not.toHaveBeenCalled(); // Not called inside batch
+      });
+
+      const expectedValue = { user: { name: 'B', age: 2 }, settings: { theme: 'light' } };
+      expect(get(store)).toEqual(expectedValue);
+      expect(listener).toHaveBeenCalledTimes(1); // Called once after batch
+      expect(listener).toHaveBeenCalledWith(expectedValue, initial);
+
+      unsubscribe();
+    });
+
   // --- Path Subscription Tests Removed ---
   // All tests using listenPaths have been removed.
+
+
+
+  describe('set (for deepMap)', () => {
+    it('should replace the entire object value', () => {
+      const initial = { a: { b: 1 }, c: 2 };
+      const store = deepMap(initial);
+      const newValue = { a: { b: 100 }, c: 3 }; // Match shape of initial
+
+      set(store, newValue);
+
+      expect(get(store)).toEqual(newValue);
+      expect(get(store)).not.toBe(newValue); // Should be a deep clone
+      expect(get(store).a).not.toBe(newValue.a); // Nested objects should also be cloned
+    });
+
+    it('should notify listeners when object content changes', () => {
+      const initial = { a: 1 };
+      const store = deepMap(initial);
+      const listener = vi.fn();
+      const unsubscribe = subscribe(store, listener);
+      listener.mockClear();
+
+      const newValue = { a: 2 };
+      set(store, newValue);
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(listener).toHaveBeenCalledWith(newValue, initial);
+      unsubscribe();
+    });
+
+    it('should not notify listeners if object content is the same', () => {
+      const initial = { a: 1 };
+      const store = deepMap(initial);
+      const listener = vi.fn();
+      const unsubscribe = subscribe(store, listener);
+      listener.mockClear();
+
+      const newValue = { a: 1 }; // Same content, different reference
+      set(store, newValue);
+
+      expect(listener).not.toHaveBeenCalled();
+      unsubscribe();
+    });
+
+     it('should notify listeners if object reference is the same but forced', () => {
+      const initial = { a: 1 };
+      const store = deepMap(initial);
+      const listener = vi.fn();
+      const unsubscribe = subscribe(store, listener);
+      listener.mockClear();
+
+      set(store, initial, true); // Force notify with same reference
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(listener).toHaveBeenCalledWith(initial, initial);
+      unsubscribe();
+    });
+
+    it('should batch updates', () => {
+      const initial = { a: 1 };
+      const store = deepMap(initial);
+      const listener = vi.fn();
+      const unsubscribe = subscribe(store, listener);
+      listener.mockClear();
+
+      const finalValue = { a: 3 };
+      batch(() => {
+        set(store, { a: 2 });
+        set(store, finalValue);
+        expect(listener).not.toHaveBeenCalled();
+      });
+
+      expect(get(store)).toEqual(finalValue);
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(listener).toHaveBeenCalledWith(finalValue, initial);
+      unsubscribe();
+    });
+  });
 
     // Batching tests need re-evaluation for functional API
     /*

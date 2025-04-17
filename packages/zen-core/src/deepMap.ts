@@ -7,6 +7,24 @@ import { batchDepth, queueAtomForBatch, notifyListeners } from './atom'; // Impo
 // Removed import { notifyListeners } from './atom'; // Import notifyListeners from atom.ts
 // Removed import { getChangedPaths } from './deepMapInternal'; // Deep object utilities from parent
 
+// --- Simple Deep Clone Helper ---
+// Basic deep clone, handles plain objects and arrays. Doesn't handle Dates, Regexps, Maps, Sets etc.
+const deepClone = <T>(obj: T): T => {
+    if (obj === null || typeof obj !== 'object') {
+        return obj;
+    }
+    if (Array.isArray(obj)) {
+        return obj.map(deepClone) as T;
+    }
+    const cloned = {} as T;
+    for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+            cloned[key] = deepClone(obj[key]);
+        }
+    }
+    return cloned;
+};
+
 // --- Path Types (from HEAD's embedded deepMapInternal.ts) ---
 export type PathString = string;
 export type PathArray = (string | number)[];
@@ -285,21 +303,32 @@ export function set<T extends object>(
         }
     }
 
-    // Emit path changes *before* setting value (Restored from parent)
-    if (changedPaths.length > 0) {
-        // Assuming _emitPathChanges exists and works with DeepMapAtom
-        _emitPathChanges(deepMapAtom, changedPaths, nextValue);
-    }
+    // Only proceed if content actually changed or forced
+    if (changedPaths.length > 0 || forceNotify) {
+        // Emit path changes *before* setting value (Restored from parent)
+        if (changedPaths.length > 0) { // Only emit if paths actually changed
+            // Assuming _emitPathChanges exists and works with DeepMapAtom
+            _emitPathChanges(deepMapAtom, changedPaths, nextValue);
+        }
 
-    deepMapAtom._value = nextValue;
+        // Use deep clone for immutability
+        deepMapAtom._value = deepClone(nextValue);
 
-    // Restore batching and notification logic from parent (notifyListeners is called last)
-    if (batchDepth > 0) {
-        // Cast needed as queueAtomForBatch expects Atom<T>
-        queueAtomForBatch(deepMapAtom as Atom<T>, oldValue);
+        // Restore batching and notification logic from parent (notifyListeners is called last)
+        if (batchDepth > 0) {
+            // Cast needed as queueAtomForBatch expects Atom<T>
+            queueAtomForBatch(deepMapAtom as Atom<T>, oldValue);
+        } else {
+            // General listeners notified after path changes and value set, cast deepMapAtom to AnyAtom.
+            // Pass the cloned value to listeners
+            notifyListeners(deepMapAtom as AnyAtom, deepMapAtom._value, oldValue);
+        }
     } else {
-        // General listeners notified after path changes and value set, cast deepMapAtom to AnyAtom.
-        notifyListeners(deepMapAtom as AnyAtom, nextValue, oldValue);
+         // If only reference changed but content is identical (and not forceNotify),
+         // still update the internal reference to the new object, but don't notify.
+         // Use deep clone here too for consistency, although technically not required
+         // if we guarantee no notification happens.
+         deepMapAtom._value = deepClone(nextValue);
     }
   }
 }

@@ -28,6 +28,7 @@ export type AtomWithValue<T> = {
     // Add properties for map/deepMap listeners using broader types
     _keyListeners?: Map<any, Set<any>>;
     _pathListeners?: Map<any, Set<any>>;
+    _mountCleanups?: Map<any, Function | void>;
 };
 
 /** Represents the possible states of a TaskAtom. */
@@ -62,4 +63,4 @@ export type AtomValue<A extends AnyAtom> = A extends AtomWithValue<infer V> ? V 
 
 /** Union type for any kind of atom structure recognized by the library. */
 // This union represents the structure, use AtomValue<A> to get the value type.
-export type AnyAtom = Atom<unknown> | ComputedAtom<unknown> | MapAtom<object> | DeepMapAtom<object> | TaskAtom<any, any> | BatchedAtom<unknown>; // Add BatchedAtom<unknown>
+export type AnyAtom = Atom<any> | ComputedAtom<any> | MapAtom<object> | DeepMapAtom<object> | TaskAtom<any, any> | BatchedAtom<any>; // Add BatchedAtom<any>

@@ -138,6 +138,36 @@ export function subscribe<A extends AnyAtom>(atom: A, listener: Listener<AtomVal
 
     // Trigger onStart/onMount logic removed
     if (isFirstListener) {
+        // Trigger onMount listeners
+        const mountLs = baseAtom._mountListeners;
+        if (mountLs?.size) {
+            baseAtom._mountCleanups ??= new Map(); // Initialize cleanup map if needed
+            for (const fn of mountLs) {
+                try {
+                    const cleanup = fn(); // Call listener
+                    if (typeof cleanup === 'function') {
+                        baseAtom._mountCleanups.set(fn, cleanup); // Store cleanup fn
+                    } else {
+                         baseAtom._mountCleanups.set(fn, undefined); // Store undefined if no cleanup
+                    }
+                } catch (e) {
+                    console.error(`Error in onMount listener:`, e);
+                }
+            }
+        }
+
+        // Trigger onStart listeners
+        const startLs = baseAtom._startListeners;
+        if (startLs?.size) {
+            // Pass the current value (might be null for computed initial)
+            // Use get() to ensure computed is calculated if needed for the listener
+            const currentValue = get(atom as any);
+            for (const fn of startLs) {
+                try { fn(currentValue); } catch (e) { console.error(`Error in onStart listener:`, e); }
+            }
+        }
+
+
         // If it's a computed or batched atom, trigger its source subscription logic
         if (atom._kind === 'computed' || atom._kind === 'batched') {
              // Cast to the appropriate type to access the method
@@ -174,6 +204,24 @@ export function subscribe<A extends AnyAtom>(atom: A, listener: Listener<AtomVal
       // Trigger onStop logic removed
       if (!listeners.size) {
         delete baseAtom._listeners; // Clean up Set if empty
+        // Trigger onStop listeners if this was the last value listener
+        const stopLs = baseAtom._stopListeners;
+        if (stopLs?.size) {
+            for (const fn of stopLs) {
+                try { fn(); } catch (e) { console.error(`Error in onStop listener:`, e); }
+            }
+        }
+
+        // Trigger onMount cleanups if this was the last listener
+        const cleanups = baseAtom._mountCleanups;
+        if (cleanups?.size) {
+            for (const cleanupFn of cleanups.values()) {
+                if (typeof cleanupFn === 'function') {
+                    try { cleanupFn(); } catch (e) { console.error(`Error in onMount cleanup:`, e); }
+                }
+            }
+            delete baseAtom._mountCleanups; // Clear the map after running cleanups
+        }
         // If it's a computed or batched atom, trigger its source unsubscription logic
         if (atom._kind === 'computed' || atom._kind === 'batched') {
             // Cast to the appropriate type to access the method

@@ -108,11 +108,6 @@ export function onMount<A extends AnyAtom>(a: A, fn: LifecycleListener<AtomValue
   const baseAtom = a as AtomWithValue<AtomValue<A>>; // Use AtomValue
   baseAtom._mountListeners ??= new Set();
   baseAtom._mountListeners.add(fn); // Add correctly typed listener
-  try {
-    fn(undefined); // Call immediately
-  } catch (err) {
-    console.error(`Error in onMount listener for atom ${String(a)}:`, err);
-  }
   // _unsubscribe expects A extends AnyAtom and Listener<AtomValue<A>>.
   // 'a' is A extends AnyAtom, 'fn' is Listener<AtomValue<A>>. Should match directly.
   return () => _unsubscribe(a, '_mountListeners', fn);

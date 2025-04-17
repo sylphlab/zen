@@ -114,29 +114,32 @@ export function set<T extends object>(
     }
     // --- End Calculate changed keys ---
 
-    // Emit changes for all keys that differed *before* setting the value
-    if (changedKeys.length > 0) {
-      // Pass the mapAtom directly
-      _emitKeyChanges(mapAtom, changedKeys as (keyof T)[], nextValue);
-    }
+    // Only proceed with updates and notifications if keys actually changed or forced
+    if (changedKeys.length > 0 || forceNotify) {
+        // Emit changes for all keys that differed *before* setting the value
+        if (changedKeys.length > 0) { // Still only emit key changes if keys changed
+             // Pass the mapAtom directly
+            _emitKeyChanges(mapAtom, changedKeys as (keyof T)[], nextValue);
+        }
 
-    // Set the mapAtom's value directly and notify
-    // Manual notification needed here as setAtomValue is for basic Atom
-    if (batchDepth <= 0) {
-       const setLs = mapAtom._setListeners;
-       if (setLs?.size) {
-           for (const fn of setLs) {
-               try { fn(nextValue); } catch(e) { console.error(`Error in onSet listener for map set ${String(mapAtom)}:`, e); }
+        // Set the mapAtom's value directly and notify
+        // Manual notification needed here as setAtomValue is for basic Atom
+        if (batchDepth <= 0) {
+           const setLs = mapAtom._setListeners;
+           if (setLs?.size) {
+               for (const fn of setLs) {
+                   try { fn(nextValue); } catch(e) { console.error(`Error in onSet listener for map set ${String(mapAtom)}:`, e); }
+               }
            }
-       }
-    }
-    mapAtom._value = nextValue;
-    if (batchDepth > 0) {
-        queueAtomForBatch(mapAtom as Atom<T>, oldValue); // Cast for queue
-    } else {
-        // Cast mapAtom to AnyAtom for notifyListeners.
-        // Cast mapAtom to AnyAtom for notifyListeners. (Already done in previous step, ensure it remains)
-        notifyListeners(mapAtom as AnyAtom, nextValue, oldValue);
+        }
+        mapAtom._value = { ...nextValue }; // Create shallow copy
+        if (batchDepth > 0) {
+            queueAtomForBatch(mapAtom as Atom<T>, oldValue); // Cast for queue
+        } else {
+            // Cast mapAtom to AnyAtom for notifyListeners.
+            // Cast mapAtom to AnyAtom for notifyListeners. (Already done in previous step, ensure it remains)
+            notifyListeners(mapAtom as AnyAtom, nextValue, oldValue);
+        }
     }
   }
 }
