@@ -1,9 +1,8 @@
 # Active Context (2025-04-17 Core Parity)
 
 ## Current Focus
-- Paused core feature parity work (`batched`, `effect`, `mapCreator`).
-- Current Focus: Paused. Next step is to fix test failures for `batched`, `effect`, and `mapCreator`.
-- Explicit `batch()` benchmark confirmed performance benefits for multiple `set` operations.
+- All tests passing after fixing computed dependency issues in `batched` and `effect`.
+- Next Focus: Consider Packaging/Documentation/Release (as per `progress.md`).
 
 ## Status
 - **Code State:** Features (events, batch, map, task, key/path listeners) restored by reverting commits (`e9bf932`, `70c5679`, `7ee48b8`) and resolving conflicts. Batch logic consolidated into `atom.ts`. Type errors fixed (using `as any` where needed). Benchmark files fixed. Changes committed (`66f2172`). **A suppressed import error for `./batch` remains in `map.ts` (`@ts-expect-error`).**
@@ -25,22 +24,15 @@
 - **Verified Build:** Tests pass, benchmarks run.
 
 ## Next Steps
-
-
-- Fix test failures for `batched` implementation.
-- Fix test failures for `effect` implementation.
-- Fix test failures for `mapCreator` implementation.
-- (Paused) Add tests for new features.
-- Verify build after fixing tests (tests, benchmarks, size).
-- Implement `batched` function (Nanostores style).
-- Implement `effect` function.
-- Implement `mapCreator` function.
-- Add tests for new features.
-- Verify build (tests, benchmarks, size).
-
-- Addressed `as any` casts in source files (`atom`, `events`, `map`, `deepMap`, `task`). Kept necessary casts in test/bench files as workarounds for TS limitations. Still need to address suppressed error in `map.ts`.
-
+- **Consider Packaging/Documentation/Release.**
+- Re-run benchmarks and size checks.
+- Address remaining `as any` casts if feasible.
+- Address suppressed error in `map.ts` (`@ts-expect-error`).
 - Address guideline compliance task (fetching `guidelines/typescript/style_quality.md`) if it becomes available.
+- (Paused) Implement `batched` function (Nanostores style).
+- (Paused) Implement `effect` function.
+- (Paused) Implement `mapCreator` function.
+- (Paused) Add tests for new features.
 
 ## Active Decisions
 - Features restored.

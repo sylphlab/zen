@@ -1,5 +1,5 @@
 {
-  "name": "@zen/router",
+  "name": "@sylph/router",
   "version": "0.0.1",
   "description": "Tiny URL router for zen state management.",
   "type": "module",
@@ -30,8 +30,17 @@
     "minimal",
     "tiny"
   ],
-  "author": "",
+  "author": "Sylph Lab <hi@sylphlab.com>",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sylphlab/zen.git",
+    "directory": "packages/zen-router"
+  },
+  "homepage": "https://github.com/sylphlab/zen/tree/main/packages/zen-router#readme",
+  "bugs": {
+    "url": "https://github.com/sylphlab/zen/issues"
+  },
   "devDependencies": {
   },
   "dependencies": {

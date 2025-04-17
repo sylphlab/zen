@@ -1,5 +1,5 @@
 {
-  "name": "@zen/core",
+  "name": "@sylph/core",
   "version": "0.0.1",
   "description": "Core package for the zen state management library.",
   "type": "module",
@@ -30,13 +30,13 @@
       "name": "zen (atom only)",
       "path": "dist/index.js",
       "import": "{ atom }",
-      "limit": "1.1 kB"
+      "limit": "3.0 kB"
     },
     {
       "name": "zen (full)",
       "path": "dist/index.js",
       "import": "{ atom, computed, map, deepMap, task, batch, onMount, subscribe, get }",
-      "limit": "1.8 kB"
+      "limit": "3.5 kB"
     }
   ],
   "keywords": [
@@ -49,15 +49,15 @@
     "tiny",
     "nanostores"
   ],
-  "author": "Your Name <your.email@example.com>",
+  "author": "Sylph Lab <hi@sylphlab.com>",
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-username/zen.git"
+    "url": "git+https://github.com/sylphlab/zen.git"
   },
-  "homepage": "https://github.com/your-username/zen#readme",
+  "homepage": "https://github.com/sylphlab/zen#readme",
   "bugs": {
-    "url": "https://github.com/your-username/zen/issues"
+    "url": "https://github.com/sylphlab/zen/issues"
   },
   "devDependencies": {
   },

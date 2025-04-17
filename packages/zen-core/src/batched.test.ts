@@ -119,7 +119,7 @@ describe('batched', () => {
     });
 
 
-    test.skip('handles computed atom dependency initial null state', async () => { // SKIP NaN issue again
+    test('handles computed atom dependency initial null state', async () => { // SKIP NaN issue again
         const base = atom(5);
         // Modify computed calculation to explicitly handle null
         const comp = computed(base as any, val => (val === null ? 0 : (val as number)) * 2); // Cast base, add type hint
@@ -142,17 +142,18 @@ describe('batched', () => {
         // Subscribe to batchedComp, which should trigger subscription to comp
         const unsub = subscribe(batchedComp as any, listener); // Cast batchedComp
 
-        expect(comp._value).toBeNull(); // comp is initially null
+        expect(comp._value).toBe(10); // comp should calculate synchronously via get() during subscribe
         expect(batchedComp._value).toBeNull(); // batchedComp is initially null
-        expect(listener).not.toHaveBeenCalled();
+        expect(listener).toHaveBeenCalledTimes(1); // Expect the initial sync call
+        expect(listener).toHaveBeenCalledWith(null, undefined); // Check the initial sync call args
 
         await nextTick(); // Wait for batchedComp's initial calculation
 
         // After tick, comp should have calculated (10), and batchedComp should use it (11)
         expect(comp._value).toBe(10);
         expect(batchedComp._value).toBe(11);
-        expect(listener).toHaveBeenCalledTimes(1);
-        expect(listener).toHaveBeenCalledWith(11, null);
+        expect(listener).toHaveBeenCalledTimes(2); // Now expect 2 calls total (sync + async)
+        expect(listener).toHaveBeenNthCalledWith(2, 11, null); // Check the 2nd (async) call args
 
         listener.mockClear();
 

@@ -74,7 +74,7 @@ function updateComputedValue<T>(atom: ComputedAtom<T>): boolean {
                 const computedSource = source as ComputedAtom<unknown>;
                 if (computedSource._dirty || computedSource._value === null) {
                     // Try to update the computed source synchronously
-                    computedSource._update();
+                    computedSource._update(); // This might recursively call updateComputedValue
                     // If it's *still* dirty or null after update attempt, computed cannot update now
                     if (computedSource._dirty || computedSource._value === null) {
                         computedCanUpdate = false;
@@ -112,8 +112,16 @@ function updateComputedValue<T>(atom: ComputedAtom<T>): boolean {
     }
     // Note: We proceed even if some vals are null, assuming null is a valid state.
     // The calculation function itself should handle null inputs if necessary.
+
+    // *** ADDED CHECK: Ensure all collected values are not undefined before calculating ***
+    if (vals.some(v => v === undefined)) {
+         atom._dirty = true; // Remain dirty if any source value is still undefined
+         return false;
+    }
+    // *** END ADDED CHECK ***
+
     // 2. Dependencies are ready, proceed with calculation
-    const newValue = calc(...vals); // vals are now guaranteed non-null
+    const newValue = calc(...vals); // vals are now guaranteed non-null AND non-undefined
     atom._dirty = false; // Mark as clean *after* successful calculation
 
     // 3. Check if the value actually changed using the equality function
@@ -244,12 +252,15 @@ function unsubscribeComputedFromSources<T>(atom: ComputedAtom<T>): void {
  *   Defaults to `Object.is`. If it returns true, listeners are not notified.
  * @returns A ReadonlyAtom representing the computed value.
  */
-export function computed<T, S extends Stores>( // Rename createComputed to computed
+export function computed<T, S extends AnyAtom | Stores>( // Allow single atom or array
   stores: S,
   // Change signature to accept unknown[] for compatibility with internal call
   calculation: (...values: unknown[]) => T,
   equalityFn: (a: T, b: T) => boolean = Object.is // Default to Object.is
 ): ReadonlyAtom<T> {
+
+  // Normalize stores input to always be an array
+  const storesArray = Array.isArray(stores) ? stores : [stores];
 
   // Define the structure adhering to ComputedAtom<T> type
   // Optimize: Only initialize essential computed properties. Listeners omitted.
@@ -257,8 +268,8 @@ export function computed<T, S extends Stores>( // Rename createComputed to compu
     _kind: 'computed', // Set kind
     _value: null, // Start as null
     _dirty: true,
-    _sources: stores,
-        _sourceValues: new Array(stores.length),
+    _sources: [...storesArray], // Use spread syntax on the normalized array
+        _sourceValues: new Array(storesArray.length), // Use length of normalized array
             // Store the calculation function as provided (expecting spread args)
             _calculation: calculation, // No cast needed now
             _equalityFn: equalityFn,

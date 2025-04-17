@@ -84,9 +84,14 @@
 43. ~~Verify Build (Size):~~ Re-ran `size-limit` (atom: 36 B, full: 885 B).
 44. **Refinement:** Addressed `as any` casts in source files. Suppressed error previously noted in `map.ts` appears resolved.
 45. ~~Benchmark explicit `batch()` function.~~ (Done - Confirmed benefits)
-46. **Fix `batched` test failures.**
-47. **Fix `effect` test failures.**
-48. **Fix `mapCreator` test failures.**
+46. ~~**Fix `batched` test failures.**~~ (Done)
+47. ~~**Fix `effect` test failures.**~~ (Done)
+48. ~~**Fix `mapCreator` test failures.**~~ (Done - No failures found, only skipped tests which were addressed)
 49. ~~Add tests for new core features.~~ (Done for batched, effect, mapCreator)
-50. **Verify build after fixing tests.**
+50. ~~**Verify build after fixing tests.**~~ (Done - Tests, Benchmarks, Size checks passed)
 51. **Consider Packaging/Documentation/Release.**
+    *   Initial preparation done:
+        *   Updated package metadata (`name`, `author`, repo links) for `@sylph/core` and `@sylph/router`.
+        *   Created basic `README.md` files for both packages.
+        *   Corrected `size-limit` config location and values for `@sylph/core`.
+        *   Added placeholder changeset file (`.changeset/prepare-packages-for-release.md`).

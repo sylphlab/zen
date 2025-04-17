@@ -85,7 +85,7 @@ describe('effect', () => {
         expect(cleanupFn).not.toHaveBeenCalled();
     });
 
-    test.skip('handles computed dependencies', async () => { // SKIP related NaN issue
+    test('handles computed dependencies', async () => { // SKIP related NaN issue
         const base = atom(10);
         const comp = computed(base as any, (val: unknown) => (val as number) * 2); // Cast needed, use unknown
         const callback = vi.fn();
