@@ -1,11 +1,16 @@
 // Functional atom implementation
-import type { Listener, Unsubscribe, AnyAtom, AtomValue, AtomWithValue, DeepMapAtom } from './types'; // Removed MapAtom, TaskState, TaskAtom
+import type { Listener, Unsubscribe, AnyAtom, AtomValue, AtomWithValue, MapAtom, DeepMapAtom, TaskAtom, TaskState } from './types'; // Add MapAtom, TaskAtom, TaskState back
 // Remove duplicate import line
 import type { ComputedAtom } from './computed'; // Import ComputedAtom from computed.ts
 // Removed import { isComputedAtom } from './typeGuards'; // This line should already be removed, but included for context
 // Removed TaskAtom import from './task'
 // Removed import from internalUtils
-// Removed batch imports
+
+// --- Batching Internals (moved from batch.ts) ---
+/** Tracks the nesting depth of batch calls. @internal */
+export let batchDepth = 0; // Export for map/deepMap
+/** Stores atoms that have changed within the current batch, along with their original value. */
+const batchQueue = new Map<Atom<unknown>, unknown>(); // Use unknown for both key and value
 
 // --- Internal notifyListeners function (moved from internalUtils.ts) ---
 /**
@@ -44,19 +49,20 @@ export type Atom<T = unknown> = AtomWithValue<T> & { // Default to unknown
 // Overloads remain largely the same, relying on specific atom types
 export function get<T>(atom: Atom<T>): T;
 export function get<T>(atom: ComputedAtom<T>): T | null;
-// Removed MapAtom overload
+export function get<T extends object>(atom: MapAtom<T>): T; // Add MapAtom overload back
 export function get<T extends object>(atom: DeepMapAtom<T>): T;
-// Removed TaskAtom overload
+export function get<T>(atom: TaskAtom<T>): TaskState<T>; // Add TaskAtom overload back
 // General implementation signature using AtomValue
 export function get<A extends AnyAtom>(atom: A): AtomValue<A> | null { // Return includes null for computed initial state
     // Use switch for type narrowing and direct value access
     switch (atom._kind) {
         case 'atom':
-        // Removed 'map' case
-        // Fallthrough intended for 'atom' and 'deepMap'
+        case 'map': // Add 'map' case back
         case 'deepMap':
+        case 'task': // Add 'task' case back
             // For these types, _value directly matches AtomValue<A>
-            return atom._value;
+            // Add 'as any' to handle potential mismatch with AtomValue<A>
+            return atom._value as any;
             // No break needed here as return exits the function
         // Removed 'task' case
         case 'computed': {
@@ -95,8 +101,12 @@ export function set<T>(atom: Atom<T>, value: T, force = false): void {
 
         atom._value = value;
 
-        // Batching logic removed, notify immediately
-        notifyListeners(atom, value, oldValue);
+        // Use local batching logic (queueAtomForBatch defined below)
+        if (batchDepth > 0) {
+            queueAtomForBatch(atom, oldValue);
+        } else {
+            notifyListeners(atom as any, value, oldValue); // Notify immediately if not in batch
+        }
     }
 }
 
@@ -133,8 +143,8 @@ export function subscribe<A extends AnyAtom>(atom: A, listener: Listener<AtomVal
     // Initial call to the new listener using the updated get function
     try {
         // get() returns AtomValue<A> | null. Listener expects AtomValue<A>.
-        // The cast handles the potential null from computed atoms before their first calculation.
-        listener(get(atom) as AtomValue<A>, undefined);
+        // Add 'as any' to get(atom) call to resolve overload mismatch.
+        listener(get(atom as any) as AtomValue<A>, undefined);
     } catch (e) {
         console.error(`Error in initial listener call for atom ${String(atom)}:`, e);
     }
@@ -183,4 +193,93 @@ export function atom<T>(initialValue: T): Atom<T> { // Rename createAtom to atom
   // onMount logic removed
 
   return newAtom;
+}
+
+
+// --- Batching Functions (moved from batch.ts) ---
+
+/**
+ * Checks if the code is currently executing within a `batch()` call.
+ * @internal
+ */
+export function isInBatch(): boolean { // Export for potential external use? Keep internal for now.
+  return batchDepth > 0;
+}
+
+/**
+ * Queues an atom for notification at the end of the batch.
+ * Stores the original value before the batch started if it's the first change for this atom in the batch.
+ * @internal
+ */
+ // Export for map/deepMap
+export function queueAtomForBatch<T>(atom: Atom<T>, originalValue: T): void {
+  // Only store the original value the *first* time an atom is queued in a batch.
+    if (!batchQueue.has(atom as Atom<unknown>)) { // Cast to unknown
+      batchQueue.set(atom as Atom<unknown>, originalValue); // Cast to unknown
+  }
+}
+
+/**
+ * Executes a function, deferring all atom listener notifications until the function completes.
+ * Batches can be nested; notifications only run when the outermost batch finishes.
+ * @param fn The function to execute within the batch.
+ * @returns The return value of the executed function.
+ */
+export function batch<T>(fn: () => T): T { // Export batch
+  batchDepth++;
+
+  let errorOccurred = false;
+  let result: T;
+  // Stores details of atoms that actually changed value for final notification.
+    const changesToNotify: { atom: Atom<unknown>; value: unknown; oldValue: unknown }[] = []; // Use unknown for atom type
+
+  try {
+      result = fn(); // Execute the provided function
+  } catch (e) {
+      errorOccurred = true;
+      throw e; // Re-throw the error after cleanup (in finally)
+  } finally {
+      batchDepth--;
+
+      // Only process queue if this is the outermost batch call
+      if (batchDepth === 0) {
+          // --- Start Critical Section: Process Queue ---
+          try {
+              // Only collect changes if the batch function executed without errors.
+              if (!errorOccurred && batchQueue.size > 0) {
+                  // Iterate directly over the map entries
+                  for (const [atom, originalValueBeforeBatch] of batchQueue.entries()) {
+                      const currentValue = atom._value; // Get the final value after the batch
+
+                      // Only queue for notification if the value actually changed from before the batch
+                      if (!Object.is(currentValue, originalValueBeforeBatch)) {
+                          changesToNotify.push({ atom: atom, value: currentValue, oldValue: originalValueBeforeBatch });
+                      }
+                  }
+              }
+          } finally {
+              // **Crucially, always clear the queue** after processing or if an error occurred.
+              batchQueue.clear();
+          }
+          // --- End Critical Section ---
+      }
+  }
+
+  // --- Perform Notifications ---
+  // This happens *after* the finally block.
+  // Only notify if it was the outermost batch call and no error occurred during fn().
+  if (batchDepth === 0 && !errorOccurred && changesToNotify.length > 0) {
+      for (const change of changesToNotify) {
+          try {
+              // Call the local notifyListeners function directly.
+              notifyListeners(change.atom, change.value, change.oldValue);
+          } catch (err) {
+              console.error(`Error during batched notification for atom ${String(change.atom)}:`, err);
+          }
+      }
+  }
+
+  // Return the result of the batch function.
+  // Non-null assertion is safe because errors are re-thrown.
+  return result!;
 }

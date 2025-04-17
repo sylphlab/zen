@@ -1,35 +1,28 @@
 // Functional DeepMap atom implementation.
-import type { DeepMapAtom } from './types'; // Remove unused Unsubscribe, AnyAtom, AtomWithValue
-import { get as getCoreValue, subscribe as subscribeToCoreAtom, notifyListeners } from './atom'; // Import core get/subscribe AND notifyListeners
-// import type { Atom } from './atom'; // Removed unused import
-// Removed imports for listenPaths, _emitPathChanges, PathListener from './events'
-// Removed batch imports
-// Removed import from internalUtils
-// Removed import { Path, setDeep } from './deepMapInternal'; // Removed conflicting import
+import type { Unsubscribe, DeepMapAtom, Listener } from './types'; // Combine types
+import { get as getCoreValue, subscribe as subscribeToCoreAtom } from './atom'; // Core get/subscribe
+import type { Atom } from './atom'; // Import Atom type for casting
+import { listenPaths as addPathListener, _emitPathChanges, PathListener } from './events'; // Path listener logic from parent
+import { batchDepth, queueAtomForBatch, notifyListeners } from './atom'; // Import batch helpers and notifyListeners from atom.ts
+// Removed import { notifyListeners } from './atom'; // Import notifyListeners from atom.ts
+// Removed import { getChangedPaths } from './deepMapInternal'; // Deep object utilities from parent
 
-// --- Path Types (from deepMapInternal.ts) ---
+// --- Path Types (from HEAD's embedded deepMapInternal.ts) ---
 export type PathString = string;
 export type PathArray = (string | number)[];
 /** Represents a path within a nested object, either as a dot-separated string or an array of keys/indices. */
 export type Path = PathString | PathArray;
 
 
-// --- setDeep Helper (from deepMapInternal.ts) ---
-
+// --- setDeep Helper (from HEAD's embedded deepMapInternal.ts) ---
 /**
  * Sets a value within a nested object immutably based on a path.
  * Creates shallow copies of objects/arrays along the path only if necessary.
  * Returns the original object if the value at the path is already the same.
- *
- * @param obj The original object.
- * @param path The path (string or array) where the value should be set.
- * @param value The value to set.
- * @returns A new object with the value set, or the original object if no change was needed.
  * @internal
  */
 const setDeep = (obj: unknown, path: Path, value: unknown): unknown => {
   // 1. Normalize path to an array of keys/indices.
-  // Handles dot notation strings and array indices within strings.
   const pathArray: PathArray = Array.isArray(path)
     ? path
     : (String(path).match(/[^.[\]]+/g) || []).map(s => /^\d+$/.test(s) ? parseInt(s, 10) : s);
@@ -42,7 +35,6 @@ const setDeep = (obj: unknown, path: Path, value: unknown): unknown => {
   // 3. Recursive helper function to traverse and update.
   const recurse = (currentLevel: unknown, remainingPath: PathArray): unknown => {
     const key = remainingPath[0];
-    // Base case should be handled by length check, but defensive check for TS.
     if (key === undefined) return currentLevel;
 
     const currentIsObject = typeof currentLevel === 'object' && currentLevel !== null;
@@ -50,78 +42,152 @@ const setDeep = (obj: unknown, path: Path, value: unknown): unknown => {
 
     // --- Leaf Node Update ---
     if (isLastKey) {
-      // Check if update is needed: not an object, key missing, or value differs.
-      // Use type assertion for key check and value access
       const currentLevelObj = currentLevel as Record<string | number, unknown>;
       if (!currentIsObject || !(key in currentLevelObj) || !Object.is(currentLevelObj[key], value)) {
-        // Determine if the clone should be an array or object based on the *current* key.
-        const isArrayIndex = typeof key === 'number'; // More direct check
-        // Clone current level or create new container if currentLevel is not an object/array.
+        const isArrayIndex = typeof key === 'number';
         const currentClone = currentIsObject
-          ? (Array.isArray(currentLevel) ? [...currentLevel] : { ...(currentLevel as object) }) // Assert for spread
+          ? (Array.isArray(currentLevel) ? [...currentLevel] : { ...(currentLevel as object) })
           : (isArrayIndex ? [] : {});
 
-        // Ensure array is large enough if setting by index beyond current length.
-        // Assert currentClone type for array check and indexing
         const currentCloneAsserted = currentClone as Record<string | number, unknown>;
         if (Array.isArray(currentCloneAsserted) && typeof key === 'number' && key >= currentCloneAsserted.length) {
-          // Fill sparse arrays with undefined up to the target index.
            Object.defineProperty(currentCloneAsserted, key, { value: value, writable: true, enumerable: true, configurable: true });
-           // Direct assignment might be sufficient if length adjusts automatically, but defineProperty is safer for sparse arrays.
-           // currentCloneAsserted[key] = value; // Alternative
         } else {
            currentCloneAsserted[key] = value;
         }
-        return currentCloneAsserted; // Return the modified clone
+        return currentCloneAsserted;
       } else {
-        return currentLevel; // No change needed at this leaf, return original level.
+        return currentLevel;
       }
     }
 
     // --- Recursive Step ---
-    // Get the next level object/array. Use assertion for indexing
     let nextLevel = currentIsObject ? (currentLevel as Record<string | number, unknown>)[key] : undefined;
-    const nextKey = remainingPath[1]; // Look ahead to determine needed type
+    const nextKey = remainingPath[1];
     const nextLevelShouldBeArray = nextKey !== undefined && /^\d+$/.test(String(nextKey));
 
-    // If the next level doesn't exist or is null, create an empty container of the correct type.
     if (nextLevel === undefined || nextLevel === null) {
       nextLevel = nextLevelShouldBeArray ? [] : {};
     }
 
-    // Recursively update the next level.
     const updatedNextLevel = recurse(nextLevel, remainingPath.slice(1));
 
-    // If the recursive call returned the *same* object (no changes deeper down),
-    // then no change is needed at the current level either.
     if (updatedNextLevel === nextLevel) {
       return currentLevel;
     }
 
-    // Otherwise, changes occurred deeper. Clone the current level and update the key.
     const isArrayIndex = typeof key === 'number';
-    // Assert currentLevel type for cloning
     const currentClone = currentIsObject
       ? (Array.isArray(currentLevel) ? [...currentLevel] : { ...(currentLevel as object) })
-      : (isArrayIndex ? [] : {}); // Create container if currentLevel wasn't object
+      : (isArrayIndex ? [] : {});
 
-     // Ensure array is large enough (less likely needed here than leaf, but for safety).
-     // Assert currentClone type for array check and indexing
      const currentCloneAsserted = currentClone as Record<string | number, unknown>;
      if (Array.isArray(currentCloneAsserted) && typeof key === 'number' && key >= currentCloneAsserted.length) {
         Object.defineProperty(currentCloneAsserted, key, { value: updatedNextLevel, writable: true, enumerable: true, configurable: true });
      } else {
         currentCloneAsserted[key] = updatedNextLevel;
      }
-    return currentCloneAsserted; // Return the modified clone
+    return currentCloneAsserted;
   };
 
   // 4. Start the recursion.
   return recurse(obj, pathArray);
 };
 
+// --- getChangedPaths Helper (from deepMapInternal.ts) ---
+/**
+ * Compares two objects (potentially nested) and returns an array of paths
+ * where differences are found. Compares values using Object.is.
+ *
+ * @param objA The first object.
+ * @param objB The second object.
+ * @returns An array of Path arrays representing the locations of differences.
+ * @internal
+ */
+const getChangedPaths = (objA: unknown, objB: unknown): PathArray[] => {
+    const paths: PathArray[] = []; // Store results as PathArray
+    const visited = new Set<unknown>(); // Track visited objects
 
-// DeepMapAtom type is now defined in types.ts
+    function compare(a: unknown, b: unknown, currentPath: PathArray = []) {
+        // 1. Identical values (Object.is)? Stop comparison for this branch.
+        if (Object.is(a, b)) {
+            return;
+        }
+        // Handle cycles
+        if ((typeof a === 'object' && a !== null && visited.has(a)) || (typeof b === 'object' && b !== null && visited.has(b))) {
+            return;
+        }
+
+        // 2. One is null/undefined, the other is not? Path changed.
+        const aIsNullOrUndefined = a === null || a === undefined;
+        const bIsNullOrUndefined = b === null || b === undefined;
+        if (aIsNullOrUndefined !== bIsNullOrUndefined) {
+             paths.push([...currentPath]);
+             return;
+        }
+        // If both are null/undefined, Object.is would have caught it.
+
+        // 3. Different types (primitive vs object, array vs object)? Path changed.
+        if (typeof a !== typeof b || Array.isArray(a) !== Array.isArray(b)) {
+            paths.push([...currentPath]);
+            return;
+        }
+
+        // 4. Both are primitives or functions (and not identical per Object.is)? Path changed.
+        if (typeof a !== 'object' || a === null) { // a === null check handles null case
+            paths.push([...currentPath]);
+            return;
+        }
+
+        // 5. Both are objects or arrays. Compare their contents.
+        // Add to visited set before recursing
+        visited.add(a);
+        visited.add(b);
+
+        // Assert types for key access
+        const objAAsserted = a as Record<string | number, unknown>;
+        const objBAsserted = b as Record<string | number, unknown>;
+
+        // Optimized key comparison: Iterate A, then check B for keys not in A.
+        const keysA = Object.keys(objAAsserted);
+        const processedKeys = new Set<string | number>(); // Track keys from A
+
+        for (const key of keysA) {
+            processedKeys.add(key);
+            const pathSegment = Array.isArray(a) ? parseInt(key, 10) : key;
+            const newPath = [...currentPath, pathSegment];
+            const valA = objAAsserted[key];
+            const valB = objBAsserted[key]; // Access potentially undefined value
+
+            // Check if key exists in B and if values differ
+            if (!(key in objBAsserted) || !Object.is(valA, valB)) {
+                // If both values are nested objects/arrays, recurse.
+                if (typeof valA === 'object' && valA !== null && typeof valB === 'object' && valB !== null) {
+                    compare(valA, valB, newPath);
+                } else {
+                    // Otherwise, the difference is at this path (value diff or key only in A).
+                    paths.push(newPath);
+                }
+            }
+        }
+
+        // Check for keys present in B but not in A
+        const keysB = Object.keys(objBAsserted);
+        for (const key of keysB) {
+            if (!processedKeys.has(key)) {
+                // Key only exists in B, difference found.
+                const pathSegment = Array.isArray(b) ? parseInt(key, 10) : key; // Use 'b' for array check
+                paths.push([...currentPath, pathSegment]);
+            }
+        }
+        // Remove from visited after processing children (for non-tree structures)
+        // visited.delete(a); // Optional: depends if graph structures are expected
+        // visited.delete(b);
+    }
+
+    compare(objA, objB);
+    return paths;
+};
 
 // --- Functional API for DeepMap ---
 
@@ -132,77 +198,121 @@ const setDeep = (obj: unknown, path: Path, value: unknown): unknown => {
  * @returns A DeepMapAtom instance.
  */
 export function deepMap<T extends object>(initialValue: T): DeepMapAtom<T> {
-  // Create the merged DeepMapAtom object directly
   const deepMapAtom: DeepMapAtom<T> = {
     _kind: 'deepMap',
-    _value: initialValue, // Use initial value directly (deep clone happens in setDeep)
-    // Listener properties (_listeners, etc.) are initially undefined
+    _value: initialValue,
+    // Listener properties are initially undefined
   };
+  // Add internal properties for events if they exist in the type definition
+  // (Assuming DeepMapAtom might have _setListeners, _pathListeners etc. after type updates)
+  // deepMapAtom._setListeners = undefined;
+  // deepMapAtom._pathListeners = undefined;
   return deepMapAtom;
 }
 
-// get and subscribe are now handled by the core functions in atom.ts
 // Re-export core get/subscribe for compatibility
 export { getCoreValue as get, subscribeToCoreAtom as subscribe };
 
 /**
  * Sets a value at a specific path within the DeepMap Atom, creating a new object immutably.
- * Notifies map-level listeners immediately.
+ * Notifies both map-level and relevant path-specific listeners. (Restored logic)
  */
 export function setPath<T extends object>(
   deepMapAtom: DeepMapAtom<T>,
   path: Path,
-  value: unknown, // Use unknown instead of any
+  value: unknown,
   forceNotify = false
 ): void {
-  // Prevent errors with empty paths.
   if (!path || (Array.isArray(path) && path.length === 0) || path === '') {
-      console.warn('setPath called with an empty path. Operation ignored.'); // Updated warning
+      console.warn('setPath called with an empty path. Operation ignored.');
       return;
   }
 
-  // Operate directly on deepMapAtom
   const currentValue = deepMapAtom._value;
-
-  // Use the utility to create a new object with the value set at the path.
   const nextValue = setDeep(currentValue, path, value);
 
-  // Only proceed if the state actually changed or if forced.
   if (forceNotify || nextValue !== currentValue) {
-    // onSet logic removed
+    // Restore onSet logic from parent
+    if (batchDepth <= 0) {
+        // Assuming _setListeners exists on DeepMapAtom type after updates
+        const setLs = (deepMapAtom as any)._setListeners as Set<Listener<T>> | undefined;
+        if (setLs?.size) {
+            for (const fn of setLs) {
+                try { fn(nextValue as T); } catch(e) { console.error(`Error in onSet listener for deepMap path set ${String(deepMapAtom)}:`, e); }
+            }
+        }
+    }
 
-    // Assert nextValue type for assignment
     deepMapAtom._value = nextValue as T;
 
-    // Batching logic removed, notify immediately
-    // Path-specific change emission removed.
-    // Notify general listeners, casting nextValue from unknown to T
-    notifyListeners(deepMapAtom, nextValue as T, currentValue);
+    // Restore batching and notification logic from parent
+    if (batchDepth > 0) {
+        // Cast needed as queueAtomForBatch expects Atom<T>
+        queueAtomForBatch(deepMapAtom as Atom<T>, currentValue);
+    } else {
+        // Emit path changes first
+        // Assuming _emitPathChanges exists and works with DeepMapAtom
+        _emitPathChanges(deepMapAtom, [path], nextValue as T);
+        // Notify general listeners, add type assertion
+        notifyListeners(deepMapAtom as any, nextValue as T, currentValue);
+    }
   }
 }
 
 /**
  * Sets the entire value of the DeepMap Atom, replacing the current object.
- * Notifies map-level listeners immediately.
+ * Notifies both map-level and relevant path-specific listeners. (Restored logic)
  */
 export function set<T extends object>(
   deepMapAtom: DeepMapAtom<T>,
   nextValue: T,
   forceNotify = false
 ): void {
-  // Operate directly on deepMapAtom
   const oldValue = deepMapAtom._value;
 
   if (forceNotify || !Object.is(nextValue, oldValue)) {
-    // Path-specific change calculation and emission removed.
-    // onSet logic removed
+    // Restore changed paths calculation from parent
+    const changedPaths = getChangedPaths(oldValue, nextValue);
 
-    // Set the deepMapAtom's value directly and notify
+    // Restore onSet logic from parent
+    if (batchDepth <= 0) {
+        // Assuming _setListeners exists on DeepMapAtom type after updates
+        const setLs = (deepMapAtom as any)._setListeners as Set<Listener<T>> | undefined;
+        if (setLs?.size) {
+            for (const fn of setLs) {
+                try { fn(nextValue); } catch(e) { console.error(`Error in onSet listener for deepMap set ${String(deepMapAtom)}:`, e); }
+            }
+        }
+    }
+
+    // Emit path changes *before* setting value (Restored from parent)
+    if (changedPaths.length > 0) {
+        // Assuming _emitPathChanges exists and works with DeepMapAtom
+        _emitPathChanges(deepMapAtom, changedPaths, nextValue);
+    }
+
     deepMapAtom._value = nextValue;
-    notifyListeners(deepMapAtom, nextValue, oldValue);
+
+    // Restore batching and notification logic from parent (notifyListeners is called last)
+    if (batchDepth > 0) {
+        // Cast needed as queueAtomForBatch expects Atom<T>
+        queueAtomForBatch(deepMapAtom as Atom<T>, oldValue);
+    } else {
+        // General listeners notified after path changes and value set, add type assertion
+        notifyListeners(deepMapAtom as any, nextValue, oldValue);
+    }
   }
 }
 
-// listenPaths function removed.
+/** Listens to changes for specific paths within a DeepMap Atom. (Restored) */
+export function listenPaths<T extends object>(
+    deepMapAtom: DeepMapAtom<T>,
+    paths: Path[],
+    listener: PathListener<T>
+): Unsubscribe {
+    // Delegates to the function from events.ts
+    // Assuming addPathListener exists and works with DeepMapAtom
+    return addPathListener(deepMapAtom, paths, listener);
+}
 
 // Note: Factory function is now 'deepMap', path setter is 'setPath', etc.

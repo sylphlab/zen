@@ -1,10 +1,16 @@
-# Latest Benchmark & Size Results (Post Listener Removal - 2025-04-17)
+# Latest Benchmark & Size Results (Needs Update Post-Feature Restoration - 2025-04-17)
 
-## Refactoring (Type Safety - Remove `any`)
+## Refactoring (Feature Restoration)
+- **In Progress:** Reverted commits `e9bf932`, `70c5679`, `7ee48b8` to restore `batch`, `events`, `map`, `task`, key/path listeners.
+- Resolved code conflicts in `deepMap.ts`, `events.ts`, `map.ts`, `task.ts`, `types.ts`, `index.ts`.
+- Restored `batch.ts`.
+- Benchmark files (`batch.bench.ts`, `events.bench.ts`, `map.bench.ts`, `task.bench.ts`, `deepMap.bench.ts`) restored via revert.
+- **Outstanding Issue:** Persistent import errors for `./batch` in `map.ts` and `deepMap.ts`.
+
+## Refactoring (Type Safety - Remove `any`) - Previous
 - **Completed:** Reviewed all `.ts` files in `packages/zen-core/src`.
-- Replaced `any` with generics (including `Args` for `TaskAtom`), overloads (`get`, `subscribe`), or `unknown` where feasible.
-- Retained some internal `any` where strict typing was impractical.
-- Resolved resulting type errors via inlining or casting.
+- Replaced `any` with generics, overloads, or `unknown`.
+- Retained some internal `any`. Resolved type errors.
 
 ## Refactoring (Remove Patching) - Previous
 - Complete for core, events, batch.
@@ -14,23 +20,19 @@
 
 ## Refactoring (Functional API) - Previous
 - **Core:** `atom`, `computed`, `batch`, `task`, `events`, `map`, `deepMap` refactored.
-- **Tests:** All tests updated and passing.
-- **Benchmarks:** All benchmarks updated.
+- **Tests:** Updated and passing *before* feature removal/restoration.
+- **Benchmarks:** Updated *before* feature removal/restoration.
 
-## Performance (`npm run bench` Results - Post Major Refactor)
-- Significant improvements observed across most operations after major refactoring. Performance is highly competitive.
+## Performance (`npm run bench` Results - Needs Update)
+- Previous results (Post Major Refactor) showed improvements. Needs re-run.
 
-## Size (`size-limit`, brotlied - Post Listener Removal - 2025-04-17)
-- **`zen (atom only)`**: **36 B**
-- **`zen (full)`**: **613 B**
+## Size (`size-limit`, brotlied - Needs Update)
+- Previous results (Post Listener Removal): atom 36 B, full 613 B. Needs re-run.
 
 ## Current Status
-- Type refactoring complete.
-- ESLint setup and auto-fixes applied (staged).
-- `types.ts` errors fixed (staged).
-- Key/path listeners removed.
-- `size-limit` checked.
-- Ready for commit.
+- Feature restoration code changes complete (except persistent batch import errors).
+- Memory Bank conflicts need resolution.
+- Ready for commit after Memory Bank merge.
 
 ## Known Issues/Next Steps (Refined)
 1.  ~~Analyze Size Increase (Post Event Refactor)~~ (Analyzed)
@@ -64,10 +66,15 @@
 29. ~~**Major Refactor:** Merge atom structures, remove `getBaseAtom`. (Done - commit `c0310cf` includes this and naming/build fixes)~~
 30. **Refactor Types:** Remove `any`, use generics/overloads. (Done - Commit `64483ae`)
 31. ~~Commit Type Refactoring.~~ (Done)
-32. **Setup ESLint:** Install deps, create config (`eslint.config.cjs`), add `no-explicit-any` rule, update script. (Done - *Staged*)
-33. **Run ESLint Fix:** Apply automatic fixes. (Done - *Staged*)
-34. **Fix `types.ts` Errors:** Corrected TS/ESLint errors. (Done - *Staged*)
-35. **Commit ESLint Setup & Fixes.** (Next step)
-36. **Consider Packaging/Documentation/Release.**
-37. ~~**Potentially revisit `deepMap`'s `getChangedPaths` optimization.**~~ (Done - Optimized key comparison - Commit `2a1e04e`)
-38. **Radical Simplification:** Removed key/path specific listeners (`listenKeys`, `listenPaths`) from Map/DeepMap. Tests updated and passed. Size reduced. (Done - Commits `7ee48b8`, `01860fd`)
+32. **Setup ESLint:** Install deps, create config, add rule, update script. (Done - Staged)
+33. **Run ESLint Fix:** Apply automatic fixes. (Done - Staged)
+34. **Fix `types.ts` Errors:** Corrected initial TS/ESLint errors. (Done - Staged)
+35. ~~Commit ESLint Setup & Fixes.~~ (Done - Commit `4f8ac35`)
+36. ~~**Potentially revisit `deepMap`'s `getChangedPaths` optimization.**~~ (Done - Optimized key comparison - Commit `2a1e04e`)
+37. ~~**Radical Simplification:** Removed key/path specific listeners (`listenKeys`, `listenPaths`).~~ (Reverted)
+38. ~~**Fix Benchmark Failures:** Removed obsolete benchmark files (`batch`, `map`, `task`, `events`, `deepMap`).~~ (Reverted)
+39. **Restore Features:** Reverted commits, resolved conflicts, restored source files (`batch`, `events`, `map`, `task`), updated types/index. (Done - Staged)
+40. **Resolve Memory Bank Conflicts.** (This step)
+41. **Commit Revert & Conflict Resolutions.** (Next step)
+42. **Verify Build:** Re-run tests, benchmarks, size-limit. Address failures.
+43. **Consider Packaging/Documentation/Release.**
