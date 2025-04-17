@@ -30,6 +30,7 @@ export { setPath as setDeepMapPath, set as setDeepMapValue } from './deepMap'; /
 export { runTask, getTaskState, subscribeToTask } from './task'; // Add task functions back
 // Batch function
 export { batch } from './atom'; // Export batch from atom.ts
+export { batched } from './batched'; // Export batched
 
 // --- Event Functions ---
 export { onStart, onStop, onSet, onNotify, onMount, listenPaths } from './events'; // Add event functions back (listenKeys exported from map.ts)

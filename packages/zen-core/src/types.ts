@@ -2,6 +2,7 @@
 // import type { LifecycleListener, KeyListener, PathListener } from './events'; // Remove unused imports
 import type { Atom } from './atom';
 import type { ComputedAtom } from './computed'; // Only import ComputedAtom
+import type { BatchedAtom } from './batched'; // Import BatchedAtom
 // ReadonlyAtom will be an alias, DeepMapAtom defined below
 
 /** Callback function type for atom listeners. */
@@ -13,7 +14,7 @@ export type Unsubscribe = () => void;
 /** Base structure for atoms that directly hold value and listeners. */
 export type AtomWithValue<T> = {
     /** Distinguishes atom types for faster checks */
-    _kind: 'atom' | 'computed' | 'map' | 'deepMap' | 'task'; // Add 'map' and 'task' back
+    _kind: 'atom' | 'computed' | 'map' | 'deepMap' | 'task' | 'batched'; // Add 'batched'
     /** Current value */
     _value: T; // Value type enforced by generic, no null default
     /** Value listeners (Set for efficient add/delete/has) */
@@ -61,4 +62,4 @@ export type AtomValue<A extends AnyAtom> = A extends AtomWithValue<infer V> ? V 
 
 /** Union type for any kind of atom structure recognized by the library. */
 // This union represents the structure, use AtomValue<A> to get the value type.
-export type AnyAtom = Atom<unknown> | ComputedAtom<unknown> | MapAtom<object> | DeepMapAtom<object> | TaskAtom<any, any>; // Add MapAtom<object> and TaskAtom<any, any> back
+export type AnyAtom = Atom<unknown> | ComputedAtom<unknown> | MapAtom<object> | DeepMapAtom<object> | TaskAtom<any, any> | BatchedAtom<unknown>; // Add BatchedAtom<unknown>

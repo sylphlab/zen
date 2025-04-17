@@ -28,7 +28,8 @@
     "forceConsistentCasingInFileNames": true,
     "composite": true, // Required for project references
 
-    // Removed other package-specific options: emitDeclarationOnly, declarationDir
+    // Removed other package-specific options: emitDeclarationOnly
+    "declarationDir": "dist", // Explicitly set declaration output directory
     "rootDir": "src" // Restore rootDir for composite project
   },
   "include": ["src/**/*.ts"], // Keep explicit include
