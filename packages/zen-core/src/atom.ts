@@ -1,8 +1,9 @@
 // Functional atom implementation
 import type { Listener, Unsubscribe, AnyAtom, AtomValue, AtomWithValue, MapAtom, DeepMapAtom, TaskAtom, TaskState } from './types'; // Add MapAtom, TaskAtom, TaskState back
 // Remove duplicate import line
-import type { ComputedAtom } from './computed'; // Import ComputedAtom from computed.ts
-// Removed import { isComputedAtom } from './typeGuards'; // This line should already be removed, but included for context
+import type { ComputedAtom } from './computed';
+import type { BatchedAtom } from './batched'; // Import BatchedAtom
+// Removed import { isComputedAtom } from './typeGuards';
 // Removed TaskAtom import from './task'
 // Removed import from internalUtils
 
@@ -26,8 +27,8 @@ export function notifyListeners<A extends AnyAtom>(atom: A, value: AtomValue<A>,
     if (ls?.size) {
         // Create a copy for iteration to handle listeners that unsubscribe themselves.
         for (const fn of [...ls]) {
-            // Pass oldValue as null if undefined, matching previous logic
-            try { fn(value, oldValue ?? null); } catch (e) { console.error(`Error in value listener:`, e); }
+            // Pass oldValue directly (can be undefined for initial calls)
+            try { fn(value, oldValue); } catch (e) { console.error(`Error in value listener:`, e); }
         }
     }
 }
@@ -74,6 +75,12 @@ export function get<A extends AnyAtom>(atom: A): AtomValue<A> | null { // Return
             // Computed value can be null initially
             return computed._value as AtomValue<A> | null;
             // No break needed here as return exits the function
+        }
+        // Add case for batched, although get() shouldn't trigger its update
+        case 'batched': {
+             const batched = atom as BatchedAtom<AtomValue<A>>;
+             // Batched atoms update via microtask, just return current value
+             return batched._value as AtomValue<A> | null;
         }
         default: {
             // Handle unknown kind - should be unreachable with AnyAtom
@@ -131,35 +138,27 @@ export function subscribe<A extends AnyAtom>(atom: A, listener: Listener<AtomVal
 
     // Trigger onStart/onMount logic removed
     if (isFirstListener) {
-        // If it's a computed atom, trigger its source subscription logic
-        if (atom._kind === 'computed') { // Use kind check instead of 'in'
-             // Cast to ComputedAtom with the correct value type
-             const computed = atom as ComputedAtom<AtomValue<A>>;
-             if (typeof computed._subscribeToSources === 'function') {
-                computed._subscribeToSources();
+        // If it's a computed or batched atom, trigger its source subscription logic
+        if (atom._kind === 'computed' || atom._kind === 'batched') {
+             // Cast to the appropriate type to access the method
+             const dependentAtom = atom as (ComputedAtom<AtomValue<A>> | BatchedAtom<AtomValue<A>>);
+             if (typeof dependentAtom._subscribeToSources === 'function') {
+                dependentAtom._subscribeToSources();
              }
         }
     }
 
-    // Initial call to the new listener using the updated get function
+    // Call listener immediately with the current value.
+    // Use get() to ensure computed atoms calculate their initial value if needed.
     try {
-        // Get the initial value for the listener by mimicking get() logic.
-        let initialValue: AtomValue<A> | null; // Allow null for computed initial state
-        if (atom._kind === 'computed') {
-            const computed = atom as ComputedAtom<AtomValue<A>>;
-            if (computed._dirty || computed._value === null) {
-                computed._update();
-            }
-            initialValue = computed._value;
-        } else {
-            // For other types, _value is the correct type. Cast needed.
-            initialValue = atom._value as AtomValue<A>;
-        }
-        // Listener expects AtomValue<A>, handle potential null from computed.
-        // Use non-null assertion assuming listener expects value after subscribe.
-        listener(initialValue!, undefined);
+        // Use type assertion `as any` because TS struggles to narrow `A` to match a specific `get` overload here.
+        // The `get` function's internal switch statement handles the different atom kinds correctly.
+        const initialValue = get(atom as any); // This handles computed updates
+        // Pass undefined as oldValue for the initial call
+        (listener as Listener<any>)(initialValue, undefined);
     } catch (e) {
-        console.error(`Error in initial listener call for atom ${String(atom)}:`, e);
+        console.error(`Error in initial listener call (sync) for atom ${String(atom)}:`, e);
+        // Optionally re-throw or handle differently
     }
 
     return function unsubscribe() {
@@ -175,12 +174,12 @@ export function subscribe<A extends AnyAtom>(atom: A, listener: Listener<AtomVal
       // Trigger onStop logic removed
       if (!listeners.size) {
         delete baseAtom._listeners; // Clean up Set if empty
-        // If it's a computed atom, trigger its source unsubscription logic
-        if (atom._kind === 'computed') { // Use kind check instead of 'in'
-            // Cast to ComputedAtom with the correct value type
-            const computed = atom as ComputedAtom<AtomValue<A>>;
-             if (typeof computed._unsubscribeFromSources === 'function') {
-                computed._unsubscribeFromSources();
+        // If it's a computed or batched atom, trigger its source unsubscription logic
+        if (atom._kind === 'computed' || atom._kind === 'batched') {
+            // Cast to the appropriate type to access the method
+            const dependentAtom = atom as (ComputedAtom<AtomValue<A>> | BatchedAtom<AtomValue<A>>);
+             if (typeof dependentAtom._unsubscribeFromSources === 'function') {
+                dependentAtom._unsubscribeFromSources();
              }
         }
       }

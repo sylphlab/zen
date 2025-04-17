@@ -1,7 +1,7 @@
 // Functional computed (derived state) implementation.
-import type { Unsubscribe, AnyAtom, AtomWithValue } from './types'; // Removed AtomValue import
-// Removed import from internalUtils
-import { notifyListeners } from './atom'; // Import notifyListeners from atom.ts now
+import type { Unsubscribe, AnyAtom, AtomWithValue } from './types';
+import type { BatchedAtom } from './batched'; // Import BatchedAtom type
+import { notifyListeners } from './atom';
 // Removed getAtomValue, subscribeToAtom imports as logic is inlined
 
 // --- Type Definitions ---
@@ -43,44 +43,78 @@ type Stores = ReadonlyArray<AnyAtom>; // Use AnyAtom directly
  */
 function updateComputedValue<T>(atom: ComputedAtom<T>): boolean {
     const srcs = atom._sources;
+
+    // If there are no sources, the value cannot be computed.
+    if (!srcs || srcs.length === 0) {
+        atom._dirty = true; // Remain dirty
+        return false;
+    }
+
     const vals = atom._sourceValues;
     const calc = atom._calculation;
     const old = atom._value; // Capture value BEFORE recalculation (could be null)
 
-    // 1. Get current values from all source atoms (inlining get() logic)
+    // 1. Get current values from all source atoms and check readiness
+    let computedCanUpdate = true; // Flag to track if all dependencies are ready
     for (let i = 0; i < srcs.length; i++) {
         const source = srcs[i];
-        if (source) { // Check if source exists
-            // Inline getAtomValue logic to avoid overload resolution issues
-            let sourceValue: unknown;
-            switch (source._kind) {
-                case 'atom':
-                    sourceValue = source._value;
-                    break;
-                case 'computed': { // Correct block scope
-                    // Need to cast to ComputedAtom to access _update
-                    const computedSource = source as ComputedAtom<unknown>;
-                    if (computedSource._dirty || computedSource._value === null) {
-                        computedSource._update();
-                    }
-                    sourceValue = computedSource._value;
-                } // Close block scope
-                    break;
-                case 'map': // Keep map case for potential future re-introduction or type safety
-                case 'deepMap':
-                    sourceValue = source._value; // Value is object
-                    break;
-                // Removed default case as it should be unreachable with AnyAtom union
-            }
-            vals[i] = sourceValue;
-        } else {
-            vals[i] = undefined; // Or handle missing source appropriately
+        if (!source) {
+            vals[i] = undefined;
+            continue; // Skip missing sources
         }
+
+        let sourceValue: unknown;
+        switch (source._kind) {
+            case 'atom':
+            case 'map': // Assume map/deepMap values are read directly
+            case 'deepMap':
+                sourceValue = source._value;
+                break;
+            case 'computed': {
+                const computedSource = source as ComputedAtom<unknown>;
+                if (computedSource._dirty || computedSource._value === null) {
+                    // Try to update the computed source synchronously
+                    computedSource._update();
+                    // If it's *still* dirty or null after update attempt, computed cannot update now
+                    if (computedSource._dirty || computedSource._value === null) {
+                        computedCanUpdate = false;
+                    }
+                }
+                sourceValue = computedSource._value; // Read value after potential update
+                break;
+            }
+            case 'batched': {
+                const batchedSource = source as BatchedAtom<unknown>;
+                // If a batched dependency is dirty, computed cannot update synchronously
+                if (batchedSource._dirty) {
+                    computedCanUpdate = false;
+                }
+                // Read the current value, might be null or stale if dirty
+                sourceValue = batchedSource._value;
+                break;
+            }
+            // No default needed for AnyAtom union
+        }
+
+        // If computed cannot update (due to dirty/null computed or dirty batched dependency), stop collecting values
+        if (!computedCanUpdate) {
+            break;
+        }
+        vals[i] = sourceValue;
     }
 
-    // 2. Calculate the new value
-    const newValue = calc(...vals); // Use spread operator to pass values as arguments
-    atom._dirty = false; // Mark as clean *after* calculation
+    // If dependencies weren't ready (e.g., dirty batched dependency, or nested computed failed update),
+    // mark computed as dirty and return false (no change).
+    // Let the calculation function handle potentially null values if needed.
+    if (!computedCanUpdate) {
+        atom._dirty = true;
+        return false;
+    }
+    // Note: We proceed even if some vals are null, assuming null is a valid state.
+    // The calculation function itself should handle null inputs if necessary.
+    // 2. Dependencies are ready, proceed with calculation
+    const newValue = calc(...vals); // vals are now guaranteed non-null
+    atom._dirty = false; // Mark as clean *after* successful calculation
 
     // 3. Check if the value actually changed using the equality function
     // Handle the initial null case for 'old'
@@ -111,12 +145,12 @@ function computedSourceChanged<T>(atom: ComputedAtom<T>): void {
     if (atom._listeners?.size) {
         const oldValue = atom._value; // Store value before potential update
         // Use the internal _update method which calls updateComputedValue
-        // Let's assume updateComputedValue is sufficient for now.
         const changed = updateComputedValue(atom); // Directly call update logic
         if (changed) {
-            // Use the exported notifyListeners from internalUtils.ts
+            // Use the exported notifyListeners
             try {
-                notifyListeners(atom, atom._value!, oldValue); // Notify downstream listeners
+                // Cast to AnyAtom for notifyListeners
+                notifyListeners(atom as AnyAtom, atom._value!, oldValue); // Notify downstream listeners
             } catch (e) {
                 console.error(`Error notifying listeners for computed atom ${String(atom)}:`, e);
             }

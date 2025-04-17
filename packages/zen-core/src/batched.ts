@@ -1,7 +1,7 @@
 // Batched computed store implementation (Nanostores style)
 import type { AnyAtom, AtomValue, Listener, Unsubscribe } from './types';
-import { subscribe, notifyListeners } from './atom'; // Use core subscribe AND notifyListeners, remove get
-import type { ComputedAtom } from './computed'; // Import ComputedAtom
+import { subscribe, notifyListeners } from './atom'; // Use core subscribe AND notifyListeners
+// Removed unused ComputedAtom import
 
 // --- Types ---
 
@@ -12,40 +12,19 @@ export type BatchedAtom<T = unknown> = {
     _stores: AnyAtom[];
     _calculation: (...values: any[]) => T;
     _listeners?: Set<Listener<T | null>>; // Listeners expect T | null
-    _dirty: boolean;
-    _queued: boolean; // Flag to prevent multiple queueing in one tick
+    _dirty: boolean; // Still needed to track if calculation is required
+    _pendingUpdate: boolean; // Flag to prevent scheduling multiple microtasks
     _unsubscribers: Unsubscribe[];
-    _update: () => void; // Function to perform the actual update
+    _update: () => void; // Function to perform the actual update, run via microtask
     _subscribeToSources: () => void;
     _unsubscribeFromSources: () => void;
 };
 
-// --- Microtask Queue ---
+// --- Simplified Microtask Logic (No Global Queue) ---
+// Each batched atom schedules its own update via queueMicrotask.
 
-let microtaskQueued = false;
-const updateQueue = new Set<BatchedAtom<any>>();
+// No top-level debug needed now
 
-function processUpdateQueue() {
-    // Create a copy to iterate over, allowing atoms to re-queue themselves (though unlikely needed)
-    const atomsToUpdate = [...updateQueue];
-    updateQueue.clear();
-    microtaskQueued = false;
-
-    for (const atom of atomsToUpdate) {
-        // Check if still mounted before updating
-        if (atom._listeners?.size) {
-            atom._update(); // Perform the actual calculation and notification
-        }
-        atom._queued = false; // Reset queued flag
-    }
-}
-
-function queueMicrotaskIfNeeded() {
-    if (!microtaskQueued) {
-        microtaskQueued = true;
-        queueMicrotask(processUpdateQueue);
-    }
-}
 
 // --- Batched Function ---
 
@@ -67,7 +46,7 @@ export function batched<T>(
     calculation: (...values: any[]) => T
 ): BatchedAtom<T> {
     const storesArray = Array.isArray(stores) ? stores : [stores];
-    let initialValueCalculated = false;
+    // Removed unused initialValueCalculated flag
 
     const atom: BatchedAtom<T> = {
         _kind: 'batched',
@@ -76,68 +55,105 @@ export function batched<T>(
         _calculation: calculation,
         _listeners: undefined, // Initialized on first subscribe
         _dirty: true, // Start dirty
-        _queued: false, // Not queued initially
+        _pendingUpdate: false, // No update scheduled initially
         _unsubscribers: [],
 
+        // Convert _update to an arrow function to capture `this` (atom) context correctly for queueMicrotask
         _update: () => {
-            atom._dirty = false; // Mark as clean before calculation
-            const oldInternalValue = atom._value; // Store previous internal value
+            atom._pendingUpdate = false; // Reset pending flag
 
-            // Get current values from dependencies by manually checking _kind
+            // Only calculate if dirty
+            if (!atom._dirty) return;
+
+            const oldInternalValue = atom._value;
+
+            // Get current values from dependencies.
+            // MUST force update dirty computed dependencies synchronously here.
+            let dependenciesReady = true;
             const currentValues = atom._stores.map(s => {
+                let sourceValue: unknown;
                 if (s._kind === 'computed') {
-                    // Explicitly handle computed atoms
-                    const computed = s as ComputedAtom<AtomValue<typeof s>>;
-                    if (computed._dirty || computed._value === null) {
-                        computed._update();
+                    const computedSource = s as import('./computed').ComputedAtom<unknown>; // Use import type
+                    if (computedSource._dirty || computedSource._value === null) {
+                        const updated = computedSource._update(); // Force update computed and check result
+                        if (!updated || computedSource._dirty || computedSource._value === null) { // Check if update failed or still dirty/null
+                            dependenciesReady = false; // Still not ready
+                        }
                     }
-                    return computed._value; // Can be null
+                    sourceValue = computedSource._value; // Read value after potential update
+                    // Explicitly check if the value is still null after update attempt
+                    if (sourceValue === null && dependenciesReady) {
+                         // If computed is still null but reported updated, treat dependency as not ready?
+                         // Or maybe allow null through? Let's try allowing null for now.
+                         // console.log("!!! Computed source is null after update attempt !!!");
+                    }
+                } else if (s._kind === 'batched') {
+                    // Cannot synchronously update another batched atom.
+                    // If it's dirty, we must wait for its own microtask/timeout.
+                    const batchedSource = s as BatchedAtom<unknown>;
+                    if (batchedSource._dirty) {
+                        dependenciesReady = false;
+                    }
+                    sourceValue = batchedSource._value; // Read potentially stale value
                 } else {
-                    // For other types, _value holds the value directly. Cast needed.
-                    return s._value as AtomValue<typeof s>;
+                    // Simple atom or map
+                    sourceValue = s._value;
                 }
+
+                if (!dependenciesReady) return null; // Early exit if dependency not ready
+                return sourceValue;
             });
 
-            // Check if any dependency is still null (e.g., an uninitialized computed atom)
-            if (currentValues.some(v => v === null && !initialValueCalculated)) {
-                 // If it's the very first calculation and a dependency is null,
-                 // stay dirty and don't calculate/notify yet.
+            // If any dependency wasn't ready (e.g., dirty batched dependency, or computed failed update),
+            // remain dirty and wait for the dependency to trigger onChange again.
+            if (!dependenciesReady) {
                  atom._dirty = true;
+                 // Do NOT re-schedule here, wait for onChange from the dependency
                  return;
             }
+            // Note: We proceed even if some currentValues are null, assuming null is a valid state.
+            // The calculation function itself should handle null inputs if necessary.
+
+            // All dependencies are ready and non-null
+            atom._dirty = false; // Mark as clean *before* calculation
 
             try {
-                const newValue = atom._calculation(...currentValues);
-                initialValueCalculated = true; // Mark initial value as calculated
+                const newValue = atom._calculation(...currentValues as any[]);
+                const changed = !Object.is(newValue, oldInternalValue);
 
-                if (!Object.is(newValue, oldInternalValue)) {
+                if (changed) {
                     atom._value = newValue;
-                    // Notify listeners (use core notifyListeners)
-                    // Cast needed for notifyListeners
+                    // Pass oldInternalValue directly (it might be null)
                     notifyListeners(atom as AnyAtom, newValue, oldInternalValue);
                 }
             } catch (error) {
-                console.error("Error during batched calculation:", error);
-                // Optionally: handle error state? For now, just log.
-                // Keep atom dirty if calculation fails?
-                atom._dirty = true;
+                console.error("!!! Error during batched calculation:", error); // Make error more prominent
+                atom._dirty = true; // Remain dirty on error
             }
         },
 
         _subscribeToSources: () => {
             if (atom._unsubscribers.length > 0) return; // Already subscribed
 
+            // Schedule initial calculation after subscribing to sources
+            // The atom starts dirty, so the update will run.
+            if (!atom._pendingUpdate) {
+                 atom._pendingUpdate = true;
+                 queueMicrotask(atom._update); // Use queueMicrotask
+            }
+
             const onChange = () => {
-                atom._dirty = true;
-                if (!atom._queued && atom._listeners?.size) { // Only queue if mounted and not already queued
-                    atom._queued = true;
-                    updateQueue.add(atom);
-                    queueMicrotaskIfNeeded();
+                if (!atom._dirty) { // Only mark dirty if not already dirty
+                    atom._dirty = true;
+                }
+                // Schedule an update if not already pending for this tick
+                if (!atom._pendingUpdate) {
+                    atom._pendingUpdate = true;
+                    queueMicrotask(atom._update); // Use queueMicrotask
                 }
             };
 
             atom._unsubscribers = atom._stores.map(sourceStore =>
-                // Cast needed for subscribe
                 subscribe(sourceStore as AnyAtom, onChange)
             );
         },
@@ -145,12 +161,9 @@ export function batched<T>(
         _unsubscribeFromSources: () => {
             atom._unsubscribers.forEach(unsub => unsub());
             atom._unsubscribers = [];
-            // Clean up from queue if it was queued but now unmounted
-            if (atom._queued) {
-                updateQueue.delete(atom);
-                atom._queued = false;
-                // If queue becomes empty, maybe cancel microtask? (complex, maybe unnecessary)
-            }
+            // No queue cleanup needed anymore
+            // If an update was pending, it might run but won't notify if listeners are gone.
+            // Or we could try to cancel it, but queueMicrotask doesn't support cancellation.
         }
     };
 

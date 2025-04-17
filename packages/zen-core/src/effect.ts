@@ -1,5 +1,6 @@
 import type { AnyAtom, AtomValue, Unsubscribe } from './types';
 import { subscribe } from './atom'; // Use core subscribe
+// Removed unused get import
 
 /**
  * Subscribes to multiple stores and runs a callback function when any of them change.
@@ -17,55 +18,83 @@ export function effect<Stores extends AnyAtom[]>(
 ): Unsubscribe {
     let lastCleanup: void | (() => void);
     let isCancelled = false;
+    let initialRun = true; // Flag to track the first execution
+    let setupComplete = false; // Flag to prevent running callback during setup
 
     // Function to run the callback and handle cleanup
     const runCallback = () => {
-        if (isCancelled) return; // Don't run if cancelled
+        // If cancelled, or if called during the setup phase, do nothing
+        if (isCancelled || !setupComplete) {
+             return;
+        }
 
-        // Run previous cleanup if it exists
-        if (typeof lastCleanup === 'function') {
+        // Run previous cleanup *before* getting new values, only if it's not the initial run
+        if (!initialRun && typeof lastCleanup === 'function') {
             try {
                 lastCleanup();
             } catch (error) {
                 console.error("Error during effect cleanup:", error);
             }
+            lastCleanup = undefined; // Reset cleanup after running
         }
 
-        // Get current values (handle potential null from computed/batched initial state)
-        // Cast needed for subscribe/get compatibility within generic context
+        // Get current values, handling updates for computed/batched
         const currentValues = stores.map(s => {
-             if (s._kind === 'computed' || s._kind === 'batched') {
-                 const computedOrBatched = s as any; // Cast to access internal properties
-                 if (computedOrBatched._dirty || computedOrBatched._value === null) {
-                    computedOrBatched._update?.(); // Use optional chaining for safety
-                 }
-                 return computedOrBatched._value; // Can be null
-             } else {
-                 return s._value as AtomValue<typeof s>; // Cast needed
-             }
+            switch (s._kind) {
+                case 'computed': {
+                    const computed = s as import('./computed').ComputedAtom<unknown>;
+                    if (computed._dirty || computed._value === null) {
+                        computed._update();
+                    }
+                    return computed._value; // Can be null
+                }
+                case 'batched': {
+                     // Batched atoms update via microtask, read current value (might be null/stale)
+                     // The effect will re-run if the batched atom updates later.
+                    return s._value; // Can be null
+                }
+                case 'atom':
+                case 'map':
+                case 'deepMap':
+                case 'task':
+                    return s._value; // Direct value
+                default:
+                    // Should be unreachable with AnyAtom
+                    console.error("Unknown atom kind encountered in effect:", s); // Log error instead
+                    return null;
+            }
         });
 
-        // Check if any value is still null (initial state for computed/batched)
-        // If so, don't run the callback yet, wait for actual values.
-        if (currentValues.some(v => v === null)) {
-             lastCleanup = undefined; // Ensure no cleanup is stored if callback didn't run
-             return;
-        }
 
-        try {
-            // Run the main callback and store the new cleanup function
-            lastCleanup = callback(...currentValues as any); // Cast needed for spread arguments
-        } catch (error) {
-            console.error("Error during effect callback:", error);
-            lastCleanup = undefined; // Reset cleanup on error
+        // Check if any value is still null (initial state for computed/batched)
+        const dependenciesReady = !currentValues.some(v => v === null);
+
+        if (dependenciesReady) {
+            // All values are non-null, proceed.
+            try {
+                // Run the main callback and store the new cleanup function
+                // Cast needed as values were checked for null above.
+                lastCleanup = callback(...currentValues as any); // Cast needed for spread arguments
+            } catch (error) {
+                console.error("Error during effect callback:", error);
+                lastCleanup = undefined; // Reset cleanup on error
+            }
         }
+        // If dependencies are not ready, we simply don't run the callback or cleanup yet.
+        // The effect will re-run when a dependency changes to a non-null value.
+
+        // Mark initial run as done AFTER the first successful execution
+        initialRun = false;
     };
 
-    // Subscribe to all stores
-    // Cast needed for subscribe
+    // Subscribe to all stores. Pass the unmodified runCallback.
+    // The initial synchronous call from subscribe will be ignored due to setupComplete flag.
     const unsubscribers = stores.map(store => subscribe(store as AnyAtom, runCallback));
 
-    // Run the callback immediately with initial values (if not null)
+    // Mark setup as complete AFTER all subscriptions are done
+    setupComplete = true;
+
+    // Manually trigger the first run AFTER setup is complete
     runCallback();
 
     // Return the final cleanup function
