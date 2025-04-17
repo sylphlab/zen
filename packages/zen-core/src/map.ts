@@ -2,7 +2,7 @@
 import type { Atom } from './atom';
 // Remove this duplicate line
 import type { MapAtom, Unsubscribe, AnyAtom } from './types'; // Ensure AnyAtom is imported here
-import { get as getCoreValue, subscribe as subscribeToCoreAtom } from './atom'; // Import core get/subscribe
+// Core get/subscribe are not needed directly in this module
 import { listenKeys as addKeyListener, KeyListener, _emitKeyChanges } from './events'; // Import key listener logic AND _emitKeyChanges
 // Removed import { STORE_MAP_KEY_SET } from './keys';
 import { batchDepth, queueAtomForBatch, notifyListeners } from './atom'; // Import batch helpers and notifyListeners from './atom'
@@ -29,8 +29,7 @@ export function map<T extends object>(initialValue: T): MapAtom<T> {
   return mapAtom;
 }
 
-// Re-export core get/subscribe for compatibility with tests expecting them from map.ts
-export { getCoreValue as get, subscribeToCoreAtom as subscribe };
+// Core get/subscribe are exported via index.ts from atom.ts
 
 /**
  * Sets a specific key in the Map Atom, creating a new object immutably.

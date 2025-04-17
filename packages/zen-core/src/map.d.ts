@@ -1,24 +1,21 @@
-import { Atom, Unsubscribe } from './core';
+import type { MapAtom, Unsubscribe } from './types';
 import { KeyListener } from './events';
-import { STORE_MAP_KEY_SET } from './keys';
 /**
- * Represents a Map Atom, extending the base Atom with methods
- * for setting specific keys and listening to key changes.
- */
-export type MapAtom<T extends object> = Atom<T> & {
-    /** Sets a specific key in the map object, creating a new object immutably. */
-    setKey<K extends keyof T>(key: K, value: T[K], forceNotify?: boolean): void;
-    /** Listens to changes for specific keys. */
-    listenKeys<K extends keyof T>(keys: K[], listener: KeyListener<T, K>): Unsubscribe;
-    /** Internal marker symbol. */
-    [STORE_MAP_KEY_SET]?: boolean;
-};
-/**
- * Creates a Map Atom, optimized for managing object state.
- * Allows setting individual keys and subscribing to changes for specific keys.
- *
+ * Creates a Map Atom (functional style).
  * @template T The type of the object state.
  * @param initialValue The initial object state. A shallow copy is made.
  * @returns A MapAtom instance.
  */
 export declare function map<T extends object>(initialValue: T): MapAtom<T>;
+/**
+ * Sets a specific key in the Map Atom, creating a new object immutably.
+ * Notifies both map-level and key-specific listeners.
+ */
+export declare function setKey<T extends object, K extends keyof T>(mapAtom: MapAtom<T>, key: K, value: T[K], forceNotify?: boolean): void;
+/**
+ * Sets the entire value of the Map Atom, replacing the current object.
+ * Notifies both map-level and relevant key-specific listeners.
+ */
+export declare function set<T extends object>(mapAtom: MapAtom<T>, nextValue: T, forceNotify?: boolean): void;
+/** Listens to changes for specific keys within a Map Atom. */
+export declare function listenKeys<T extends object, K extends keyof T>(mapAtom: MapAtom<T>, keys: K[], listener: KeyListener<T, K>): Unsubscribe;

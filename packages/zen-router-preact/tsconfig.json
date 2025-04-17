@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "jsx": "react-jsx", // Using react-jsx, often compatible with Preact
+    "jsxImportSource": "preact" // Specify Preact for JSX transform
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

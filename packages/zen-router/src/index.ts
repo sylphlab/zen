@@ -3,46 +3,33 @@
 // TODO: Implement router logic inspired by @nanostores/router
 // Goals: Tiny size, high performance, zen/FP principles
 
-import type { Unsubscribe } from '@zen/core';
-
-/** Router interface with generic state type */
-export type Router<S> = {
-  /** Gets the current state */
-  get(): S | null;
-  /** Sets a new state value */
-  set(value: S): void;
-  /** Subscribes to state changes */
-  subscribe(listener: (value: S | null, oldValue?: S | null) => void): Unsubscribe;
-};
-
-/** Creates a new router store with initial null state */
-export function createRouter<S = unknown>(): Router<S> {
-  let value: S | null = null;
-  const listeners = new Set<(value: S | null, oldValue?: S | null) => void>();
-  return {
-    get() { return value; },
-    set(newValue: S) {
-      const old = value;
-      value = newValue;
-      listeners.forEach(fn => { try { fn(value, old); } catch { /* ignore errors */ } });
-    },
-    subscribe(listener) {
-      listeners.add(listener);
-      try { listener(value, undefined); } catch { /* ignore errors */ }
-      return () => { listeners.delete(listener); };
-    }
-  };
-}
+import { map, MapAtom } from '@sylph/core';
 
 /** Route type placeholder (extend as needed) */
 export type Route = string;
 /** Params type placeholder (mapping of route params) */
-export type Params<P extends Record<string, string> = Record<string, string>> = P;
+export type Params<P extends Record<string, string | undefined> = Record<string, string | undefined>> = P;
 /** Search type placeholder (mapping of query params) */
-export type Search<S extends Record<string, string> = Record<string, string>> = S;
+export type Search<S extends Record<string, string | undefined> = Record<string, string | undefined>> = S;
 
-export function getPagePath() { console.warn('getPagePath not implemented'); return ''; }
-export function openPage() { console.warn('openPage not implemented'); }
-export function redirectPage() { console.warn('redirectPage not implemented'); }
+/** Represents the state of the router */
+export interface RouterState {
+  path: string;
+  params: Params;
+  search: Search;
+}
 
-console.log('[@zen/router] Placeholder loaded');
+// --- Public API ---
+
+// Store
+export const $router: MapAtom<RouterState> = map<RouterState>({
+  path: '',
+  params: {},
+  search: {}
+});
+// Functions
+export { defineRoutes } from './routes';
+export { open, redirect } from './history';
+
+// Types (already exported above)
+// Types are exported via their declarations above

@@ -1,5 +1,6 @@
 import { bench, describe } from 'vitest';
-import { map, get, set, setKey } from './map'; // Import functional API
+import { map, set, setKey } from './map'; // Import map-specific functional API
+import { get } from './index'; // Import core 'get' from main entry
 import { map as nanoMap } from 'nanostores';
 
 describe('Map Creation', () => {

@@ -1,5 +1,5 @@
 {
-  "name": "@sylph/core",
+  "name": "@sylphlab/zen-core",
   "version": "0.1.0",
   "description": "Core package for the zen state management library.",
   "type": "module",
@@ -17,7 +17,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsc && tsup",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
     "bench": "vitest bench --run",

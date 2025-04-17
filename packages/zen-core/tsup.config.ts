@@ -3,11 +3,11 @@ import { defineConfig } from 'tsup'
 export default defineConfig({
   entry: ['src/index.ts'], // Point back to src directory
   format: ['esm', 'cjs'],
-  dts: true, // Simplify DTS generation option
+  dts: true, // Re-enable tsup DTS handling (to bundle declarations from tsc)
   splitting: false,
   sourcemap: false, // Disable sourcemap for production builds
   clean: true,
-  minify: 'terser',
+  minify: 'terser', // Restore minification
   terserOptions: {
     compress: {
       passes: 3, // More aggressive compression passes

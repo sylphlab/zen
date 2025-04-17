@@ -26,16 +26,18 @@
     "declarationMap": false,
     "inlineSources": false,
     "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".", // Added for paths resolution
+    "paths": {
+      "@sylphlab/zen-core": ["../zen-core/dist/index.d.ts"], // Map to built types
+      "@sylphlab/zen-core/*": ["../zen-core/dist/*"] // Map to built types wildcard
+    },
 
     // Package-specific options
     // No composite needed here unless other packages depend on it
-    "emitDeclarationOnly": true, // Only emit .d.ts files
+    // "emitDeclarationOnly": true, // Removed - tsup handles JS build, tsc handles core declarations
     "declarationDir": "dist", // Output .d.ts files directly to dist
     "rootDir": "src"
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.bench.ts"],
-  "references": [
-    { "path": "../zen-core" } // Reference the core package
-  ]
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.bench.ts"]
 }

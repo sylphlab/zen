@@ -1,5 +1,5 @@
 {
-  "name": "@sylph/router",
+  "name": "@sylphlab/zen-router",
   "version": "0.1.0",
   "description": "Tiny URL router for zen state management.",
   "type": "module",
@@ -41,8 +41,11 @@
   "bugs": {
     "url": "https://github.com/sylphlab/zen/issues"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.1.1"
+  },
   "dependencies": {
-    "@sylph/core": "workspace:*"
+    "@sylphlab/zen-core": "workspace:*"
   }
 }

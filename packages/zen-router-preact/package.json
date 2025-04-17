@@ -1,0 +1,51 @@
+{
+  "name": "@sylphlab/zen-router-preact",
+  "version": "0.0.1",
+  "description": "Preact integration for @sylphlab/zen-router",
+  "author": "Sylph AI",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sylphlab/zen.git",
+    "directory": "packages/zen-router-preact"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist .turbo node_modules"
+  },
+  "dependencies": {
+    "@sylphlab/zen-core": "workspace:*",
+    "@sylphlab/zen-router": "workspace:*"
+  },
+  "peerDependencies": {
+    "preact": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "preact": "^10.22.1",
+    "tsup": "^8.1.0",
+    "typescript": "^5.4.5"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false
+}

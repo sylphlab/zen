@@ -20,6 +20,7 @@ module.exports = tseslint.config(
       globals: {
         ...globals.node,
         ...globals.es2022,
+        ...globals.browser, // Add browser globals
       },
       // Parser options might be needed if not set by recommended configs
       // parserOptions: {

@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "jsx": "react-jsx", // Needed for React integration
+    "baseUrl": ".", // Added for paths resolution
+    "paths": {
+      "@sylphlab/zen-core": ["../../zen-core/dist/index.d.ts"],
+      "@sylphlab/zen-core/*": ["../../zen-core/dist/*"],
+      "@sylphlab/zen-router": ["../../zen-router/dist/index.d.ts"],
+      "@sylphlab/zen-router/*": ["../../zen-router/dist/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

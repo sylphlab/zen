@@ -1,25 +1,27 @@
-import { Atom, Unsubscribe } from './core';
+import type { Unsubscribe, DeepMapAtom } from './types';
+import { get as getCoreValue, subscribe as subscribeToCoreAtom } from './atom';
 import { PathListener } from './events';
-import { STORE_MAP_KEY_SET } from './keys';
-import { Path } from './deepMapInternal';
+export type PathString = string;
+export type PathArray = (string | number)[];
+/** Represents a path within a nested object, either as a dot-separated string or an array of keys/indices. */
+export type Path = PathString | PathArray;
 /**
- * Represents a DeepMap Atom, extending the base Atom with methods
- * for setting values at specific paths and listening to path changes.
- */
-export type DeepMap<T extends object> = Atom<T> & {
-    /** Sets a value at a specific path within the object, creating a new object immutably. */
-    setPath(path: Path, value: any, forceNotify?: boolean): void;
-    /** Listens to changes at specific paths (including nested paths). */
-    listenPaths(paths: Path[], listener: PathListener<T>): Unsubscribe;
-    /** Internal marker symbol. */
-    [STORE_MAP_KEY_SET]?: boolean;
-};
-/**
- * Creates a DeepMap Atom, optimized for managing nested object state.
- * Allows setting values at specific paths and subscribing to changes affecting those paths.
- *
+ * Creates a DeepMap Atom (functional style).
  * @template T The type of the object state.
- * @param initialValue The initial object state. It's used directly (not copied initially).
- * @returns A DeepMap instance.
+ * @param initialValue The initial object state. It's used directly.
+ * @returns A DeepMapAtom instance.
  */
-export declare function deepMap<T extends object>(initialValue: T): DeepMap<T>;
+export declare function deepMap<T extends object>(initialValue: T): DeepMapAtom<T>;
+export { getCoreValue as get, subscribeToCoreAtom as subscribe };
+/**
+ * Sets a value at a specific path within the DeepMap Atom, creating a new object immutably.
+ * Notifies both map-level and relevant path-specific listeners. (Restored logic)
+ */
+export declare function setPath<T extends object>(deepMapAtom: DeepMapAtom<T>, path: Path, value: unknown, forceNotify?: boolean): void;
+/**
+ * Sets the entire value of the DeepMap Atom, replacing the current object.
+ * Notifies both map-level and relevant path-specific listeners. (Restored logic)
+ */
+export declare function set<T extends object>(deepMapAtom: DeepMapAtom<T>, nextValue: T, forceNotify?: boolean): void;
+/** Listens to changes for specific paths within a DeepMap Atom. (Restored) */
+export declare function listenPaths<T extends object>(deepMapAtom: DeepMapAtom<T>, paths: Path[], listener: PathListener<T>): Unsubscribe;
