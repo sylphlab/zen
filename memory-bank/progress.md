@@ -84,9 +84,9 @@
 43. ~~Verify Build (Size):~~ Re-ran `size-limit` (atom: 36 B, full: 885 B).
 44. **Refinement:** Addressed `as any` casts in source files. Suppressed error previously noted in `map.ts` appears resolved.
 45. ~~Benchmark explicit `batch()` function.~~ (Done - Confirmed benefits)
-46. (Paused) **Implement `batched` function.**
-47. (Paused) **Implement `effect` function.**
-48. (Paused) **Implement `mapCreator` function.**
-49. (Paused) **Add tests for new core features.**
-50. (Paused) **Verify build after adding core features.**
+46. **Fix `batched` test failures.**
+47. **Fix `effect` test failures.**
+48. **Fix `mapCreator` test failures.**
+49. ~~Add tests for new core features.~~ (Done for batched, effect, mapCreator)
+50. **Verify build after fixing tests.**
 51. **Consider Packaging/Documentation/Release.**

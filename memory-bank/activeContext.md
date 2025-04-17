@@ -2,7 +2,7 @@
 
 ## Current Focus
 - Paused core feature parity work (`batched`, `effect`, `mapCreator`).
-- Current Focus: Resuming core feature parity work (`batched`, `effect`, `mapCreator`).
+- Current Focus: Paused. Next step is to fix test failures for `batched`, `effect`, and `mapCreator`.
 - Explicit `batch()` benchmark confirmed performance benefits for multiple `set` operations.
 
 ## Status
@@ -27,11 +27,11 @@
 ## Next Steps
 
 
-- (Paused) Implement `batched` function (Nanostores style).
-- (Paused) Implement `effect` function.
-- (Paused) Implement `mapCreator` function.
+- Fix test failures for `batched` implementation.
+- Fix test failures for `effect` implementation.
+- Fix test failures for `mapCreator` implementation.
 - (Paused) Add tests for new features.
-- (Paused) Verify build (tests, benchmarks, size).
+- Verify build after fixing tests (tests, benchmarks, size).
 - Implement `batched` function (Nanostores style).
 - Implement `effect` function.
 - Implement `mapCreator` function.
