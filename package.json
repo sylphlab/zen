@@ -18,7 +18,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "turbo run build --filter=./packages/* && changeset publish"
+    "release": "turbo run build --filter=./packages/* && changeset publish",
+    "docs": "typedoc --entryPointStrategy packages --out docs packages/zen-core packages/zen-router"
   },
   "author": "",
   "license": "ISC",
@@ -43,6 +44,7 @@
     "terser": "^5.39.0",
     "tsup": "^8.4.0",
     "turbo": "^2.5.0",
+    "typedoc": "^0.28.2",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.30.1",
     "valtio": "^2.1.4",

@@ -1,6 +1,6 @@
 {
   "name": "@sylph/router",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Tiny URL router for zen state management.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -41,9 +41,8 @@
   "bugs": {
     "url": "https://github.com/sylphlab/zen/issues"
   },
-  "devDependencies": {
-  },
+  "devDependencies": {},
   "dependencies": {
-    "@zen/core": "workspace:*"
+    "@sylph/core": "workspace:*"
   }
 }
