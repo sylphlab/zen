@@ -1,49 +1,31 @@
 // Internal utility functions shared across the library.
-import type { AnyAtom, AtomWithValue, Listener, TaskState } from './types'; // Import base types and merged types
-import type { LifecycleListener } from './events'; // Import LifecycleListener from events
+import type { AnyAtom, AtomValue, AtomWithValue } from './types'; // Import base types and AtomValue
 
 /**
  * Notifies all listeners of an atom about a value change.
  * Handles both value listeners and lifecycle listeners (onNotify).
  * @internal - Exported for use by other modules like atom, computed, batch.
  */
-export function notifyListeners<T>(atom: AnyAtom<any>, value: any, oldValue?: any | null): void {
-    // Operate directly on the atom
-    const baseAtom = atom as AtomWithValue<any>; // Cast for listener access
+// Make generic over Atom type A, use AtomValue<A> for value types
+export function notifyListeners<A extends AnyAtom>(atom: A, value: AtomValue<A>, oldValue?: AtomValue<A>): void {
+    // Operate directly on the atom, casting to the base structure with the correct value type
+    const baseAtom = atom as AtomWithValue<AtomValue<A>>;
 
     // Notify regular value listeners first
-    const ls = baseAtom._listeners;
+    const ls = baseAtom._listeners; // Type is already Set<Listener<AtomValue<A>>> | undefined
     if (ls?.size) {
         // Create a copy for iteration to handle listeners that unsubscribe themselves.
-        const listenersToNotify = [...ls];
-        for (const fn of listenersToNotify) {
-            try {
-                // Need to cast value/oldValue based on listener type if possible,
-                // but for simplicity, pass as any for now. TaskAtom needs specific handling.
-                 if (baseAtom._kind === 'task') {
-                    (fn as Listener<TaskState<any>>)(value as TaskState<any>, oldValue as TaskState<any> | null);
-                 } else {
-                    (fn as Listener<T>)(value, oldValue);
-                 }
-            } catch (e) {
-                console.error(`Error in value listener:`, e);
-            }
+        for (const fn of [...ls]) {
+            // Pass oldValue as null if undefined, matching previous logic
+            try { fn(value, oldValue ?? null); } catch (e) { console.error(`Error in value listener:`, e); }
         }
     }
 
     // Notify onNotify listeners AFTER value listeners
-    const notifyLs = baseAtom._notifyListeners;
+    const notifyLs = baseAtom._notifyListeners; // Type is already Set<LifecycleListener<AtomValue<A>>> | undefined
     if (notifyLs?.size) {
-        // Create a copy for iteration
-        const listenersToNotify = [...notifyLs];
-        for (const fn of listenersToNotify) {
-            try {
-                 if (baseAtom._kind === 'task') {
-                    (fn as LifecycleListener<TaskState<any>>)(value as TaskState<any>);
-                 } else {
-                    (fn as LifecycleListener<T>)(value);
-                 }
-            } catch(e) { console.error(`Error in onNotify listener:`, e); }
+        for (const fn of [...notifyLs]) {
+            try { fn(value); } catch(e) { console.error(`Error in onNotify listener:`, e); }
         }
     }
 }

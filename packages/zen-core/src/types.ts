@@ -5,7 +5,7 @@ import type { ComputedAtom } from './computed'; // Only import ComputedAtom
 // ReadonlyAtom will be an alias, MapAtom, DeepMapAtom, TaskAtom defined below
 
 /** Callback function type for atom listeners. */
-export type Listener<T> = (value: T, oldValue?: T | null) => void; // oldValue can be null initially
+export type Listener<T> = (value: T, oldValue?: T | null) => void;
 
 /** Function to unsubscribe a listener. */
 export type Unsubscribe = () => void;
@@ -13,9 +13,9 @@ export type Unsubscribe = () => void;
 /** Base structure for atoms that directly hold value and listeners. */
 export type AtomWithValue<T> = {
     /** Distinguishes atom types for faster checks */
-    _kind: 'atom' | 'computed' | 'map' | 'deepMap' | 'task'; // Added 'task', removed 'taskState'
+    _kind: 'atom' | 'computed' | 'map' | 'deepMap' | 'task';
     /** Current value */
-    _value: T | null; // Allow null for computed initial state
+    _value: T; // Value type enforced by generic, no null default
     /** Value listeners (Set for efficient add/delete/has) */
     _listeners?: Set<Listener<T>>;
     /** Lifecycle listeners (Set for efficient add/delete) */
@@ -27,7 +27,7 @@ export type AtomWithValue<T> = {
 };
 
 /** Type definition for the state managed by a Task Atom. */
-export type TaskState<T = unknown> = {
+export type TaskState<T> = {
   loading: boolean;
   error?: Error;
   data?: T;
@@ -49,21 +49,17 @@ export type DeepMapAtom<T extends object = object> = AtomWithValue<T> & { // Def
 
 /** Represents a Task Atom directly holding TaskState and listeners. */
 // Add Args generic for async function arguments, default to unknown[]
-export type TaskAtom<T = unknown, Args extends unknown[] = unknown[]> = {
+// Extend AtomWithValue for consistency, remove unused _setListeners
+export type TaskAtom<T, Args extends unknown[] = unknown[]> = AtomWithValue<TaskState<T>> & {
     _kind: 'task';
-    _value: TaskState<T>; // Explicitly state the value type
-    readonly _asyncFn: (...args: Args) => Promise<T>; // Use Args generic
-    // Include properties from AtomWithValue<TaskState<T>>
-    _listeners?: Set<Listener<TaskState<T>>>;
-    _startListeners?: Set<LifecycleListener<TaskState<T>>>;
-    _stopListeners?: Set<LifecycleListener<TaskState<T>>>;
-    _setListeners?: Set<LifecycleListener<TaskState<T>>>; // Technically not used by task, but keep for consistency?
-    _notifyListeners?: Set<LifecycleListener<TaskState<T>>>;
-    _mountListeners?: Set<LifecycleListener<TaskState<T>>>;
+    readonly _asyncFn: (...args: Args) => Promise<T>;
+    // _setListeners is inherited but not used by task logic
+    _setListeners?: never; // Explicitly mark as unused/unavailable if desired, or just omit specific logic
 };
 
+/** Utility type to extract the value type from any atom type. */
+export type AtomValue<A extends AnyAtom> = A extends AtomWithValue<infer V> ? V : never;
 
 /** Union type for any kind of atom structure recognized by the library. */
-// Use <any> for Map/DeepMap/TaskAtom as their value type isn't directly T
-// Update TaskAtom usage to include Args generic (using any[] for broad compatibility here)
-export type AnyAtom<T = unknown> = Atom<T> | ComputedAtom<T> | MapAtom<object> | DeepMapAtom<object> | TaskAtom<T, unknown[]>; // Use unknown[] for TaskAtom Args
+// This union represents the structure, use AtomValue<A> to get the value type.
+export type AnyAtom = Atom<any> | ComputedAtom<any> | MapAtom<any> | DeepMapAtom<any> | TaskAtom<any, any[]>;

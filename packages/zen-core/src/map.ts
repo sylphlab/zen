@@ -1,6 +1,6 @@
 // Functional Map atom implementation.
-import type { Atom } from './atom'; // Import Atom type
-import type { Unsubscribe, Listener, AnyAtom, AtomWithValue, MapAtom } from './types'; // Import MapAtom from types
+import type { Atom } from './atom';
+import type { MapAtom, Unsubscribe } from './types'; // Import MapAtom and Unsubscribe from types
 import { get as getCoreValue, subscribe as subscribeToCoreAtom } from './atom'; // Import core get/subscribe
 import { listenKeys as addKeyListener, KeyListener, _emitKeyChanges } from './events'; // Import key listener logic AND _emitKeyChanges
 import { STORE_MAP_KEY_SET } from './keys'; // Symbol marker for map atoms
@@ -24,8 +24,8 @@ export function map<T extends object>(initialValue: T): MapAtom<T> {
     _value: { ...initialValue }, // Shallow copy initial value
     // Listener properties (_listeners, etc.) are initially undefined
   };
-  // Mark the atom itself so listenKeys can identify it
-  (mapAtom as any)[STORE_MAP_KEY_SET] = true;
+  // Mark the atom itself so listenKeys can identify it (hidden symbol)
+  Reflect.defineProperty(mapAtom, STORE_MAP_KEY_SET, { value: true, enumerable: false });
   return mapAtom;
 }
 
@@ -72,8 +72,8 @@ export function setKey<T extends object, K extends keyof T>(
       // --- Immediate Notifications (Outside Batch) ---
 
       // a. Notify key-specific listeners for the changed key using _emitKeyChanges
-      // Pass the mapAtom (cast needed as _emitKeyChanges expects Atom<T>)
-      _emitKeyChanges(mapAtom as Atom<T>, [key], nextValue);
+      // Pass the mapAtom directly, as _emitKeyChanges expects MapAtom | DeepMapAtom
+      _emitKeyChanges(mapAtom, [key], nextValue);
 
       // b. Notify general value listeners and onNotify listeners
       // Use the standard notifyListeners, passing the mapAtom
@@ -115,7 +115,8 @@ export function set<T extends object>(
 
     // Emit changes for all keys that differed *before* setting the value
     if (changedKeys.length > 0) {
-      _emitKeyChanges(mapAtom as Atom<T>, changedKeys as (keyof T)[], nextValue); // Pass mapAtom (cast needed)
+      // Pass the mapAtom directly
+      _emitKeyChanges(mapAtom, changedKeys as (keyof T)[], nextValue);
     }
 
     // Set the mapAtom's value directly and notify

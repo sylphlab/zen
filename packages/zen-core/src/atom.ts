@@ -1,5 +1,5 @@
 // Functional atom implementation
-import type { Listener, Unsubscribe, AnyAtom, AtomWithValue, TaskState, TaskAtom, MapAtom, DeepMapAtom } from './types'; // Import from types (including TaskAtom, MapAtom, DeepMapAtom)
+import type { Listener, Unsubscribe, AnyAtom, AtomValue, AtomWithValue, TaskState, TaskAtom, MapAtom, DeepMapAtom } from './types'; // Import AtomValue
 // Remove duplicate import line
 import type { ComputedAtom } from './computed'; // Import ComputedAtom from computed.ts
 import { isComputedAtom } from './typeGuards'; // Import from typeGuards
@@ -20,44 +20,38 @@ export type Atom<T = unknown> = AtomWithValue<T> & { // Default to unknown
  * @param atom The atom to read from.
  * @returns The current value.
  */
-// Overloads for specific atom types
+// Overloads remain largely the same, relying on specific atom types
 export function get<T>(atom: Atom<T>): T;
-export function get<T>(atom: ComputedAtom<T>): T | null; // Computed can be null initially
+export function get<T>(atom: ComputedAtom<T>): T | null;
 export function get<T extends object>(atom: MapAtom<T>): T;
 export function get<T extends object>(atom: DeepMapAtom<T>): T;
-export function get<T>(atom: TaskAtom<T>): TaskState<T>;
-// General implementation signature (covers AnyAtom and allows internal logic)
-export function get<T>(atom: AnyAtom<T>): T | TaskState<unknown> | object | null {
+export function get<T, Args extends unknown[]>(atom: TaskAtom<T, Args>): TaskState<T>; // Use TaskAtom directly
+// General implementation signature using AtomValue
+export function get<A extends AnyAtom>(atom: A): AtomValue<A> | null { // Return includes null for computed initial state
     // Use switch for type narrowing and direct value access
     switch (atom._kind) {
         case 'atom':
-            // Type is narrowed to Atom<T>, _value is T
+        case 'map':
+        case 'deepMap':
+        case 'task':
+            // For these types, _value directly matches AtomValue<A>
             return atom._value;
-        case 'computed': { // Correct block scope
-            // Explicit cast needed despite switch
-            const computed = atom as ComputedAtom<T>;
+        case 'computed': {
+            // Explicit cast needed for computed-specific logic
+            const computed = atom as ComputedAtom<AtomValue<A>>; // Value type is AtomValue<A>
             if (computed._dirty || computed._value === null) {
                 computed._update();
             }
-            return computed._value;
-        } // Close block scope
-        case 'map':
-        case 'deepMap':
-            // Type is narrowed to MapAtom<any> | DeepMapAtom<any>
-            // Value is object | null, but should always be object for these types
-            // Overload ensures atom._value is T (object)
-            return atom._value;
-        case 'task':
-            // Type is narrowed to TaskAtom<T>
-            // Overload ensures atom._value is TaskState<T>
-            return atom._value;
-        default: { // Correct block scope
-            // Handle unknown kind - should not happen with AnyAtom
-            // Fallback to satisfy TS, though ideally unreachable
+            // Computed value can be null initially
+            return computed._value as AtomValue<A> | null;
+        }
+        default: {
+            // Handle unknown kind - should be unreachable with AnyAtom
             console.error("Unknown atom kind in get():", atom);
-            const _exhaustiveCheck: never = atom; // Keep rename
-            return null;
-        } // Close block scope
+            // Explicit cast to never to satisfy exhaustiveness check
+            const _exhaustiveCheck: never = atom as never;
+            return null; // Fallback return
+        }
     }
 }
 
@@ -104,113 +98,80 @@ export function set<T>(atom: Atom<T>, value: T, force = false): void {
  * @param listener The function to call on value changes.
  * @returns A function to unsubscribe the listener.
  */
-// Overloads for specific atom types
-export function subscribe<T>(atom: Atom<T>, listener: Listener<T>): Unsubscribe;
-export function subscribe<T>(atom: ComputedAtom<T>, listener: Listener<T | null>): Unsubscribe; // Computed can be null
-export function subscribe<T extends object>(atom: MapAtom<T>, listener: Listener<T>): Unsubscribe;
-export function subscribe<T extends object>(atom: DeepMapAtom<T>, listener: Listener<T>): Unsubscribe;
-export function subscribe<T>(atom: TaskAtom<T>, listener: Listener<TaskState<T>>): Unsubscribe;
-// General implementation signature
-export function subscribe<T>(atom: AnyAtom<T>, listener: Listener<any>): Unsubscribe { // Revert listener to any
-    // Operate directly on the atom
-    const baseAtom = atom as AtomWithValue<unknown>; // Keep cast to unknown
+// General implementation signature using AtomValue
+export function subscribe<A extends AnyAtom>(atom: A, listener: Listener<AtomValue<A>>): Unsubscribe {
+    // Cast to base structure with correct value type
+    const baseAtom = atom as AtomWithValue<AtomValue<A>>;
     const isFirstListener = !baseAtom._listeners?.size;
-    baseAtom._listeners ??= new Set();
-                    baseAtom._listeners.add(listener as Listener<any>); // Revert listener cast to any
+
+    // Initialize listeners Set if needed, using the correct value type
+    baseAtom._listeners ??= new Set<Listener<AtomValue<A>>>();
+    baseAtom._listeners.add(listener); // Add the correctly typed listener
 
     // Trigger onStart and onMount if this is the first listener
     if (isFirstListener) {
         // Trigger onMount first (if exists)
         const mountLs = baseAtom._mountListeners;
-        if (mountLs?.size) { // Use size for Set
-            for (const fn of mountLs) { // Iterate Set
+        if (mountLs?.size) {
+            for (const fn of mountLs) {
                 try { fn(undefined); } catch(e) { console.error(`Error in onMount listener during first subscribe:`, e); }
             }
         }
-        // Clean up mount listeners after first call
-        delete baseAtom._mountListeners;
+        delete baseAtom._mountListeners; // Clean up mount listeners
 
         // Then trigger onStart
         const startLs = baseAtom._startListeners;
-        if (startLs?.size) { // Use size for Set
-            for (const fn of startLs) { // Iterate Set
+        if (startLs?.size) {
+            for (const fn of startLs) {
                 try { fn(undefined); } catch(e) { console.error(`Error in onStart listener for atom ${String(atom)}:`, e); }
             }
         }
+
         // If it's a computed atom, trigger its source subscription logic
-        if (isComputedAtom(atom)) { // Use type guard
-             const computed = atom as ComputedAtom<T>; // Explicit cast after type guard
-             // Ensure the method exists before calling
+        if (isComputedAtom(atom)) {
+             // Cast to ComputedAtom with the correct value type
+             const computed = atom as ComputedAtom<AtomValue<A>>;
              if (typeof computed._subscribeToSources === 'function') {
-                computed._subscribeToSources(); // Use the explicitly cast 'computed' variable
+                computed._subscribeToSources();
              }
         }
     }
-    // onMount is now handled above on first listener
 
-    // Initial call to the new listener
-    // The very first value notification should always have `undefined` as oldValue.
+    // Initial call to the new listener using the updated get function
     try {
-        // Replicate get() logic here to avoid nested overload resolution issues
-        let currentValue: T | TaskState<unknown> | object | null;
-        switch (atom._kind) {
-            case 'atom':
-                currentValue = atom._value;
-                break;
-            case 'computed': { // Correct block scope placement
-                const computed = atom as ComputedAtom<T>;
-                if (computed._dirty || computed._value === null) {
-                    computed._update();
-                }
-                currentValue = computed._value;
-            } // Close block scope
-                break;
-            case 'map':
-            case 'deepMap':
-                currentValue = atom._value; // Overloads ensure this is T (object)
-                break;
-            case 'task':
-                currentValue = atom._value; // Overloads ensure this is TaskState<T>
-                break;
-            default: { // Correct block scope placement
-                 // Should be unreachable due to AnyAtom type
-                 console.error("Unknown atom kind in subscribe initial call:", atom);
-                 const _exhaustiveCheck: never = atom; // Keep rename
-                 currentValue = null; // Fallback
-                 break;
-            } // Close block scope
-        }
-        // The subscribe overloads ensure the listener type matches currentValue type now.
-        listener(currentValue, undefined);
-    } catch (e) { // Corrected try...catch structure
+        // get() now returns the correct type AtomValue<A> | null
+        const currentValue = get(atom);
+        // Pass undefined as oldValue for initial call
+        listener(currentValue as AtomValue<A>, undefined); // Cast needed because get can return null
+    } catch (e) {
         console.error(`Error in initial listener call for atom ${String(atom)}:`, e);
     }
 
     return function unsubscribe() {
-      // Operate directly on the atom
-      const baseAtom = atom as AtomWithValue<unknown>; // Keep cast to unknown
-      const listeners = baseAtom._listeners;
-      // Keep cast to any for Set.has check due to variance issues
-                              if (!listeners?.has(listener as Listener<any>)) return; // Revert listener cast to any
+      // Cast to base structure with correct value type
+      const baseAtom = atom as AtomWithValue<AtomValue<A>>;
+      const listeners = baseAtom._listeners; // Type is already Set<Listener<AtomValue<A>>> | undefined
 
-      // Keep cast to any for Set.delete due to variance issues
-                              listeners.delete(listener as Listener<any>); // Revert listener cast to any
+      // Check if listener exists before deleting
+      if (!listeners?.has(listener)) return;
+
+      listeners.delete(listener);
 
       // Trigger onStop if this was the last listener
-      if (!listeners.size) { // Use Set size
+      if (!listeners.size) {
         delete baseAtom._listeners; // Clean up Set if empty
         const stopLs = baseAtom._stopListeners;
-        if (stopLs?.size) { // Use size for Set
-            for (const fn of stopLs) { // Iterate Set
+        if (stopLs?.size) {
+            for (const fn of stopLs) {
                 try { fn(undefined); } catch(e) { console.error(`Error in onStop listener for atom ${String(atom)}:`, e); }
             }
         }
         // If it's a computed atom, trigger its source unsubscription logic
-        if (isComputedAtom(atom)) { // Use type guard
-            const computed = atom as ComputedAtom<T>; // Explicit cast after type guard
-             // Ensure the method exists before calling
+        if (isComputedAtom(atom)) {
+            // Cast to ComputedAtom with the correct value type
+            const computed = atom as ComputedAtom<AtomValue<A>>;
              if (typeof computed._unsubscribeFromSources === 'function') {
-                computed._unsubscribeFromSources(); // Use the explicitly cast 'computed' variable
+                computed._unsubscribeFromSources();
              }
         }
       }

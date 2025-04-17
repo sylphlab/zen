@@ -25,8 +25,8 @@ export function deepMap<T extends object>(initialValue: T): DeepMapAtom<T> {
     _value: initialValue, // Use initial value directly (deep clone happens in setDeep)
     // Listener properties (_listeners, etc.) are initially undefined
   };
-  // Mark the atom itself so listenPaths can identify it
-              (deepMapAtom as any)[STORE_MAP_KEY_SET] = true; // Revert to any for symbol indexing
+  // Mark the atom so listenPaths can identify it (hidden symbol)
+  Reflect.defineProperty(deepMapAtom, STORE_MAP_KEY_SET, { value: true, enumerable: false });
   return deepMapAtom;
 }
 
@@ -70,15 +70,13 @@ export function setPath<T extends object>(
     }
 
         // Assert nextValue type for assignment
-        deepMapAtom._value = nextValue as T | null; // Allow null as per DeepMapAtom type
+        deepMapAtom._value = nextValue as T;
 
     if (batchDepth > 0) {
-                queueAtomForBatch(deepMapAtom as Atom<unknown>, currentValue); // Cast to Atom<unknown>
+                queueAtomForBatch(deepMapAtom as Atom<T>, currentValue);
     } else {
-        // Emit path changes first
-                // Cast to AnyAtom<T> for _emitPathChanges
-                                // Cast to Atom<T> for _emitPathChanges
-                                _emitPathChanges(deepMapAtom as Atom<T>, [path], nextValue as T);
+        // Emit path changes first (pass deepMapAtom directly)
+        _emitPathChanges(deepMapAtom, [path], nextValue as T);
         // Notify general listeners
         notifyListeners(deepMapAtom, nextValue, currentValue);
     }
@@ -104,8 +102,8 @@ export function set<T extends object>(
     // Emit changes for all paths that differed *before* setting the value
     if (changedPaths.length > 0) {
             // Cast to AnyAtom<T> for _emitPathChanges
-                        // Cast to Atom<T> for _emitPathChanges
-                        _emitPathChanges(deepMapAtom as Atom<T>, changedPaths, nextValue);
+                        // Pass deepMapAtom directly
+                        _emitPathChanges(deepMapAtom, changedPaths, nextValue);
     }
     // Set the deepMapAtom's value directly and notify
     // Manual notification needed here
@@ -119,7 +117,7 @@ export function set<T extends object>(
     }
     deepMapAtom._value = nextValue;
     if (batchDepth > 0) {
-                queueAtomForBatch(deepMapAtom as Atom<unknown>, oldValue); // Cast to Atom<unknown>
+        queueAtomForBatch(deepMapAtom as Atom<T>, oldValue);
     } else {
         notifyListeners(deepMapAtom, nextValue, oldValue);
     }
@@ -134,8 +132,8 @@ export function listenPaths<T extends object>(
 ): Unsubscribe {
     // Delegates to the function from events.ts, passing the deepMapAtom itself
     // Cast to AnyAtom<any> to bypass strict check, as listenPaths internals are compatible
-            // Cast to AnyAtom<T> to satisfy addPathListener's expectation
-            return addPathListener(deepMapAtom as AnyAtom<T>, paths, listener);
+            // Pass deepMapAtom directly, as addPathListener expects MapAtom | DeepMapAtom
+            return addPathListener(deepMapAtom, paths, listener);
 }
 
 // Note: Factory function is now 'deepMap', path setter is 'setPath', etc.
