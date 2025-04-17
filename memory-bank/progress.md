@@ -81,6 +81,12 @@
 40. ~~Resolve Memory Bank Conflicts.~~ (Done)
 41. ~~Commit Revert & Conflict Resolutions.~~ (Done - Commit `66f2172`)
 42. ~~Verify Build (Tests/Benchmarks).~~ (Done)
-43. **Verify Build (Size):** Re-run `size-limit`. (Next step)
+43. ~~Verify Build (Size):~~ Re-ran `size-limit` (atom: 36 B, full: 885 B).
 44. **Refinement:** Addressed `as any` casts in source files. Suppressed error previously noted in `map.ts` appears resolved.
-45. **Consider Packaging/Documentation/Release.**
+45. ~~Benchmark explicit `batch()` function.~~ (Done - Confirmed benefits)
+46. (Paused) **Implement `batched` function.**
+47. (Paused) **Implement `effect` function.**
+48. (Paused) **Implement `mapCreator` function.**
+49. (Paused) **Add tests for new core features.**
+50. (Paused) **Verify build after adding core features.**
+51. **Consider Packaging/Documentation/Release.**
