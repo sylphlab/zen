@@ -30,6 +30,7 @@ export { setPath as setDeepMapPath, set as setDeepMapValue } from './deepMap'; /
 export { runTask, getTaskState, subscribeToTask } from './task'; // Add task functions back
 // Batch function
 export { batch } from './atom'; // Export batch from atom.ts
+export { batchedUpdate } from './batchedUpdate';
 export { batched } from './batched'; // Export batched
 export { effect } from './effect'; // Export effect
 export { mapCreator } from './mapCreator'; // Export mapCreator
