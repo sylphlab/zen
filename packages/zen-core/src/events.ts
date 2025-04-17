@@ -5,7 +5,7 @@ import type { Atom } from './atom'; // Import specific types
 // Removed unused: import type { DeepMapAtom } from './deepMap';
 import type { /* Listener, */ Unsubscribe, AnyAtom, AtomValue, AtomWithValue, MapAtom, DeepMapAtom } from './types'; // Import AtomValue, remove unused Listener
 // getBaseAtom removed
-import { STORE_MAP_KEY_SET } from './keys'; // Symbol to identify map/deepMap atoms
+// Removed import { STORE_MAP_KEY_SET } from './keys';
 import { Path, PathArray, getDeep } from './deepMapInternal'; // Utilities for deepMap
 
 // --- Types ---
@@ -110,8 +110,8 @@ export function listenPaths<A extends MapAtom<any> | DeepMapAtom<any>>(
   paths: Path[],
   fn: PathListener<AtomValue<A>> // Use AtomValue<A>
 ): Unsubscribe {
-  // Check if it's a Map/DeepMap atom by checking the marker
-  if (!(a as any)[STORE_MAP_KEY_SET]) { // Keep runtime check
+  // Check if it's a Map/DeepMap atom by checking _kind property
+  if (a._kind !== 'map' && a._kind !== 'deepMap') {
     console.warn('listenPaths called on an incompatible atom type. Listener ignored.');
     return () => {}; // Return no-op unsubscribe
   }
@@ -230,8 +230,8 @@ export function listenKeys<A extends MapAtom<any> | DeepMapAtom<any>, K extends 
   keys: K[],
   fn: KeyListener<AtomValue<A>, K> // Use AtomValue<A>
 ): Unsubscribe {
-   // Check if it's a Map/DeepMap atom by checking the marker
-  if (!(a as any)[STORE_MAP_KEY_SET]) { // Keep runtime check
+   // Check if it's a Map/DeepMap atom by checking _kind property
+  if (a._kind !== 'map' && a._kind !== 'deepMap') {
     console.warn('listenKeys called on an incompatible atom type. Listener ignored.');
     return () => {}; // Return no-op unsubscribe
   }

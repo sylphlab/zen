@@ -3,7 +3,7 @@ import type { Atom } from './atom';
 import type { MapAtom, Unsubscribe } from './types'; // Import MapAtom and Unsubscribe from types
 import { get as getCoreValue, subscribe as subscribeToCoreAtom } from './atom'; // Import core get/subscribe
 import { listenKeys as addKeyListener, KeyListener, _emitKeyChanges } from './events'; // Import key listener logic AND _emitKeyChanges
-import { STORE_MAP_KEY_SET } from './keys'; // Symbol marker for map atoms
+// Removed import { STORE_MAP_KEY_SET } from './keys';
 import { batchDepth, queueAtomForBatch } from './batch'; // Import batch helpers
 import { notifyListeners } from './internalUtils'; // Import notifyListeners
 
@@ -24,8 +24,7 @@ export function map<T extends object>(initialValue: T): MapAtom<T> {
     _value: { ...initialValue }, // Shallow copy initial value
     // Listener properties (_listeners, etc.) are initially undefined
   };
-  // Mark the atom itself so listenKeys can identify it (hidden symbol)
-  Reflect.defineProperty(mapAtom, STORE_MAP_KEY_SET, { value: true, enumerable: false });
+  // Removed Reflect.defineProperty call for STORE_MAP_KEY_SET
   return mapAtom;
 }
 

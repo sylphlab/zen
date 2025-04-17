@@ -2,7 +2,7 @@
 import type { Listener, Unsubscribe, AnyAtom, AtomValue, AtomWithValue, TaskState, TaskAtom, MapAtom, DeepMapAtom } from './types'; // Import AtomValue
 // Remove duplicate import line
 import type { ComputedAtom } from './computed'; // Import ComputedAtom from computed.ts
-import { isComputedAtom } from './typeGuards'; // Import from typeGuards
+// Removed import { isComputedAtom } from './typeGuards'; // This line should already be removed, but included for context
 // Removed TaskAtom import from './task'
 import { notifyListeners } from './internalUtils'; // Import from internalUtils (getBaseAtom removed)
 import { queueAtomForBatch, batchDepth } from './batch'; // Import batch helpers AND batchDepth (Removed isInBatch)
@@ -128,7 +128,8 @@ export function subscribe<A extends AnyAtom>(atom: A, listener: Listener<AtomVal
         }
 
         // If it's a computed atom, trigger its source subscription logic
-        if (isComputedAtom(atom)) {
+        // If it's a computed atom, trigger its source subscription logic (Inline check)
+        if ('_calculation' in atom) {
              // Cast to ComputedAtom with the correct value type
              const computed = atom as ComputedAtom<AtomValue<A>>;
              if (typeof computed._subscribeToSources === 'function') {
@@ -139,10 +140,9 @@ export function subscribe<A extends AnyAtom>(atom: A, listener: Listener<AtomVal
 
     // Initial call to the new listener using the updated get function
     try {
-        // get() now returns the correct type AtomValue<A> | null
-        const currentValue = get(atom);
-        // Pass undefined as oldValue for initial call
-        listener(currentValue as AtomValue<A>, undefined); // Cast needed because get can return null
+        // get() returns AtomValue<A> | null. Listener expects AtomValue<A>.
+        // The cast handles the potential null from computed atoms before their first calculation.
+        listener(get(atom) as AtomValue<A>, undefined);
     } catch (e) {
         console.error(`Error in initial listener call for atom ${String(atom)}:`, e);
     }
@@ -167,7 +167,8 @@ export function subscribe<A extends AnyAtom>(atom: A, listener: Listener<AtomVal
             }
         }
         // If it's a computed atom, trigger its source unsubscription logic
-        if (isComputedAtom(atom)) {
+        // If it's a computed atom, trigger its source unsubscription logic (Inline check)
+        if ('_calculation' in atom) {
             // Cast to ComputedAtom with the correct value type
             const computed = atom as ComputedAtom<AtomValue<A>>;
              if (typeof computed._unsubscribeFromSources === 'function') {

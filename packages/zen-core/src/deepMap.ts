@@ -5,7 +5,7 @@ import type { Atom } from './atom'; // Import Atom type for casting
 import { listenPaths as addPathListener, _emitPathChanges, PathListener } from './events'; // Path listener logic
 import { batchDepth, queueAtomForBatch } from './batch'; // Import batch helpers
 import { notifyListeners } from './internalUtils'; // Import notifyListeners
-import { STORE_MAP_KEY_SET } from './keys'; // Symbol marker
+// Removed import { STORE_MAP_KEY_SET } from './keys';
 import { Path, setDeep, getChangedPaths } from './deepMapInternal'; // Deep object utilities
 
 // DeepMapAtom type is now defined in types.ts
@@ -25,8 +25,7 @@ export function deepMap<T extends object>(initialValue: T): DeepMapAtom<T> {
     _value: initialValue, // Use initial value directly (deep clone happens in setDeep)
     // Listener properties (_listeners, etc.) are initially undefined
   };
-  // Mark the atom so listenPaths can identify it (hidden symbol)
-  Reflect.defineProperty(deepMapAtom, STORE_MAP_KEY_SET, { value: true, enumerable: false });
+  // Removed Reflect.defineProperty call for STORE_MAP_KEY_SET
   return deepMapAtom;
 }
 
@@ -77,8 +76,8 @@ export function setPath<T extends object>(
     } else {
         // Emit path changes first (pass deepMapAtom directly)
         _emitPathChanges(deepMapAtom, [path], nextValue as T);
-        // Notify general listeners
-        notifyListeners(deepMapAtom, nextValue, currentValue);
+        // Notify general listeners, casting nextValue from unknown to T
+        notifyListeners(deepMapAtom, nextValue as T, currentValue);
     }
   }
 }
