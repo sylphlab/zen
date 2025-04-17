@@ -1,9 +1,9 @@
-# Latest Benchmark & Size Results (Post Type Refactor - 2025-04-16)
+# Latest Benchmark & Size Results (Post Listener Removal - 2025-04-17)
 
 ## Refactoring (Type Safety - Remove `any`)
 - **Completed:** Reviewed all `.ts` files in `packages/zen-core/src`.
 - Replaced `any` with generics (including `Args` for `TaskAtom`), overloads (`get`, `subscribe`), or `unknown` where feasible.
-- Retained some internal `any` where strict typing was impractical (e.g., `deepMapInternal`, `internalUtils`, WeakMap keys/values).
+- Retained some internal `any` where strict typing was impractical.
 - Resolved resulting type errors via inlining or casting.
 
 ## Refactoring (Remove Patching) - Previous
@@ -18,14 +18,17 @@
 - **Benchmarks:** All benchmarks updated.
 
 ## Performance (`npm run bench` Results - Post Major Refactor)
-- Significant improvements observed across most operations after major refactoring. Performance is highly competitive. `deepMap`'s `getChangedPaths` remains a potential future optimization target.
+- Significant improvements observed across most operations after major refactoring. Performance is highly competitive.
 
-## Size (`size-limit`, brotlied - Post Type Refactor - 2025-04-16)
-- **`zen (atom only)`**: **52 B**
-- **`zen (full)`**: **667 B**
+## Size (`size-limit`, brotlied - Post Listener Removal - 2025-04-17)
+- **`zen (atom only)`**: **36 B**
+- **`zen (full)`**: **613 B**
 
 ## Current Status
 - Type refactoring complete.
+- ESLint setup and auto-fixes applied (staged).
+- `types.ts` errors fixed (staged).
+- Key/path listeners removed.
 - `size-limit` checked.
 - Ready for commit.
 
@@ -61,10 +64,10 @@
 29. ~~**Major Refactor:** Merge atom structures, remove `getBaseAtom`. (Done - commit `c0310cf` includes this and naming/build fixes)~~
 30. **Refactor Types:** Remove `any`, use generics/overloads. (Done - Commit `64483ae`)
 31. ~~Commit Type Refactoring.~~ (Done)
-32. **Setup ESLint:** Install deps, create config (`eslint.config.cjs`), add `no-explicit-any` rule, update script. (Done - *Needs commit*)
-33. **Run ESLint Fix:** Apply automatic fixes. (Done - *Needs commit*)
-34. **Commit ESLint Setup & Fixes.** (Next step)
-35. **Address Remaining ESLint Errors/Warnings.** (Optional)
+32. **Setup ESLint:** Install deps, create config (`eslint.config.cjs`), add `no-explicit-any` rule, update script. (Done - *Staged*)
+33. **Run ESLint Fix:** Apply automatic fixes. (Done - *Staged*)
+34. **Fix `types.ts` Errors:** Corrected TS/ESLint errors. (Done - *Staged*)
+35. **Commit ESLint Setup & Fixes.** (Next step)
 36. **Consider Packaging/Documentation/Release.**
 37. ~~**Potentially revisit `deepMap`'s `getChangedPaths` optimization.**~~ (Done - Optimized key comparison - Commit `2a1e04e`)
 38. **Radical Simplification:** Removed key/path specific listeners (`listenKeys`, `listenPaths`) from Map/DeepMap. Tests updated and passed. Size reduced. (Done - Commits `7ee48b8`, `01860fd`)
