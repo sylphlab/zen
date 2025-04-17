@@ -32,6 +32,7 @@ export { runTask, getTaskState, subscribeToTask } from './task'; // Add task fun
 export { batch } from './atom'; // Export batch from atom.ts
 export { batched } from './batched'; // Export batched
 export { effect } from './effect'; // Export effect
+export { mapCreator } from './mapCreator'; // Export mapCreator
 
 // --- Event Functions ---
 export { onStart, onStop, onSet, onNotify, onMount, listenPaths } from './events'; // Add event functions back (listenKeys exported from map.ts)
