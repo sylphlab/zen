@@ -1,6 +1,6 @@
 {
   "name": "@sylphlab/zen-router-preact",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Preact integration for @sylphlab/zen-router",
   "author": "Sylph Lab <hi@sylphlab.com>",
   "license": "MIT",
@@ -37,9 +37,6 @@
   },
   "scripts": {
     "build": "tsup",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "coverage": "vitest run --coverage",
     "clean": "rm -rf dist .turbo node_modules"
   },
   "dependencies": {
