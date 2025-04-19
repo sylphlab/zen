@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main # Trigger on push to main branch
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  release:
+    name: Release Packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          # Fetch history and tags for Changesets versioning
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Use Node.js 20 LTS or adjust as needed
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9 # Match packageManager version in package.json
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      - name: Build Packages
+        run: pnpm build # Assumes turbo build script exists
+
+      - name: Run Tests
+        run: pnpm test # Assumes turbo test script exists and runs all tests
+
+      - name: Create Release Pull Request or Publish to npm
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          # This command automatically handles versioning, changelogs, and publishing
+          publish: pnpm release # Runs the 'release' script from root package.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }} # Secret containing the npm token
