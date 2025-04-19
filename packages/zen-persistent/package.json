@@ -1,0 +1,58 @@
+{
+  "name": "@zen/persistent",
+  "version": "0.0.0",
+  "description": "Persistent store for Zen state manager (localStorage/sessionStorage sync)",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "lint": "eslint . --cache --max-warnings=0",
+    "lint:fix": "eslint . --fix --cache",
+    "format": "prettier --write . --cache --ignore-unknown",
+    "check-format": "prettier --check . --cache --ignore-unknown",
+    "typecheck": "tsc --noEmit",
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "validate": "pnpm run check-format && pnpm run lint && pnpm run typecheck && pnpm run test"
+  },
+  "peerDependencies": {
+    "@sylphlab/zen-core": "workspace:*"
+  },
+  "devDependencies": {
+    "eslint": "^9.7.0",
+    "prettier": "^3.3.3",
+    "tsup": "^8.2.3",
+    "typescript": "^5.5.3",
+    "vitest": "^2.0.4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sylphlab/zen.git",
+    "directory": "packages/zen-persistent"
+  },
+  "keywords": [
+    "zen",
+    "state manager",
+    "persistent",
+    "localstorage",
+    "sessionstorage"
+  ],
+  "author": "SylphLab",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}

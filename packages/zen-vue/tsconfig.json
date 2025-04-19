@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist"
+    // "composite": true is not needed here as tsup handles the build process
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}
