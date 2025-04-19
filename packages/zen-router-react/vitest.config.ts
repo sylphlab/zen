@@ -1,13 +1,17 @@
 import { defineConfig } from 'vitest/config';
-import tsconfigPaths from 'vite-tsconfig-paths';
+import react from '@vitejs/plugin-react'; // Import react plugin
 
 export default defineConfig({
-  plugins: [tsconfigPaths()],
+  plugins: [react()], // Add react plugin
   test: {
     globals: true,
-    environment: 'jsdom', // Required for testing React hooks/components
-    deps: {
-      inline: ['react'], // Help Vitest process peer dependency
+    environment: 'jsdom', // Use jsdom for React component testing
+    setupFiles: './src/setupTests.ts',
+    // setupFiles: './src/setupTests.ts', // Removed - file does not exist
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      // thresholds: { lines: 90, functions: 90, branches: 90, statements: 90 } // Enforce later
     },
   },
 });

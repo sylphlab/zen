@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'preact/hooks'; // Import hooks from preact
-import { $router, RouterState } from '@sylph/router';
-import { subscribe, get } from '@sylph/core';
+import { $router, RouterState } from '@sylphlab/zen-router';
+import { subscribe, get } from '@sylphlab/zen-core';
 
 /**
  * Preact hook to subscribe to the router state.
@@ -29,10 +29,10 @@ export function useRouter(): RouterState {
 
     // Unsubscribe on component unmount
     return unsubscribe;
-  }, [state]); // Dependency array includes state to ensure re-sync if needed
+  }, []); // Empty dependency array: subscribe only on mount, unsubscribe on unmount.
 
   return state;
 }
 
 // Re-export core types for convenience
-export type { RouterState, Params, Search } from '@sylph/router';
+export type { RouterState, Params, Search } from '@sylphlab/zen-router';

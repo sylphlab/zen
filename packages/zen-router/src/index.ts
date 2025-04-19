@@ -3,7 +3,7 @@
 // TODO: Implement router logic inspired by @nanostores/router
 // Goals: Tiny size, high performance, zen/FP principles
 
-import { map, MapAtom } from '@sylph/core';
+import { map, MapAtom } from '@sylphlab/zen-core';
 
 /** Route type placeholder (extend as needed) */
 export type Route = string;

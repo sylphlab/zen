@@ -1,8 +1,8 @@
 {
   "name": "@sylphlab/zen-router-react",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "React integration for @sylphlab/zen-router",
-  "author": "Sylph AI",
+  "author": "Sylph Lab <hi@sylphlab.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -22,13 +22,24 @@
   },
   "files": [
     "dist",
-    "README.md",
-    "CHANGELOG.md"
+    "README.md"
   ],
+  "keywords": [
+    "zen",
+    "router",
+    "react",
+    "hooks",
+    "state management"
+  ],
+  "homepage": "https://github.com/sylphlab/zen/tree/main/packages/zen-router-react#readme",
+  "bugs": {
+    "url": "https://github.com/sylphlab/zen/issues"
+  },
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
     "clean": "rm -rf dist .turbo node_modules"
   },
   "dependencies": {
@@ -43,11 +54,14 @@
     "@types/node": "^22.14.1",
     "@types/react": "^18.3.3",
     "jsdom": "^26.1.0",
-    "react": "^18.3.1",
+    "react": "^19.1.0",
     "tsup": "^8.1.0",
     "typescript": "^5.4.5",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.1.1"
+    "vitest": "^1.6.1",
+    "@vitest/coverage-v8": "^1.6.1",
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite": "^5.4.18"
   },
   "publishConfig": {
     "access": "public"

@@ -1,8 +1,8 @@
 {
   "name": "@sylphlab/zen-router-preact",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Preact integration for @sylphlab/zen-router",
-  "author": "Sylph AI",
+  "author": "Sylph Lab <hi@sylphlab.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -22,13 +22,24 @@
   },
   "files": [
     "dist",
-    "README.md",
-    "CHANGELOG.md"
+    "README.md"
   ],
+  "keywords": [
+    "zen",
+    "router",
+    "preact",
+    "hooks",
+    "state management"
+  ],
+  "homepage": "https://github.com/sylphlab/zen/tree/main/packages/zen-router-preact#readme",
+  "bugs": {
+    "url": "https://github.com/sylphlab/zen/issues"
+  },
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
     "clean": "rm -rf dist .turbo node_modules"
   },
   "dependencies": {
@@ -42,7 +53,12 @@
     "@types/react": "^18.3.3",
     "preact": "^10.22.1",
     "tsup": "^8.1.0",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "@preact/preset-vite": "^2.8.2",
+    "@testing-library/preact": "^3.2.4",
+    "@vitest/coverage-v8": "^1.6.1",
+    "jsdom": "^24.1.1",
+    "vitest": "^1.6.1"
   },
   "publishConfig": {
     "access": "public"

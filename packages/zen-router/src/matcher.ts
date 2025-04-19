@@ -18,6 +18,7 @@ export interface RouteMatch {
  * Inspired by path-to-regexp, but simplified for core needs.
  * Handles basic parameters like :id and optional parameters like :id?.
  * Does not handle complex patterns like optional groups, wildcards (*), or custom regex within segments yet.
+ * @known_limitation Does not reliably handle static segments immediately following a parameter (e.g., /:id.json).
  *
  * @param pathPattern The path pattern string (e.g., /users/:id).
  * @returns An object containing the RegExp and an array of parameter keys.
@@ -31,75 +32,67 @@ export function pathToRegexp(pathPattern: string): { regexp: RegExp; keys: strin
   const keys: string[] = [];
   // Split path by slash, filter out empty segments resulting from multiple slashes e.g. //
   // Keep the first empty segment if the path starts with /
-  const segments = pathPattern.split('/').filter((s, i, arr) => s !== '' || i === 0 || i === arr.length -1);
+  // Ensure path starts with / unless it's '*'
+  const processedPath = pathPattern === '*' || pathPattern.startsWith('/') ? pathPattern : '/' + pathPattern;
+
+  // Removed duplicate keys declaration
   let pattern = '^';
+  const segments = processedPath.split('/');
 
   for (let i = 0; i < segments.length; i++) {
     const segment = segments[i];
 
-    // Handle root path case where split results in ['', ''] for '/'
-    if (segment === '' && i === 0 && segments.length === 2 && segments[1] === '') {
-        pattern += '\\/'; // Match '/'
-        break; // Path is just '/'
-    }
+    // Added check for undefined segment to satisfy TS
+    if (segment === undefined) continue;
 
-
-    // Skip leading empty string if path starts with '/'
-    if (segment === '' && i === 0) {
-      pattern += '\\/'; // Start with a mandatory slash
+    // Skip the first empty segment from the leading '/'
+    if (i === 0 && segment === '') {
       continue;
     }
-     // Skip trailing empty string if path ends with '/'
-    if (segment === '' && i === segments.length - 1) {
-        continue;
-    }
 
+    // Add the separator
+    pattern += '\\/';
 
-    // Add the separator before the segment (unless it's the first proper segment after root)
-    if (i > 1 || (i === 1 && segments[0] !== '')) {
-         pattern += '\\/';
-    }
+    if (segment.startsWith(':')) {
+      const optional = segment.endsWith('?');
+      const key = optional ? segment.slice(1, -1) : segment.slice(1);
 
-
-    // Ensure segment is a string before processing
-    if (typeof segment === 'string') {
-        if (segment.startsWith(':')) {
-          const optional = segment.endsWith('?');
-          const key = optional ? segment.slice(1, -1) : segment.slice(1);
       if (!key) {
-          // Handle invalid pattern like /: or /:?
-          throw new Error(`Invalid parameter name in path "${pathPattern}"`);
+        throw new Error(`Invalid parameter name in path "${pathPattern}"`);
       }
       keys.push(key);
-      // Parameter segment: match one or more non-slash characters
+
+      // Use non-greedy capture
       const captureGroup = '([^\\/]+?)';
+
       if (optional) {
-         // Optional parameter: make the parameter capture group optional
-         // The preceding slash logic is handled above
-         pattern += captureGroup + '?';
+        // Make the slash and the capture group optional together
+        // Use a non-capturing group (?:...) for the optional part
+        pattern = pattern.slice(0, -2); // Remove the preceding '\\/'
+        pattern += '(?:\\/' + captureGroup + ')?';
       } else {
-         // Required parameter
-         pattern += captureGroup;
+        pattern += captureGroup;
       }
     } else {
       // Literal segment: escape special characters
-          pattern += segment.replace(/([.+*?=^!:${}()[\]|/\\])/g, '\\$1'); // Use single backslash for replacement
-        }
-    } // End of typeof segment === 'string' check
+      // Escape characters with special meaning in regex.
+      pattern += segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
   }
 
-   // Ensure the pattern matches the whole path string, allowing optional trailing slash
-   // If the pattern is just '^/' (from root path '/'), make the slash optional at the end
-   if (pattern === '^\\/') {
-       pattern += '?$';
-   } else {
-       // Add optional trailing slash only if the path didn't explicitly end with one
-       if (!pathPattern.endsWith('/') || pathPattern === '/') {
-           pattern += '\\/?';
-       }
-       pattern += '$';
-   }
+  // Handle the root path specifically ('/' results in segments ['', ''])
+  // If pattern is still '^', it means the path was likely '/' or empty after split
+  if (pattern === '^') {
+    pattern += '\\/'; // Match only '/' for root
+  }
 
+  // Allow optional trailing slash ONLY if the original path didn't end with one
+  // OR if it's the root path.
+  if (!processedPath.endsWith('/') || processedPath === '/') {
+      pattern += '\\/?';
+  }
+
+  pattern += '$'; // Match end of string
 
   const regexp = new RegExp(pattern, 'i'); // Case-insensitive matching
 

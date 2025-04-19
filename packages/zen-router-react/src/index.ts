@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { $router, RouterState } from '@sylph/router';
-import { subscribe, get } from '@sylph/core';
+import { $router, RouterState } from '@sylphlab/zen-router';
+import { subscribe, get } from '@sylphlab/zen-core';
 
 /**
  * React hook to subscribe to the router state.
@@ -37,4 +37,4 @@ export function useRouter(): RouterState {
 }
 
 // Re-export core types for convenience if needed
-export type { RouterState, Params, Search } from '@sylph/router';
+export type { RouterState, Params, Search } from '@sylphlab/zen-router';

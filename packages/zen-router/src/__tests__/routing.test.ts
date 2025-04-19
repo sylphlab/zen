@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { defineRoutes, getRoutes } from '../routes'; // Assuming getRoutes is exported or made available for testing
 import { matchRoutes } from '../matcher'; // Assuming matchRoutes is exported or made available for testing
 import { $router } from '../index';
-import { set } from '@sylph/core'; // Import the functional set
+import { set } from '@sylphlab/zen-core'; // Import the functional set
 
 // Mock routes for testing
 const testRoutes = [

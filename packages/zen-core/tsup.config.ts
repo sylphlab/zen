@@ -5,12 +5,12 @@ export default defineConfig({
   format: ['esm', 'cjs'],
   dts: true, // Re-enable tsup DTS handling (to bundle declarations from tsc)
   splitting: false,
-  sourcemap: false, // Disable sourcemap for production builds
+  sourcemap: true, // Enable sourcemap for debugging if needed
   clean: true,
-  minify: 'terser', // Restore minification
-  terserOptions: {
+  minify: false, // Disable minification for diagnostics
+  /* terserOptions: { // Comment out terser options
     compress: {
-      passes: 3, // More aggressive compression passes
+      passes: 3,
       unsafe: true, // Enable unsafe optimizations
       unsafe_arrows: true, // Convert function expressions to arrow functions if possible
       unsafe_comps: true, // Compress expressions with comparisons more aggressively
@@ -33,7 +33,7 @@ export default defineConfig({
       properties: {
         regex: /^_/, // Mangle private properties starting with _
       },
-      toplevel: true, // Mangle top-level variable and function names
+      toplevel: false, // Disable top-level mangling for compatibility
     },
     format: {
       comments: false, // Remove all comments
@@ -43,4 +43,5 @@ export default defineConfig({
     module: true, // Enable module-specific optimizations
     toplevel: true, // Apply optimizations to top-level variables and functions
   },
+  */
 })

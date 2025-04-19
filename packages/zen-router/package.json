@@ -1,6 +1,6 @@
 {
   "name": "@sylphlab/zen-router",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Tiny URL router for zen state management.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -20,6 +20,7 @@
     "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
     "lint": "echo 'Lint script not implemented yet'"
   },
   "keywords": [
@@ -31,7 +32,7 @@
     "tiny"
   ],
   "author": "Sylph Lab <hi@sylphlab.com>",
-  "license": "ISC",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/sylphlab/zen.git",
@@ -43,7 +44,11 @@
   },
   "devDependencies": {
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.1.1"
+    "vitest": "^1.6.1",
+    "@vitest/coverage-v8": "^1.6.1"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@sylphlab/zen-core": "workspace:*"

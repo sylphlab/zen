@@ -15,11 +15,12 @@ export type { LifecycleListener, KeyListener, PathListener } from './events';
 // --- Core Factories ---
 // Import factories
 import { atom as _atom } from './atom';
-import { map as _map } from './map';
+// Removed: import { map as _map } from './map';
 // Re-export factories
 export const atom = _atom;
-export const map = _map;
+// Removed: export const map = _map;
 // Keep others as direct re-export
+export { map } from './map'; // Direct re-export
 export { computed } from './computed';
 export { deepMap } from './deepMap';
 export { task } from './task';

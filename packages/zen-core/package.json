@@ -1,6 +1,6 @@
 {
   "name": "@sylphlab/zen-core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Core package for the zen state management library.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -50,7 +50,7 @@
     "nanostores"
   ],
   "author": "Sylph Lab <hi@sylphlab.com>",
-  "license": "ISC",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/sylphlab/zen.git"
@@ -58,6 +58,9 @@
   "homepage": "https://github.com/sylphlab/zen#readme",
   "bugs": {
     "url": "https://github.com/sylphlab/zen/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "devDependencies": {},
   "dependencies": {}

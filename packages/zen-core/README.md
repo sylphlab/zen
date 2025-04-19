@@ -2,6 +2,8 @@
 
 Core package for the zen state management library. Tiny, fast, and functional reactive state management.
 
+Inspired by Nanostores, aiming for an even smaller footprint and high performance.
+
 ## Installation
 
 ```bash
@@ -17,7 +19,7 @@ bun add @sylph/core
 ## Basic Usage
 
 ```typescript
-import { atom, computed, subscribe } from '@sylph/core';
+import { atom, computed, subscribe, get, set } from '@sylph/core';
 
 // Create a writable atom state
 const count = atom(0);
@@ -30,9 +32,13 @@ const unsubscribe = subscribe(double, (value) => {
   console.log('Double count is now:', value);
 });
 
-// Update the base atom
-count.set(1); // Logs: Double count is now: 2
-count.set(5); // Logs: Double count is now: 10
+// Read current value
+console.log('Initial count:', get(count)); // Logs: Initial count: 0
+console.log('Initial double:', get(double)); // Logs: Initial double: 0
+
+// Update the base atom using the functional API
+set(count, 1); // Logs: Double count is now: 2
+set(count, 5); // Logs: Double count is now: 10
 
 // Unsubscribe when no longer needed
 unsubscribe();
@@ -48,6 +54,7 @@ import { map, setKey, listenKeys, get } from '@sylph/core';
 const user = map({ name: 'Anon', age: 99 });
 
 const unsubscribeKey = listenKeys(user, ['name'], (value) => {
+  // Note: listener receives the full map value
   console.log('User name changed:', value.name);
 });
 
@@ -62,16 +69,25 @@ unsubscribeKey();
 ### `deepMap` Example
 
 ```typescript
-import { deepMap, setPath, get } from '@sylph/core';
+import { deepMap, setPath, listenPaths, get } from '@sylph/core';
 
-const settings = deepMap({ user: { theme: 'dark', notifications: true } });
+const settings = deepMap({ user: { theme: 'dark', notifications: true }, other: [1, 2] });
+
+const unsubPath = listenPaths(settings, [['user', 'theme']], (value) => {
+    // Note: listener receives the full deepMap value
+    console.log('Theme changed:', value.user.theme);
+});
 
 console.log('Initial theme:', get(settings).user.theme); // Logs: Initial theme: dark
 
 // Update a nested property
-setPath(settings, ['user', 'theme'], 'light');
+setPath(settings, ['user', 'theme'], 'light'); // Logs: Theme changed: light
+setPath(settings, ['other', 0], 100); // Update array element
 
 console.log('Updated theme:', get(settings).user.theme); // Logs: Updated theme: light
+console.log('Updated array:', get(settings).other); // Logs: Updated array: [100, 2]
+
+unsubPath();
 ```
 
 ### `task` Example
@@ -101,7 +117,7 @@ fetchData.run(123); // Logs: Task loading... -> Task success: { data: 'User data
 ### `batch` Example
 
 ```typescript
-import { atom, batch, subscribe } from '@sylph/core';
+import { atom, computed, batch, subscribe, set } from '@sylph/core';
 
 const firstName = atom('John');
 const lastName = atom('Doe');
@@ -113,8 +129,8 @@ const unsubscribeBatch = subscribe(fullName, (value) => {
 });
 
 batch(() => {
-  firstName.set('Jane');
-  lastName.set('Smith');
+  set(firstName, 'Jane');
+  set(lastName, 'Smith');
   // fullName listener is not triggered here yet
 }); // Logs: Full name updated: Jane Smith
 
@@ -124,20 +140,23 @@ unsubscribeBatch();
 ### Lifecycle Example (`onMount`/`onStop`)
 
 ```typescript
-import { atom, onMount, onStop, subscribe } from '@sylph/core';
+import { atom, onMount, onStop, subscribe, get, set } from '@sylph/core';
 
 const timerAtom = atom(0);
 
+let intervalId: ReturnType<typeof setInterval> | undefined;
+
 onMount(timerAtom, () => {
   console.log('Timer atom mounted (first subscriber added)');
-  const intervalId = setInterval(() => {
-    timerAtom.set(timerAtom.get() + 1);
+  intervalId = setInterval(() => {
+    set(timerAtom, get(timerAtom) + 1); // Use functional set/get
   }, 1000);
 
   // Return a cleanup function for onStop
   return () => {
     console.log('Timer atom stopped (last subscriber removed)');
-    clearInterval(intervalId);
+    if (intervalId) clearInterval(intervalId);
+    intervalId = undefined;
   };
 });
 
@@ -156,10 +175,17 @@ const unsubTimer = subscribe(timerAtom, (value) => {
 
 ## Features
 
-*   Tiny size (~3kB gzipped)
-*   Excellent performance
-*   Functional API (`atom`, `computed`, `map`, `deepMap`, `task`, `batch`)
-*   Lifecycle events (`onMount`, `onSet`, `onNotify`, `onStop`)
-*   Explicit batching
+*   **Tiny size:** ~1.33 kB gzipped (full bundle).
+*   Excellent performance (see benchmarks).
+*   Functional API (`atom`, `computed`, `map`, `deepMap`, `task`, `batch`).
+*   Lifecycle events (`onMount`, `onSet`, `onNotify`, `onStop`).
+*   Key/Path listeners for maps (`listenKeys`, `listenPaths`).
+*   Explicit batching for combining updates.
 
-(More documentation to come)
+## API Documentation
+
+Detailed API documentation can be found [here](../../../docs/modules/_sylph_core.html). (Link assumes TypeDoc output in `/docs` at repo root).
+
+## License
+
+MIT
