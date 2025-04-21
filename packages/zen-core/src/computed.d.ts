@@ -1,17 +1,17 @@
-import type { Unsubscribe, AnyAtom, AtomWithValue } from './types';
+import type { AnyAtom, AtomWithValue, Unsubscribe } from './types';
 /** Represents a computed atom's specific properties (functional style). */
 export type ComputedAtom<T = unknown> = AtomWithValue<T | null> & {
-    _kind: 'computed';
-    _value: T | null;
-    _dirty: boolean;
-    readonly _sources: ReadonlyArray<AnyAtom>;
-    _sourceValues: unknown[];
-    readonly _calculation: (...values: unknown[]) => T;
-    readonly _equalityFn: (a: T, b: T) => boolean;
-    _unsubscribers?: Unsubscribe[];
-    _update: () => boolean;
-    _subscribeToSources: () => void;
-    _unsubscribeFromSources: () => void;
+  _kind: 'computed';
+  _value: T | null;
+  _dirty: boolean;
+  readonly _sources: ReadonlyArray<AnyAtom>;
+  _sourceValues: unknown[];
+  readonly _calculation: (...values: unknown[]) => T;
+  readonly _equalityFn: (a: T, b: T) => boolean;
+  _unsubscribers?: Unsubscribe[];
+  _update: () => boolean;
+  _subscribeToSources: () => void;
+  _unsubscribeFromSources: () => void;
 };
 /** Alias for ComputedAtom, representing the read-only nature. */
 export type ReadonlyAtom<T = unknown> = ComputedAtom<T>;
@@ -30,6 +30,9 @@ type Stores = ReadonlyArray<AnyAtom>;
  *   Defaults to `Object.is`. If it returns true, listeners are not notified.
  * @returns A ReadonlyAtom representing the computed value.
  */
-export declare function computed<T, S extends AnyAtom | Stores>(// Allow single atom or array
-stores: S, calculation: (...values: unknown[]) => T, equalityFn?: (a: T, b: T) => boolean): ReadonlyAtom<T>;
-export {};
+export declare function computed<T, S extends AnyAtom | Stores>(
+  // Allow single atom or array
+  stores: S,
+  calculation: (...values: unknown[]) => T,
+  equalityFn?: (a: T, b: T) => boolean,
+): ReadonlyAtom<T>;

@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { pathToRegexp, matchRoutes, RouteConfig } from './matcher';
+import { describe, expect, it } from 'vitest';
+import { type RouteConfig, matchRoutes, pathToRegexp } from './matcher';
 
 describe('pathToRegexp', () => {
   it('should handle static paths', () => {
@@ -20,7 +20,7 @@ describe('pathToRegexp', () => {
     expect(keys).toEqual([]);
   });
 
-   it('should handle paths starting without slash', () => {
+  it('should handle paths starting without slash', () => {
     // Note: Current logic implicitly adds leading slash
     const { regexp, keys } = pathToRegexp('users');
     expect(regexp.test('/users')).toBe(true);
@@ -59,7 +59,7 @@ describe('pathToRegexp', () => {
     expect(keys).toEqual(['path']);
   });
 
-   it('should handle mixed required and optional parameters', () => {
+  it('should handle mixed required and optional parameters', () => {
     const { regexp, keys } = pathToRegexp('/products/:category/:productId?');
     expect(regexp.test('/products/books/123')).toBe(true);
     expect(regexp.test('/products/books')).toBe(true);
@@ -87,11 +87,10 @@ describe('pathToRegexp', () => {
     expect(keys).toEqual(['query']);
   });
 
-   it('should throw error for invalid parameter names', () => {
+  it('should throw error for invalid parameter names', () => {
     expect(() => pathToRegexp('/:?')).toThrow();
     expect(() => pathToRegexp('/:id/:')).toThrow(); // Invalid second param
   });
-
 });
 
 describe('matchRoutes', () => {
@@ -112,7 +111,7 @@ describe('matchRoutes', () => {
     expect(match?.params).toEqual({});
   });
 
-   it('should match the root route', () => {
+  it('should match the root route', () => {
     const match = matchRoutes('/', routes);
     expect(match).not.toBeNull();
     expect(match?.route.component).toBe('Home');
@@ -148,14 +147,14 @@ describe('matchRoutes', () => {
     expect(match?.params).toEqual({ path: undefined }); // Current implementation sets undefined
   });
 
-   it('should match routes with mixed parameters (all present)', () => {
+  it('should match routes with mixed parameters (all present)', () => {
     const match = matchRoutes('/products/electronics/456', routes);
     expect(match).not.toBeNull();
     expect(match?.route.component).toBe('ProductView');
     expect(match?.params).toEqual({ category: 'electronics', productId: '456' });
   });
 
-   it('should match routes with mixed parameters (optional absent)', () => {
+  it('should match routes with mixed parameters (optional absent)', () => {
     const match = matchRoutes('/products/books', routes);
     expect(match).not.toBeNull();
     expect(match?.route.component).toBe('ProductView');
@@ -194,7 +193,7 @@ describe('matchRoutes', () => {
     expect(match?.params).toEqual({ id: 'user name' });
   });
 
-   it('should handle parameters with special characters', () => {
+  it('should handle parameters with special characters', () => {
     const match = matchRoutes('/users/test-1.2_3', routes);
     expect(match).not.toBeNull();
     expect(match?.route.component).toBe('UserProfile');
@@ -204,22 +203,21 @@ describe('matchRoutes', () => {
   it('should return null if no route matches', () => {
     const match = matchRoutes('/nonexistent/path', routes);
     // Expect catch-all to match if present
-     expect(match).not.toBeNull();
-     expect(match?.route.component).toBe('NotFound');
-     expect(match?.params).toEqual({});
+    expect(match).not.toBeNull();
+    expect(match?.route.component).toBe('NotFound');
+    expect(match?.params).toEqual({});
   });
 
-   it('should match catch-all route last', () => {
+  it('should match catch-all route last', () => {
     const match = matchRoutes('/completely/random/path/that/does/not/match/anything/else', routes);
     expect(match).not.toBeNull();
     expect(match?.route.component).toBe('NotFound');
     expect(match?.params).toEqual({});
   });
 
-   it('should return null if no route matches and no catch-all exists', () => {
-     const noCatchAllRoutes = routes.filter(r => r.path !== '*');
-     const match = matchRoutes('/nonexistent/path', noCatchAllRoutes);
-     expect(match).toBeNull();
-   });
-
+  it('should return null if no route matches and no catch-all exists', () => {
+    const noCatchAllRoutes = routes.filter((r) => r.path !== '*');
+    const match = matchRoutes('/nonexistent/path', noCatchAllRoutes);
+    expect(match).toBeNull();
+  });
 });

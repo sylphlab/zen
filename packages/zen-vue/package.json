@@ -13,15 +13,9 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "sideEffects": false,
   "scripts": {
-    "lint": "eslint . --cache --max-warnings=0",
-    "lint:fix": "eslint . --fix --cache",
-    "format": "prettier --write . --cache --ignore-unknown",
-    "check-format": "prettier --check . --cache --ignore-unknown",
     "typecheck": "tsc --noEmit",
     "build": "tsup",
     "test": "vitest run",
@@ -34,9 +28,9 @@
   },
   "devDependencies": {
     "@vue/test-utils": "^2.4.6",
-    "eslint": "^9.7.0",
+
     "jsdom": "^26.1.0",
-    "prettier": "^3.3.3",
+
     "tsup": "^8.2.3",
     "typescript": "^5.5.3",
     "vitest": "^2.0.4",
@@ -47,11 +41,7 @@
     "url": "https://github.com/sylphlab/zen.git",
     "directory": "packages/zen-vue"
   },
-  "keywords": [
-    "zen",
-    "state manager",
-    "vue"
-  ],
+  "keywords": ["zen", "state manager", "vue"],
   "author": "SylphLab",
   "license": "MIT",
   "publishConfig": {

@@ -10,8 +10,8 @@
 ## Development Setup
 - Standard Node.js/npm environment.
 - TypeScript compiler (`tsc`).
-- Code formatter (e.g., Prettier - configured for minimalism).
-- Linter (e.g., ESLint - configured for strictness and best practices).
+- Linter/Formatter: Biome (replaces ESLint/Prettier).
+
 
 ## Constraints & Considerations
 - **Bundle Size:** Extreme focus. Every byte matters. Avoid dependencies where possible. Leverage tree-shaking aggressively.

@@ -1,11 +1,11 @@
 // Functional Map atom implementation.
 import type { Atom } from './atom';
-// Remove this duplicate line
-import type { MapAtom, Unsubscribe, AnyAtom } from './types'; // Ensure AnyAtom is imported here
-// Core get/subscribe are not needed directly in this module
-import { listenKeys as addKeyListener, KeyListener, _emitKeyChanges } from './events'; // Import key listener logic AND _emitKeyChanges
 // Removed import { STORE_MAP_KEY_SET } from './keys';
-import { batchDepth, queueAtomForBatch, notifyListeners } from './atom'; // Import batch helpers and notifyListeners from './atom'
+import { batchDepth, notifyListeners, queueAtomForBatch } from './atom'; // Import batch helpers and notifyListeners from './atom'
+// Core get/subscribe are not needed directly in this module
+import { type KeyListener, _emitKeyChanges, listenKeys as addKeyListener } from './events'; // Import key listener logic AND _emitKeyChanges
+// Remove this duplicate line
+import type { AnyAtom, MapAtom, Unsubscribe } from './types'; // Ensure AnyAtom is imported here
 // Removed import { notifyListeners } from './atom'; // Import notifyListeners from './atom'
 
 // MapAtom type is now defined in types.ts
@@ -39,7 +39,7 @@ export function setKey<T extends object, K extends keyof T>(
   mapAtom: MapAtom<T>,
   key: K,
   value: T[K],
-  forceNotify = false
+  forceNotify = false,
 ): void {
   // Operate directly on the mapAtom
   const oldValue = mapAtom._value;
@@ -53,9 +53,13 @@ export function setKey<T extends object, K extends keyof T>(
     // 1. Handle onSet (only outside batch)
     if (batchDepth <= 0) {
       const setLs = mapAtom._setListeners; // Use mapAtom
-      if (setLs?.size) { // Use size for Set
-        for (const fn of setLs) { // Iterate Set
-          try { fn(nextValue); } catch(e) { console.error(`Error in onSet listener for map key set ${String(mapAtom)}:`, e); }
+      if (setLs?.size) {
+        // Use size for Set
+        for (const fn of setLs) {
+          // Iterate Set
+          try {
+            fn(nextValue);
+          } catch (_e) {}
         }
       }
     }
@@ -92,7 +96,7 @@ export function setKey<T extends object, K extends keyof T>(
 export function set<T extends object>(
   mapAtom: MapAtom<T>,
   nextValue: T,
-  forceNotify = false
+  forceNotify = false,
 ): void {
   // Operate directly on mapAtom
   const oldValue = mapAtom._value;
@@ -102,55 +106,61 @@ export function set<T extends object>(
     const changedKeys: (keyof T)[] = [];
     // Add null check for safety, although getMapValue should prevent null
     if (oldValue && nextValue) {
-        const allKeys = new Set([...Object.keys(oldValue), ...Object.keys(nextValue)]) as Set<keyof T>;
-        for (const k of allKeys) {
-          if (!Object.is(oldValue[k], nextValue[k])) {
-            changedKeys.push(k);
-          }
+      const allKeys = new Set([...Object.keys(oldValue), ...Object.keys(nextValue)]) as Set<
+        keyof T
+      >;
+      for (const k of allKeys) {
+        if (!Object.is(oldValue[k], nextValue[k])) {
+          changedKeys.push(k);
         }
-    } else if (nextValue) { // If oldValue was null/undefined, all keys in nextValue are new
-        changedKeys.push(...(Object.keys(nextValue) as (keyof T)[]));
+      }
+    } else if (nextValue) {
+      // If oldValue was null/undefined, all keys in nextValue are new
+      changedKeys.push(...(Object.keys(nextValue) as (keyof T)[]));
     }
     // --- End Calculate changed keys ---
 
     // Only proceed with updates and notifications if keys actually changed or forced
     if (changedKeys.length > 0 || forceNotify) {
-        // Emit changes for all keys that differed *before* setting the value
-        if (changedKeys.length > 0) { // Still only emit key changes if keys changed
-             // Pass the mapAtom directly
-            _emitKeyChanges(mapAtom, changedKeys as (keyof T)[], nextValue);
-        }
+      // Emit changes for all keys that differed *before* setting the value
+      if (changedKeys.length > 0) {
+        // Still only emit key changes if keys changed
+        // Pass the mapAtom directly
+        _emitKeyChanges(mapAtom, changedKeys as (keyof T)[], nextValue);
+      }
 
-        // Set the mapAtom's value directly and notify
-        // Manual notification needed here as setAtomValue is for basic Atom
-        if (batchDepth <= 0) {
-           const setLs = mapAtom._setListeners;
-           if (setLs?.size) {
-               for (const fn of setLs) {
-                   try { fn(nextValue); } catch(e) { console.error(`Error in onSet listener for map set ${String(mapAtom)}:`, e); }
-               }
-           }
+      // Set the mapAtom's value directly and notify
+      // Manual notification needed here as setAtomValue is for basic Atom
+      if (batchDepth <= 0) {
+        const setLs = mapAtom._setListeners;
+        if (setLs?.size) {
+          for (const fn of setLs) {
+            try {
+              fn(nextValue);
+            } catch (_e) {}
+          }
         }
-        mapAtom._value = { ...nextValue }; // Create shallow copy
-        if (batchDepth > 0) {
-            queueAtomForBatch(mapAtom as Atom<T>, oldValue); // Cast for queue
-        } else {
-            // Cast mapAtom to AnyAtom for notifyListeners.
-            // Cast mapAtom to AnyAtom for notifyListeners. (Already done in previous step, ensure it remains)
-            notifyListeners(mapAtom as AnyAtom, nextValue, oldValue);
-        }
+      }
+      mapAtom._value = { ...nextValue }; // Create shallow copy
+      if (batchDepth > 0) {
+        queueAtomForBatch(mapAtom as Atom<T>, oldValue); // Cast for queue
+      } else {
+        // Cast mapAtom to AnyAtom for notifyListeners.
+        // Cast mapAtom to AnyAtom for notifyListeners. (Already done in previous step, ensure it remains)
+        notifyListeners(mapAtom as AnyAtom, nextValue, oldValue);
+      }
     }
   }
 }
 
 /** Listens to changes for specific keys within a Map Atom. */
 export function listenKeys<T extends object, K extends keyof T>(
-    mapAtom: MapAtom<T>,
-    keys: K[],
-    listener: KeyListener<T, K>
+  mapAtom: MapAtom<T>,
+  keys: K[],
+  listener: KeyListener<T, K>,
 ): Unsubscribe {
-    // Delegates to the function from events.ts, passing the mapAtom itself
-    return addKeyListener(mapAtom, keys, listener);
+  // Delegates to the function from events.ts, passing the mapAtom itself
+  return addKeyListener(mapAtom, keys, listener);
 }
 
 // Note: Factory function is now 'map'.

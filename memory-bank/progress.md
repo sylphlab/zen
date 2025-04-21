@@ -56,7 +56,7 @@
 - **Refactor Modules & Optimize Creation:** Separate types/utils, remove type markers, delay listener init. (Done - commit `36e5650`) [Resolved]
 - **Major Refactor:** Merge atom structures, remove `getBaseAtom`. (Done - commit `c0310cf` includes this and naming/build fixes) [Resolved]
 
-## ESLint Setup - Previous [Resolved]
+
 - **Setup ESLint:** Install deps, create config, add rule, update script. (Done - Included in `66f2172`) [Resolved]
 - **Run ESLint Fix:** Apply automatic fixes. (Done - Included in `66f2172`) [Resolved]
 - **Fix `types.ts` Errors:** Corrected initial TS/ESLint errors. (Done - Included in `66f2172`) [Resolved]

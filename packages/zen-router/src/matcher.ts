@@ -26,14 +26,15 @@ export interface RouteMatch {
 export function pathToRegexp(pathPattern: string): { regexp: RegExp; keys: string[] } {
   // Handle catch-all route specifically
   if (pathPattern === '*') {
-    return { regexp: new RegExp('^.*$'), keys: [] }; // Match anything
+    return { regexp: /^.*$/, keys: [] }; // Match anything
   }
 
   const keys: string[] = [];
   // Split path by slash, filter out empty segments resulting from multiple slashes e.g. //
   // Keep the first empty segment if the path starts with /
   // Ensure path starts with / unless it's '*'
-  const processedPath = pathPattern === '*' || pathPattern.startsWith('/') ? pathPattern : '/' + pathPattern;
+  const processedPath =
+    pathPattern === '*' || pathPattern.startsWith('/') ? pathPattern : `/${pathPattern}`;
 
   // Removed duplicate keys declaration
   let pattern = '^';
@@ -69,7 +70,7 @@ export function pathToRegexp(pathPattern: string): { regexp: RegExp; keys: strin
         // Make the slash and the capture group optional together
         // Use a non-capturing group (?:...) for the optional part
         pattern = pattern.slice(0, -2); // Remove the preceding '\\/'
-        pattern += '(?:\\/' + captureGroup + ')?';
+        pattern += `(?:\\/${captureGroup})?`;
       } else {
         pattern += captureGroup;
       }
@@ -89,7 +90,7 @@ export function pathToRegexp(pathPattern: string): { regexp: RegExp; keys: strin
   // Allow optional trailing slash ONLY if the original path didn't end with one
   // OR if it's the root path.
   if (!processedPath.endsWith('/') || processedPath === '/') {
-      pattern += '\\/?';
+    pattern += '\\/?';
   }
 
   pattern += '$'; // Match end of string
@@ -121,8 +122,7 @@ export function matchRoutes(currentPath: string, routes: RouteConfig[]): RouteMa
         if (key && value !== undefined) {
           try {
             params[key] = decodeURIComponent(value);
-          } catch (e) {
-            console.error(`[zen-router] Failed to decode param "${key}" with value "${value}"`, e);
+          } catch (_e) {
             params[key] = value; // Use raw value on decode error
           }
         } else if (key && value === undefined) {

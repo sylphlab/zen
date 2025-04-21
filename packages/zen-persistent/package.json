@@ -13,15 +13,9 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "sideEffects": false,
   "scripts": {
-    "lint": "eslint . --cache --max-warnings=0",
-    "lint:fix": "eslint . --fix --cache",
-    "format": "prettier --write . --cache --ignore-unknown",
-    "check-format": "prettier --check . --cache --ignore-unknown",
     "typecheck": "tsc --noEmit",
     "build": "tsup",
     "test": "vitest run",
@@ -32,8 +26,6 @@
     "@sylphlab/zen-core": "workspace:*"
   },
   "devDependencies": {
-    "eslint": "^9.7.0",
-    "prettier": "^3.3.3",
     "tsup": "^8.2.3",
     "typescript": "^5.5.3",
     "vitest": "^2.0.4"
@@ -43,13 +35,7 @@
     "url": "https://github.com/sylphlab/zen.git",
     "directory": "packages/zen-persistent"
   },
-  "keywords": [
-    "zen",
-    "state manager",
-    "persistent",
-    "localstorage",
-    "sessionstorage"
-  ],
+  "keywords": ["zen", "state manager", "persistent", "localstorage", "sessionstorage"],
   "author": "SylphLab",
   "license": "MIT",
   "publishConfig": {

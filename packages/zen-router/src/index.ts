@@ -3,14 +3,18 @@
 // TODO: Implement router logic inspired by @nanostores/router
 // Goals: Tiny size, high performance, zen/FP principles
 
-import { map, MapAtom } from '@sylphlab/zen-core';
+import { type MapAtom, map } from '@sylphlab/zen-core';
 
 /** Route type placeholder (extend as needed) */
 export type Route = string;
 /** Params type placeholder (mapping of route params) */
-export type Params<P extends Record<string, string | undefined> = Record<string, string | undefined>> = P;
+export type Params<
+  P extends Record<string, string | undefined> = Record<string, string | undefined>,
+> = P;
 /** Search type placeholder (mapping of query params) */
-export type Search<S extends Record<string, string | undefined> = Record<string, string | undefined>> = S;
+export type Search<
+  S extends Record<string, string | undefined> = Record<string, string | undefined>,
+> = S;
 
 /** Represents the state of the router */
 export interface RouterState {
@@ -25,7 +29,7 @@ export interface RouterState {
 export const $router: MapAtom<RouterState> = map<RouterState>({
   path: '',
   params: {},
-  search: {}
+  search: {},
 });
 // Functions
 export { defineRoutes } from './routes';

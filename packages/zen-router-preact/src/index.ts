@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'preact/hooks'; // Import hooks from preact
-import { $router, RouterState } from '@sylphlab/zen-router';
-import { subscribe, get } from '@sylphlab/zen-core';
+import { get, subscribe } from '@sylphlab/zen-core';
+import { $router, type RouterState } from '@sylphlab/zen-router';
+import { useEffect, useState } from 'preact/hooks'; // Import hooks from preact
 
 /**
  * Preact hook to subscribe to the router state.
@@ -24,7 +24,7 @@ export function useRouter(): RouterState {
     // Initial sync check after mount, in case state changed between initial get() and subscribe()
     const currentState = get($router);
     if (currentState !== state) {
-        setState(currentState);
+      setState(currentState);
     }
 
     // Unsubscribe on component unmount
