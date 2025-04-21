@@ -70,10 +70,12 @@ export function produce<T>(
         copies.set(base, copy);
         mutatedObjects.add(base);
         if (generateInversePatches && originalValues.has(base)) {
+          // biome-ignore lint/style/noNonNullAssertion: Checked with .has()
           originalValues.set(copy, new Map(originalValues.get(base)!));
         }
         return copy;
       }
+      // biome-ignore lint/style/noNonNullAssertion: Checked with .has()
       return copies.get(base)!;
     };
 
@@ -86,6 +88,7 @@ export function produce<T>(
           ensureMutableCopy();
           const method = prop as keyof MapMutatingMethods;
           return (...args: unknown[]) => {
+            // biome-ignore lint/style/noNonNullAssertion: ensureMutableCopy guarantees existence
             const copy = copies.get(base)! as Map<unknown, unknown>;
             const key = args[0];
             const hasOldValue = copy.has(key);
@@ -93,6 +96,7 @@ export function produce<T>(
 
             if (generateInversePatches) {
               if (!originalValues.has(copy)) originalValues.set(copy, new Map());
+              // biome-ignore lint/style/noNonNullAssertion: Checked with .has()
               const copyOriginals = originalValues.get(copy)!;
               // Fix: Ensure mapKey is string | symbol
               const mapKey: string | symbol = typeof key === 'symbol' ? key : String(key);
@@ -159,6 +163,7 @@ export function produce<T>(
           ensureMutableCopy();
           const method = prop as keyof SetMutatingMethods;
           return (...args: unknown[]) => {
+            // biome-ignore lint/style/noNonNullAssertion: ensureMutableCopy guarantees existence
             const copy = copies.get(base)! as Set<unknown>;
             const originalSetAsArray = generateInversePatches ? Array.from(copy) : undefined;
             const value = args[0];
@@ -218,6 +223,7 @@ export function produce<T>(
           ensureMutableCopy();
           const method = prop as keyof ArrayMutatingMethods;
           return (...args: unknown[]) => {
+            // biome-ignore lint/style/noNonNullAssertion: ensureMutableCopy guarantees existence
             const copy = copies.get(base)! as unknown[];
             const originalLength = copy.length;
             let removedElements: unknown[] | undefined;
@@ -387,6 +393,7 @@ export function produce<T>(
           if (!originalValues.has(copy)) {
             originalValues.set(copy, new Map());
           }
+          // biome-ignore lint/style/noNonNullAssertion: Checked with .has()
           const copyOriginals = originalValues.get(copy)!;
           if (!copyOriginals.has(prop)) {
             copyOriginals.set(prop, currentValue);
@@ -433,6 +440,7 @@ export function produce<T>(
           if (!originalValues.has(copy)) {
             originalValues.set(copy, new Map());
           }
+          // biome-ignore lint/style/noNonNullAssertion: Checked with .has()
           const copyOriginals = originalValues.get(copy)!;
           if (!copyOriginals.has(prop)) {
             copyOriginals.set(prop, currentValue);
@@ -519,9 +527,9 @@ export function produce<T>(
     // Immer doesn't generate patches when a value is returned. Mimic this.
     patches.length = 0;
     inversePatches.length = 0;
-  } else if (copies.has(baseState as object)) {
-    // If the root base state itself was copied (meaning it or a child was mutated), return the copy
-    finalState = copies.get(baseState as object) as T;
+  } else if (copies.size > 0) { // If any copies were made anywhere...
+    // ...return the (potentially copied) root object. ensureMutableCopy should have handled creating the root copy if needed.
+    finalState = (copies.get(baseState as object) ?? baseState) as T;
   }
   // If recipeResult is undefined and the root base state was *not* copied,
   // it means no mutations occurred that affect the root's identity,
@@ -563,10 +571,10 @@ function deepFreeze(obj: unknown) {
   if (Array.isArray(obj) || Object.getPrototypeOf(obj) === Object.prototype) {
     Object.freeze(obj);
     // Recursively freeze properties/elements
-    Object.keys(obj).forEach((key) => {
+    for (const key of Object.keys(obj)) {
       // Use type assertion after check
       deepFreeze((obj as Record<string, unknown>)[key]);
-    });
+    }
   }
   // Note: This basic deepFreeze might not cover all edge cases handled by Immer's freeze.
 }

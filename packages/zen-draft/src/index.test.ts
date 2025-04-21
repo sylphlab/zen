@@ -55,7 +55,7 @@ describe('produce', () => {
     expect(nextState).toEqual({ name: 'Alice', age: 30 });
     expect(nextState).not.toBe(baseState);
     expect(patches).toEqual([{ op: 'replace', path: ['city'], value: undefined }]); // Setting to undefined is a replace, not remove
-    expect(inversePatches).toEqual([{ op: 'add', path: ['city'], value: 'Wonderland' }]);
+    expect(inversePatches).toEqual([{ op: 'replace', path: ['city'], value: 'Wonderland' }]); // Inverse of replace with undefined is replace with original
   });
 
   it('should return the original object if no changes are made', () => {

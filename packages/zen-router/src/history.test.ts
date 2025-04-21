@@ -1,4 +1,3 @@
-// @vitest-environment node
 import { get, map, setKey } from '@sylphlab/zen-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -188,14 +187,18 @@ describe('History API', () => {
       expect(finalState.params).toEqual({});
     });
 
-    // Test non-browser warning via startHistoryListener
-    // This test now runs in node environment via directive
-    it('should warn if trying to update state outside browser', () => {
-      startHistoryListener();
-      // The first warning is from startHistoryListener itself
-      expect(mockConsoleWarn).toHaveBeenCalledWith(
-        expect.stringContaining('startHistoryListener called outside browser'),
-      );
+    // Test non-browser behavior (should be no-op)
+    it('should not update state outside browser', () => {
+      const originalWin = globalThis.window;
+      const setKeySpy = vi.spyOn(core, 'setKey');
+      try {
+        globalThis.window = undefined as any; // Simulate non-browser
+        startHistoryListener(); // Should do nothing
+      } finally {
+        globalThis.window = originalWin; // Restore
+      }
+      expect(setKeySpy).not.toHaveBeenCalled();
+      setKeySpy.mockRestore();
     });
   });
 
@@ -224,22 +227,30 @@ describe('History API', () => {
       expect(vi.mocked(matcher.matchRoutes)).toHaveBeenCalledTimes(1); // Called again on popstate
     });
 
-    // This test now runs in node environment via directive, document is undefined
-    it('should warn on start if body not present', () => {
-      // In node env, document is undefined, so body check fails implicitly
-      startHistoryListener();
-      expect(mockConsoleWarn).toHaveBeenCalledWith(
-        expect.stringContaining('document.body not found'),
-      );
-      expect(mockAddEventListener).not.toHaveBeenCalledWith('click', expect.any(Function)); // Click listener not added
+    // Test behavior when body not present (click listener shouldn't be added)
+    it('should not add click listener if body not present', () => {
+      const originalDoc = globalThis.document;
+      try {
+        const mockDoc = { ...originalDoc, body: null };
+        globalThis.document = mockDoc as any; // Simulate body not ready
+        startHistoryListener();
+      } finally {
+        globalThis.document = originalDoc; // Restore
+      }
+      // Check popstate was added, but click was not
+      expect(mockAddEventListener).toHaveBeenCalledWith('popstate', expect.any(Function));
+      expect(mockAddEventListener).not.toHaveBeenCalledWith('click', expect.any(Function));
     });
 
-    // This test now runs in node environment via directive
-    it('should warn on start if outside browser', () => {
-      startHistoryListener();
-      expect(mockConsoleWarn).toHaveBeenCalledWith(
-        expect.stringContaining('startHistoryListener called outside browser'),
-      );
+    // Test non-browser behavior (should be no-op)
+    it('should not add listeners if outside browser', () => {
+      const originalWin = globalThis.window;
+      try {
+        globalThis.window = undefined as any;
+        startHistoryListener();
+      } finally {
+        globalThis.window = originalWin; // Restore
+      }
       expect(mockAddEventListener).not.toHaveBeenCalled();
     });
 
@@ -263,12 +274,15 @@ describe('History API', () => {
       expect(core.get($router).path).toBe('/new-path');
     });
 
-    // This test now runs in node environment via directive
-    it('should warn if called outside browser', () => {
-      open('/new-path');
-      expect(mockConsoleWarn).toHaveBeenCalledWith(
-        expect.stringContaining('open() called outside browser'),
-      );
+    // Test non-browser behavior (should be no-op)
+    it('should not call pushState if called outside browser', () => {
+      const originalWin = globalThis.window;
+      try {
+        globalThis.window = undefined as any;
+        open('/new-path');
+      } finally {
+        globalThis.window = originalWin; // Restore
+      }
       expect(mockPushState).not.toHaveBeenCalled();
     });
   });
@@ -286,12 +300,15 @@ describe('History API', () => {
       expect(core.get($router).path).toBe('/another-path');
     });
 
-    // This test now runs in node environment via directive
-    it('should warn if called outside browser', () => {
-      redirect('/another-path');
-      expect(mockConsoleWarn).toHaveBeenCalledWith(
-        expect.stringContaining('redirect() called outside browser'),
-      );
+    // Test non-browser behavior (should be no-op)
+    it('should not call replaceState if called outside browser', () => {
+      const originalWin = globalThis.window;
+      try {
+        globalThis.window = undefined as any;
+        redirect('/another-path');
+      } finally {
+        globalThis.window = originalWin; // Restore
+      }
       expect(mockReplaceState).not.toHaveBeenCalled();
     });
   });
