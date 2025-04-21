@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { defineComponent, nextTick } from 'vue';
+import { type Atom, set, zen } from '@sylphlab/zen-core';
 import { mount } from '@vue/test-utils';
-import { atom, set, type Atom } from '@sylphlab/zen-core';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { defineComponent, nextTick } from 'vue';
 import { useStore } from './index';
 
 describe('useStore', () => {
@@ -9,7 +9,7 @@ describe('useStore', () => {
 
   beforeEach(() => {
     // Reset atom before each test
-    testAtom = atom(0);
+    testAtom = zen(0);
   });
 
   it('should return initial value from store', async () => {
@@ -21,7 +21,7 @@ describe('useStore', () => {
         reactiveValue = count.value; // Access value for assertion
         return {}; // No template needed for this test
       },
-      template: '<div></div>' // Dummy template
+      template: '<div></div>', // Dummy template
     });
 
     mount(TestComponent);
@@ -40,7 +40,7 @@ describe('useStore', () => {
         reactiveValue = count;
         return {};
       },
-      template: '<div></div>'
+      template: '<div></div>',
     });
 
     const wrapper = mount(TestComponent);

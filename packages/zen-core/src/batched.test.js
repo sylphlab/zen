@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import { atom, batch, set } from './atom';
+import { zen as atom, batch, set } from './atom'; // Alias zen to atom for minimal changes below
 import { batched } from './batched';
 import { computed } from './computed';
 import { subscribe } from './index'; // Use index subscribe
@@ -87,6 +87,7 @@ describe('batched', () => {
     unsub();
   });
   test('handles computed atom dependency initial null state', async () => {
+    // SKIP NaN issue again
     const base = atom(5);
     // Modify computed calculation to explicitly handle null
     const comp = computed(base, (val) => (val === null ? 0 : val) * 2); // Cast base, add type hint
@@ -133,13 +134,13 @@ describe('batched', () => {
     let calculationCount = 0;
     // Calculation returns a stable reference sometimes
     const derived = batched(source, (value) => {
+      // Accept unknown
       calculationCount++;
       // Assert type inside the function
       const val = value;
       if (val.id % 2 === 0) {
         return stableRef; // Return same ref for even IDs
       }
-
       // Use the asserted 'val' here
       return { type: 'new', id: val.id }; // Return new object for odd IDs
     });

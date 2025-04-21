@@ -1,15 +1,29 @@
-import type { Listener, Unsubscribe, AnyAtom, AtomValue, AtomWithValue, MapAtom, DeepMapAtom, TaskAtom, TaskState } from './types';
 import type { ComputedAtom } from './computed';
+import type {
+  AnyAtom,
+  AtomValue,
+  AtomWithValue,
+  DeepMapAtom,
+  Listener,
+  MapAtom,
+  TaskAtom,
+  TaskState,
+  Unsubscribe,
+} from './types';
 /** Tracks the nesting depth of batch calls. @internal */
 export declare let batchDepth: number;
 /**
  * Notifies all listeners of an atom about a value change.
  * @internal - Exported for use by other modules like computed, deepMap.
  */
-export declare function notifyListeners<A extends AnyAtom>(atom: A, value: AtomValue<A>, oldValue?: AtomValue<A>): void;
+export declare function notifyListeners<A extends AnyAtom>(
+  atom: A,
+  value: AtomValue<A>,
+  oldValue?: AtomValue<A>,
+): void;
 /** Represents a writable atom (functional style). */
 export type Atom<T = unknown> = AtomWithValue<T> & {
-    _value: T;
+  _value: T;
 };
 /**
  * Gets the current value of an atom. Provides specific return types based on atom kind.
@@ -36,13 +50,16 @@ export declare function set<T>(atom: Atom<T>, value: T, force?: boolean): void;
  * @param listener The function to call on value changes.
  * @returns A function to unsubscribe the listener.
  */
-export declare function subscribe<A extends AnyAtom>(atom: A, listener: Listener<AtomValue<A>>): Unsubscribe;
+export declare function subscribe<A extends AnyAtom>(
+  atom: A,
+  listener: Listener<AtomValue<A>>,
+): Unsubscribe;
 /**
- * Creates a new writable atom (functional style).
- * @param initialValue The initial value of the atom.
- * @returns An Atom instance.
+ * Creates a new writable zen instance (functional style).
+ * @param initialValue The initial value of the zen instance.
+ * @returns An Atom instance. // Keep return type as Atom for now
  */
-export declare function atom<T>(initialValue: T): Atom<T>;
+export declare function zen<T>(initialValue: T): Atom<T>;
 /**
  * Checks if the code is currently executing within a `batch()` call.
  * @internal

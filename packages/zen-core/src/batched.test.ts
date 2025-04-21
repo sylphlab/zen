@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { atom, batch, set } from './atom';
+import { zen as atom, batch, set } from './atom'; // Alias zen to atom for minimal changes below
 import { batched } from './batched';
 import { computed } from './computed';
 import { subscribe } from './index'; // Use index subscribe

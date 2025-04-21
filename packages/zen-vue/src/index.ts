@@ -1,5 +1,5 @@
-import { ref, onMounted, onUnmounted, type Ref } from 'vue';
-import { get, subscribe, type Atom } from '@sylphlab/zen-core';
+import { type Atom, get, subscribe } from '@sylphlab/zen-core';
+import { type Ref, onMounted, onUnmounted, ref } from 'vue';
 
 /**
  * Subscribes to a Zen store and returns its value as a reactive Vue ref.
@@ -10,7 +10,7 @@ import { get, subscribe, type Atom } from '@sylphlab/zen-core';
  */
 export function useStore<Value>(store: Atom<Value>): Ref<Value> {
   // Get the initial value synchronously
-  const initialValue = get(store);
+  const initialValue: Value = get(store);
   // Create a reactive ref with the initial value
   const state = ref<Value>(initialValue) as Ref<Value>; // Cast needed for initial value type
 

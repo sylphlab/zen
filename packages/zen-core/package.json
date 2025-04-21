@@ -13,9 +13,7 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "build": "tsc && tsup",
     "test": "vitest run --coverage",
@@ -62,6 +60,8 @@
   "publishConfig": {
     "access": "public"
   },
-  "devDependencies": {},
-  "dependencies": {}
+  "devDependencies": {
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.3"
+  }
 }

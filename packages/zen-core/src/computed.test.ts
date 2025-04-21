@@ -1,5 +1,10 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { atom, get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom } from './atom'; // Import updated functional API
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  get as getAtomValue,
+  set as setAtomValue,
+  subscribe as subscribeToAtom,
+  zen,
+} from './atom'; // Import updated functional API
 import { computed } from './computed'; // Import computed
 
 // // Mock the internal subscribe/unsubscribe functions for dependency tracking test - REMOVED due to vi.mock error
@@ -20,13 +25,13 @@ describe('computed (functional)', () => {
   // });
 
   it('should compute initial value correctly', () => {
-    const count = atom(10); // Use atom
+    const count = zen(10); // Use zen
     const double = computed([count as any], (value: unknown) => (value as number) * 2); // Use computed, accept unknown, cast inside
     expect(getAtomValue(double)).toBe(20);
   });
 
   it('should update when a dependency atom changes', () => {
-    const count = atom(10); // Use atom
+    const count = zen(10); // Use zen
     const double = computed([count as any], (value: unknown) => (value as number) * 2); // Use computed, accept unknown, cast inside
 
     // Subscribe to activate dependency tracking, add cast
@@ -40,7 +45,7 @@ describe('computed (functional)', () => {
   });
 
   it('should notify listeners when computed value changes', () => {
-    const count = atom(10); // Use atom
+    const count = zen(10); // Use zen
     const double = computed([count as any], (value: unknown) => (value as number) * 2); // Use computed, accept unknown, cast inside
     const listener = vi.fn();
 
@@ -58,8 +63,10 @@ describe('computed (functional)', () => {
   });
 
   it('should not notify listeners if computed value does not change', () => {
-    const count = atom(10); // Use atom
-    const parity = computed([count as any], (value: unknown) => ((value as number) % 2 === 0 ? 'even' : 'odd')); // Use computed, accept unknown, cast inside
+    const count = zen(10); // Use zen
+    const parity = computed([count as any], (value: unknown) =>
+      (value as number) % 2 === 0 ? 'even' : 'odd',
+    ); // Use computed, accept unknown, cast inside
     const listener = vi.fn();
 
     const unsubscribe = subscribeToAtom(parity as any, listener); // Use subscribeToAtom, add cast
@@ -73,9 +80,12 @@ describe('computed (functional)', () => {
   });
 
   it('should handle multiple dependencies', () => {
-    const num1 = atom(10); // Use atom
-    const num2 = atom(5); // Use atom
-    const sum = computed([num1 as any, num2 as any], (n1: unknown, n2: unknown) => (n1 as number) + (n2 as number)); // Use computed, accept unknown, cast inside
+    const num1 = zen(10); // Use zen
+    const num2 = zen(5); // Use zen
+    const sum = computed(
+      [num1 as any, num2 as any],
+      (n1: unknown, n2: unknown) => (n1 as number) + (n2 as number),
+    ); // Use computed, accept unknown, cast inside
     const listener = vi.fn();
 
     const unsubscribe = subscribeToAtom(sum as any, listener); // Use subscribeToAtom, add cast
@@ -98,10 +108,13 @@ describe('computed (functional)', () => {
   });
 
   it('should handle dependencies on other computed atoms', () => {
-    const base = atom(10); // Use atom
+    const base = zen(10); // Use zen
     // Ensure null check is present, accept unknown, cast inside
     const double = computed([base as any], (val: unknown) => ((val as number | null) ?? 0) * 2);
-    const quadruple = computed([double as any], (val: unknown) => ((val as number | null) ?? 0) * 2);
+    const quadruple = computed(
+      [double as any],
+      (val: unknown) => ((val as number | null) ?? 0) * 2,
+    );
     const listener = vi.fn();
 
     const unsubscribe = subscribeToAtom(quadruple as any, listener); // Use subscribeToAtom, add cast
@@ -117,9 +130,12 @@ describe('computed (functional)', () => {
   });
 
   it('should unsubscribe from dependencies when last listener unsubscribes', () => {
-    const dep1 = atom(1); // Use atom
-    const dep2 = atom(2); // Use atom
-    const computedSum = computed([dep1 as any, dep2 as any], (d1: unknown, d2: unknown) => (d1 as number) + (d2 as number)); // Use computed, accept unknown, cast inside
+    const dep1 = zen(1); // Use zen
+    const dep2 = zen(2); // Use zen
+    const computedSum = computed(
+      [dep1 as any, dep2 as any],
+      (d1: unknown, d2: unknown) => (d1 as number) + (d2 as number),
+    ); // Use computed, accept unknown, cast inside
     const listener = vi.fn();
 
     // Cast to access internal properties for testing

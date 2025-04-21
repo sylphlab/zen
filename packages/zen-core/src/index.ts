@@ -3,6 +3,7 @@
 
 // --- Core Types ---
 export * from './types'; // Export all base types (Listener, Unsubscribe, AtomWithValue, AnyAtom, TaskState, MapAtom, DeepMapAtom, TaskAtom, etc.)
+export type { MapAtom } from './types'; // Re-add explicit export
 // Import Atom type specifically
 import type { Atom as _Atom } from './atom';
 export type Atom<T = unknown> = _Atom<T>; // Re-export Atom type
@@ -14,10 +15,10 @@ export type { LifecycleListener, KeyListener, PathListener } from './events';
 
 // --- Core Factories ---
 // Import factories
-import { atom as _atom } from './atom';
+import { zen as _zen } from './atom'; // Import zen
 // Removed: import { map as _map } from './map';
 // Re-export factories
-export const atom = _atom;
+export const zen = _zen; // Export zen
 // Removed: export const map = _map;
 // Keep others as direct re-export
 export { map } from './map'; // Direct re-export
@@ -28,7 +29,7 @@ export { mapCreator } from './mapCreator';
 
 // --- Core Functions ---
 // Import core functions from atom
-import { get as _get, set as _set, subscribe as _subscribe, batch as _batch } from './atom';
+import { batch as _batch, get as _get, set as _set, subscribe as _subscribe } from './atom';
 // Re-export them
 export const get = _get;
 export const set = _set;
@@ -36,7 +37,7 @@ export const subscribe = _subscribe;
 export const batch = _batch;
 
 // Import map functions
-import { setKey as _setKey, set as _setMapValue, listenKeys as _listenKeys } from './map';
+import { listenKeys as _listenKeys, setKey as _setKey, set as _setMapValue } from './map';
 // Re-export them
 export const setKey = _setKey;
 export const setMapValue = _setMapValue; // Keep alias for map's set

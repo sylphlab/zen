@@ -1,13 +1,13 @@
 // Combined imports from @sylphlab/zen-core
 import {
-  map,
-  atom,
-  onMount,
+  type Atom,
+  type MapAtom,
   get,
+  map,
+  onMount,
   set,
   subscribe,
-  type MapAtom,
-  type Atom
+  zen, // Change atom to zen
 } from '@sylphlab/zen-core';
 
 // --- Types ---
@@ -39,7 +39,7 @@ export interface PersistentOptions<Value> {
 
 const GenericJSONSerializer = {
   encode: JSON.stringify,
-  decode: JSON.parse
+  decode: JSON.parse,
 };
 
 /**
@@ -54,18 +54,18 @@ const GenericJSONSerializer = {
 export function persistentAtom<Value>(
   key: string,
   initialValue: Value,
-  options?: PersistentOptions<Value>
-): Atom<Value> { // Use Atom<Value> type
+  options?: PersistentOptions<Value>,
+): Atom<Value> {
+  // Use Atom<Value> type
   const storage = options?.storage ?? (typeof window !== 'undefined' ? localStorage : undefined);
   const serializer = options?.serializer ?? GenericJSONSerializer;
   const shouldListen = options?.listen ?? true;
 
   if (typeof window === 'undefined' || !storage) {
-    console.warn(`[zen-persistent] Storage unavailable for key "${key}". Using a non-persistent atom.`);
-    return atom<Value>(initialValue); // Fallback to regular atom if no storage
+    return zen<Value>(initialValue); // Fallback to regular atom if no storage
   }
 
-  const baseAtom = atom<Value>(initialValue);
+  const baseAtom = zen<Value>(initialValue); // Use zen
   let ignoreNextStorageEvent = false; // Flag to prevent echo from self-triggered events
 
   // Function to write the current atom value to storage
@@ -74,12 +74,13 @@ export function persistentAtom<Value>(
       const encoded = serializer.encode(value);
       ignoreNextStorageEvent = true; // Mark that we are causing the potential storage event
       storage.setItem(key, encoded);
-    } catch (error) {
-      console.error(`[zen-persistent] Error writing key "${key}" to storage:`, error);
+    } catch (_error) {
     } finally {
       // Reset flag shortly after, hoping storage event fires sync
       // This is imperfect, a better sync mechanism might be needed
-      setTimeout(() => { ignoreNextStorageEvent = false; }, 50);
+      setTimeout(() => {
+        ignoreNextStorageEvent = false;
+      }, 50);
     }
   };
 
@@ -93,17 +94,18 @@ export function persistentAtom<Value>(
         // ignoreNextStorageEvent = false; // Reset happens in timeout now
         return; // Ignore event triggered by this instance
       }
-      if (event.newValue === null) { // Key removed or cleared in another tab
+      if (event.newValue === null) {
+        // Key removed or cleared in another tab
         set(baseAtom, initialValue); // Use set() function
       } else {
         try {
           const decodedValue = serializer.decode(event.newValue);
           // Check if the decoded value is different before setting to prevent loops
-          if (get(baseAtom) !== decodedValue) { // Use get() function
+          if (get(baseAtom) !== decodedValue) {
+            // Use get() function
             set(baseAtom, decodedValue); // Use set() function
           }
-        } catch (error) {
-          console.error(`[zen-persistent] Error decoding key "${key}" from storage event:`, error);
+        } catch (_error) {
           // Optionally reset to initial value on decode error
           // baseAtom.set(initialValue);
         }
@@ -120,14 +122,13 @@ export function persistentAtom<Value>(
       if (raw !== null) {
         valueFromStorage = serializer.decode(raw);
       }
-    } catch (error) {
-      console.error(`[zen-persistent] Error reading initial value for key "${key}" from storage:`, error);
-    }
+    } catch (_error) {}
 
     // Set initial value from storage if different from current
-    if (valueFromStorage !== undefined && get(baseAtom) !== valueFromStorage) { // Use get() function
-       set(baseAtom, valueFromStorage); // Use set() function
-       // Note: This set() will trigger the core listener below if it's already active
+    if (valueFromStorage !== undefined && get(baseAtom) !== valueFromStorage) {
+      // Use get() function
+      set(baseAtom, valueFromStorage); // Use set() function
+      // Note: This set() will trigger the core listener below if it's already active
     } else if (valueFromStorage === undefined) {
       // If nothing in storage, write the current (initial) value
       writeToStorage(get(baseAtom)); // Use get() function
@@ -149,13 +150,15 @@ export function persistentAtom<Value>(
     // --- Unmount (runs shortly after the last listener unsubscribes) ---
     return () => {
       if (shouldListen) {
-        window.removeEventListener('storage', storageEventHandler);
+        window.removeEventListener('storage', storageEventHandler); // Add semicolon
+      }
       // We intentionally DO NOT stop the core listener (`stopCoreListener`) here.
       // The persistence should continue even if UI components unmount temporarily.
     };
-  });
+  }); // End of onMount call
 
   return baseAtom;
+}
 
 /**
  * Creates a persistent map store that synchronizes its state with Web Storage
@@ -170,18 +173,17 @@ export function persistentAtom<Value>(
  * @returns A map store synchronized with storage.
  */
 
-
-export function persistentMap<Value extends object>( // Remove blank lines
+export function persistentMap<Value extends object>(
+  // Remove blank lines
   key: string,
   initialValue: Value,
-  options?: PersistentOptions<Value>
+  options?: PersistentOptions<Value>,
 ): MapAtom<Value> {
   const storage = options?.storage ?? (typeof window !== 'undefined' ? localStorage : undefined);
   const serializer = options?.serializer ?? GenericJSONSerializer;
   const shouldListen = options?.listen ?? true;
 
   if (typeof window === 'undefined' || !storage) {
-    console.warn(`[zen-persistent] Storage unavailable for key "${key}". Using a non-persistent map.`);
     return map<Value>(initialValue); // Fallback to regular map if no storage
   }
 
@@ -194,11 +196,12 @@ export function persistentMap<Value extends object>( // Remove blank lines
       const encoded = serializer.encode(value);
       ignoreNextStorageEvent = true; // Mark that we are causing the potential storage event
       storage.setItem(key, encoded);
-    } catch (error) {
-      console.error(`[zen-persistent] Error writing key "${key}" to storage:`, error);
+    } catch (_error) {
     } finally {
       // Reset flag shortly after
-      setTimeout(() => { ignoreNextStorageEvent = false; }, 50);
+      setTimeout(() => {
+        ignoreNextStorageEvent = false;
+      }, 50);
     }
   };
 
@@ -211,16 +214,15 @@ export function persistentMap<Value extends object>( // Remove blank lines
       if (ignoreNextStorageEvent) {
         return; // Ignore event triggered by this instance
       }
-      if (event.newValue === null) { // Key removed or cleared in another tab
+      if (event.newValue === null) {
+        // Key removed or cleared in another tab
         set(baseMap, initialValue); // Reset to initial value (updates the whole map)
       } else {
         try {
           const decodedValue = serializer.decode(event.newValue);
           // Update the whole map. Consider deep comparison if performance becomes an issue.
           set(baseMap, decodedValue);
-        } catch (error) {
-          console.error(`[zen-persistent] Error decoding key "${key}" from storage event:`, error);
-        }
+        } catch (_error) {}
       }
     }
   };
@@ -234,14 +236,12 @@ export function persistentMap<Value extends object>( // Remove blank lines
       if (raw !== null) {
         valueFromStorage = serializer.decode(raw);
       }
-    } catch (error) {
-      console.error(`[zen-persistent] Error reading initial value for key "${key}" from storage:`, error);
-    }
+    } catch (_error) {}
 
     // Set initial value from storage if different from current
     // Use set() which replaces the whole map content
     if (valueFromStorage !== undefined) {
-       set(baseMap, valueFromStorage);
+      set(baseMap, valueFromStorage);
     } else {
       // If nothing in storage, write the current (initial) value
       writeToStorage(get(baseMap));
@@ -249,7 +249,8 @@ export function persistentMap<Value extends object>( // Remove blank lines
 
     // Start listening to core map changes *after* initial load/set
     if (!stopCoreListener) {
-      stopCoreListener = subscribe(baseMap, newValue => {
+      stopCoreListener = subscribe(baseMap, (newValue: Value) => {
+        // Add type Value
         writeToStorage(newValue);
       });
     }
@@ -273,8 +274,4 @@ export function persistentMap<Value extends object>( // Remove blank lines
   return baseMap;
 }
 
-
-
-
-
-export { persistentMap };
+// Removed redundant export

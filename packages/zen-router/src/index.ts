@@ -26,7 +26,7 @@ export interface RouterState {
 // --- Public API ---
 
 // Store
-export const $router: MapAtom<RouterState> = map<RouterState>({
+export const $router: MapAtom<RouterState> = map({
   path: '',
   params: {},
   search: {},

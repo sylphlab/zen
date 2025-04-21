@@ -1,12 +1,11 @@
-import { defineConfig } from 'tsup'
+import { defineConfig } from 'tsup';
 
 export default defineConfig({
   entry: ['src/index.ts'], // Point back to src directory
   format: ['esm', 'cjs'],
-  dts: true, // Re-enable tsup DTS handling (to bundle declarations from tsc)
+  dts: false, // Let tsc handle DTS generation exclusively
   splitting: false,
   sourcemap: true, // Enable sourcemap for debugging if needed
-  clean: true,
   minify: false, // Disable minification for diagnostics
   /* terserOptions: { // Comment out terser options
     compress: {
@@ -44,4 +43,4 @@ export default defineConfig({
     toplevel: true, // Apply optimizations to top-level variables and functions
   },
   */
-})
+});

@@ -15,7 +15,7 @@ import { proxy as valtioProxy, subscribe as valtioSubscribe } from 'valtio/vanil
 import { bench, describe } from 'vitest';
 import { createStore as createZustandVanillaStore } from 'zustand/vanilla';
 import {
-  atom as zenCreateAtom,
+  zen as zenCreateAtom,
   get as zenGetAtomValue,
   set as zenSetAtomValue,
   subscribe as zenSubscribeToAtom,
