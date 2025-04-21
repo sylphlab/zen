@@ -85,6 +85,7 @@ describe('mapCreator', () => {
 
     const dataStore = createData('data1');
     const listener = vi.fn();
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsub = subscribe(dataStore as any, listener); // Cast dataStore to any
 
     // 1. Initial synchronous subscribe call. Initializer sets loading:true synchronously.

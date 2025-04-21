@@ -69,7 +69,9 @@ describe('Batch vs Sequential Sets (With 1 Listener Each) (functional)', () => {
         bench('zen batch', () => {
             const $a = zen(0);
             const $b = zen(0);
+            // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
             subscribe($a, () => { }); // Use functional API, add cast
+            // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
             subscribe($b, () => { }); // Add cast
             batch(() => {
                 set($a, 1);
@@ -89,6 +91,7 @@ describe('Batch vs Sequential Sets (With 1 Listener Each) (functional)', () => {
         bench('zen batch', () => {
             const atoms = Array.from({ length: 5 }, () => zen(0));
             for (const $a of atoms) {
+                // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
                 subscribe($a, () => { });
             } // Use for...of and functional API, add cast
             batch(() => {
@@ -111,6 +114,7 @@ describe('Batch vs Sequential Sets (With 1 Listener Each) (functional)', () => {
         bench('zen batch', () => {
             const atoms = Array.from({ length: 10 }, () => zen(0));
             for (const $a of atoms) {
+                // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
                 subscribe($a, () => { });
             } // Use for...of and functional API, add cast
             batch(() => {

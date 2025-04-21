@@ -59,6 +59,7 @@ export function onSet(a, fn) {
     a._setListeners.add(fn);
     // _unsubscribe expects A extends AnyAtom and Listener<AtomValue<A>>.
     // Cast 'a' to AnyAtom, and 'fn' to any to satisfy the generic signature.
+    // biome-ignore lint/suspicious/noExplicitAny: Internal _unsubscribe requires any for listener
     return () => _unsubscribe(a, '_setListeners', fn);
 }
 /** Attaches a listener triggered *after* an atom's value listeners have been notified. */
@@ -89,6 +90,7 @@ const keyListeners = new WeakMap(); // Add MapAtom back
  * Relies on the internal atom having the `STORE_MAP_KEY_SET` symbol.
  */
 // Use generic A constrained to MapAtom | DeepMapAtom, use AtomValue<A> for listener
+// biome-ignore lint/suspicious/noExplicitAny: Generic constraint requires any here
 export function listenPaths(
 // Add MapAtom back
 a, paths, fn) {
@@ -105,30 +107,32 @@ a, paths, fn) {
     }
     // Normalize paths to strings using null character separator for arrays
     const pathStrings = paths.map((p) => (Array.isArray(p) ? p.join('\0') : String(p)));
-    pathStrings.forEach((ps) => {
+    for (const ps of pathStrings) {
         let listenersForPath = atomPathListeners?.get(ps);
         if (!listenersForPath) {
             listenersForPath = new Set();
             atomPathListeners?.set(ps, listenersForPath);
         }
         // Add the correctly typed listener
+        // biome-ignore lint/suspicious/noExplicitAny: Cast needed due to WeakMap/Set variance issues
         listenersForPath.add(fn); // Cast needed due to WeakMap/Set variance issues
-    });
+    }
     return () => {
         // Return function starts here
         const currentAtomListeners = pathListeners.get(a);
         if (!currentAtomListeners)
             return;
-        pathStrings.forEach((ps) => {
+        for (const ps of pathStrings) {
             const listenersForPath = currentAtomListeners.get(ps);
             if (listenersForPath) {
                 // Delete the correctly typed listener
+                // biome-ignore lint/suspicious/noExplicitAny: Cast needed due to WeakMap/Set variance issues
                 listenersForPath.delete(fn); // Cast needed
                 if (!listenersForPath.size) {
                     currentAtomListeners.delete(ps); // Clean up path entry
                 }
             }
-        });
+        }
         if (!currentAtomListeners.size) {
             pathListeners.delete(a); // Clean up atom entry
         }
@@ -142,6 +146,7 @@ a, paths, fn) {
  * @internal
  */
 // Update _emitPathChanges signature
+// biome-ignore lint/suspicious/noExplicitAny: Generic constraint requires any here
 export function _emitPathChanges(
 // Add MapAtom back
 a, changedPaths, finalValue) {
@@ -150,10 +155,10 @@ a, changedPaths, finalValue) {
         return;
     // Normalize changed paths for efficient lookup (stringified with null char separator)
     const normalizedChanged = new Map();
-    changedPaths.forEach((p) => {
+    for (const p of changedPaths) {
         const arrayPath = Array.isArray(p) ? p : String(p).split('.'); // Assume dot notation if string
         normalizedChanged.set(arrayPath.join('\0'), { path: p, array: arrayPath });
-    });
+    }
     // Iterate through registered listener paths (also stringified with null char separator)
     atomPathListeners.forEach((listenersSet, registeredPathString) => {
         const registeredPathArray = registeredPathString.split('\0');
@@ -178,14 +183,14 @@ a, changedPaths, finalValue) {
                 // If it's a match, get the value at the *changed* path and notify listeners
                 // This ensures listeners for 'a.b' get the value of 'a.b.c' if that's what changed.
                 const valueAtPath = getDeep(finalValue, changedPathArray);
-                listenersSet.forEach((listener) => {
+                for (const listener of listenersSet) {
                     try {
                         // Pass the original changed path (string or array) back to the listener
                         // Cast finalValue to expected object type for listener
                         listener(valueAtPath, changedPath, finalValue);
                     }
                     catch (_err) { }
-                });
+                }
                 // Optimization: If a specific changed path matches, no need to check further changed paths for *this* registered listener path.
                 // However, different registered paths might match the same changed path, so we don't break the outer loop.
             }
@@ -197,6 +202,7 @@ a, changedPaths, finalValue) {
  * Relies on the internal atom having the `STORE_MAP_KEY_SET` symbol.
  */
 // Update listenKeys signature
+// biome-ignore lint/suspicious/noExplicitAny: Generic constraint requires any here
 export function listenKeys(
 // Add MapAtom back
 a, keys, fn) {
@@ -211,30 +217,32 @@ a, keys, fn) {
         atomKeyListeners = new Map();
         keyListeners.set(a, atomKeyListeners);
     }
-    keys.forEach((k) => {
+    for (const k of keys) {
         let listenersForKey = atomKeyListeners?.get(k);
         if (!listenersForKey) {
             listenersForKey = new Set();
             atomKeyListeners?.set(k, listenersForKey);
         }
         // Add the correctly typed listener
+        // biome-ignore lint/suspicious/noExplicitAny: Cast needed due to WeakMap/Set variance issues
         listenersForKey.add(fn); // Cast needed due to WeakMap/Set variance issues
-    });
+    }
     return () => {
         // Return function starts here
         const currentAtomListeners = keyListeners.get(a);
         if (!currentAtomListeners)
             return;
-        keys.forEach((k) => {
+        for (const k of keys) {
             const listenersForKey = currentAtomListeners.get(k);
             if (listenersForKey) {
                 // Delete the correctly typed listener
+                // biome-ignore lint/suspicious/noExplicitAny: Cast needed due to WeakMap/Set variance issues
                 listenersForKey.delete(fn); // Cast needed
                 if (!listenersForKey.size) {
                     currentAtomListeners.delete(k); // Clean up key entry
                 }
             }
-        });
+        }
         if (!currentAtomListeners.size) {
             keyListeners.delete(a); // Clean up atom entry
         }
@@ -248,18 +256,20 @@ a, keys, fn) {
  * @internal
  */
 // Update _emitKeyChanges signature
+// biome-ignore lint/suspicious/noExplicitAny: Generic constraint requires any here
 export function _emitKeyChanges(
 // Add MapAtom back
 a, changedKeys, finalValue) {
     const atomKeyListeners = keyListeners.get(a);
     if (!atomKeyListeners?.size)
         return;
-    changedKeys.forEach((k) => {
+    for (const k of changedKeys) {
         const listenersForKey = atomKeyListeners.get(k);
         if (listenersForKey?.size) {
             const valueAtKey = finalValue[k];
             // Optimization for single listener
             if (listenersForKey.size === 1) {
+                // biome-ignore lint/suspicious/noExplicitAny: Requires explicit cast within loop
                 const listener = listenersForKey.values().next().value; // Cast listener
                 try {
                     // Pass correctly typed key and value
@@ -269,15 +279,16 @@ a, changedKeys, finalValue) {
             }
             else {
                 // Iterate for multiple listeners
-                listenersForKey.forEach((listener) => {
+                for (const listener of listenersForKey) {
+                    // biome-ignore lint/suspicious/noExplicitAny: Requires explicit cast within loop
                     const typedListener = listener; // Cast listener
                     try {
                         // Pass correctly typed key and value
                         typedListener?.(valueAtKey, k, finalValue);
                     }
                     catch (_err) { }
-                });
+                }
             }
         }
-    });
+    }
 }

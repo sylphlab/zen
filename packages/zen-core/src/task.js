@@ -129,6 +129,7 @@ export function getTaskState(taskAtom) {
 export function subscribeToTask(taskAtom, listener) {
     // Subscribe directly to the TaskAtom using the core subscribe function.
     // Cast taskAtom to AnyAtom and listener to any to satisfy the generic signature.
+    // biome-ignore lint/suspicious/noExplicitAny: Listener type requires any due to complex generic resolution
     return subscribeToCoreAtom(taskAtom, listener);
 }
 // Removed temporary UpdatedTaskAtom type and updatedCreateTask function

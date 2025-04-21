@@ -112,7 +112,7 @@ function computedSourceChanged(atom) {
             // Use the exported notifyListeners
             try {
                 // Cast to AnyAtom for notifyListeners
-                notifyListeners(atom, atom._value, oldValue); // Notify downstream listeners
+                notifyListeners(atom, atom._value, oldValue); // Notify downstream listeners (removed !)
             }
             catch (_e) { }
         }

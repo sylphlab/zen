@@ -362,7 +362,6 @@ export function _emitKeyChanges<A extends MapAtom<any> | DeepMapAtom<any>>(
       const valueAtKey = finalValue[k];
       // Optimization for single listener
       if (listenersForKey.size === 1) {
-        // biome-ignore lint/suspicious/noExplicitAny: Requires explicit cast within loop
         const listener = listenersForKey.values().next().value as KeyListener<
           AtomValue<A>,
           typeof k
@@ -374,7 +373,6 @@ export function _emitKeyChanges<A extends MapAtom<any> | DeepMapAtom<any>>(
       } else {
         // Iterate for multiple listeners
         for (const listener of listenersForKey) {
-          // biome-ignore lint/suspicious/noExplicitAny: Requires explicit cast within loop
           const typedListener = listener as KeyListener<AtomValue<A>, typeof k>; // Cast listener
           try {
             // Pass correctly typed key and value

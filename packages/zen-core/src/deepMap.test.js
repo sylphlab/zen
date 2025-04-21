@@ -20,7 +20,7 @@ describe('deepMap (functional)', () => {
     it('should set a deep value using string path', () => {
         const store = deepMap({ user: { name: 'John', address: { city: 'Old City' } } }); // Use deepMap
         setPath(store, 'user.address.city', 'New City'); // Use setPath
-        const state = get(store); // Cast
+        const state = get(store); // Cast (removed !)
         expect(state.user.address.city).toBe('New City');
         expect(state.user.name).toBe('John');
     });
@@ -33,19 +33,19 @@ describe('deepMap (functional)', () => {
         }); // Use deepMap
         setPath(store, ['data', 1, 'value'], 'New B'); // Use setPath
         // Add non-null assertions and cast to specific type
-        const dataState = get(store);
+        const dataState = get(store); // (removed !)
         expect(dataState.data?.[1]?.value).toBe('New B');
         expect(dataState.data?.[0]?.value).toBe('A');
     });
     it('should create intermediate objects/arrays if they do not exist', () => {
         const store = deepMap({}); // Use deepMap
         setPath(store, 'user.profile.name', 'Alice'); // Use setPath
-        const state1 = get(store); // Use get with non-null assertion and cast
+        const state1 = get(store); // Use get (removed !) and cast
         // Check intermediate objects exist. Use ts-ignore as type narrowing is complex here.
         // @ts-ignore Testing path creation, expect properties to exist
         expect(state1.user.profile.name).toBe('Alice');
         setPath(store, 'user.tags.0', 'tag1'); // Use setPath
-        const state2 = get(store); // Use get with non-null assertion and cast
+        const state2 = get(store); // Use get (removed !) and cast
         // Check intermediate array and element exist. Use ts-ignore.
         expect(Array.isArray(state2.user?.tags)).toBe(true);
         // @ts-ignore Testing path creation, expect properties to exist
@@ -54,9 +54,9 @@ describe('deepMap (functional)', () => {
     it('should maintain immutability', () => {
         const initial = { a: { b: 1 } };
         const store = deepMap(initial); // Use deepMap
-        const originalA = get(store).a; // Use get with non-null assertion and cast
+        const originalA = get(store).a; // Use get (removed !) and cast
         setPath(store, 'a.b', 2); // Use setPath
-        const newState = get(store); // Use get with non-null assertion and cast
+        const newState = get(store); // Use get (removed !) and cast
         const newA = newState.a;
         expect(newState.a.b).toBe(2);
         expect(newA).not.toBe(originalA); // The 'a' object should be a new reference
@@ -76,7 +76,7 @@ describe('deepMap (functional)', () => {
         const store = deepMap({ user: { name: 'John' } }); // Use deepMap
         const listener = vi.fn();
         const unsubscribe = subscribe(store, listener); // Use subscribe
-        const oldValue = get(store); // Use get with non-null assertion and cast
+        const oldValue = get(store); // Use get (removed !) and cast
         listener.mockClear(); // Clear initial call from subscribe
         setPath(store, 'user.name', 'Jane'); // Use setPath
         expect(listener).toHaveBeenCalledTimes(1);
@@ -91,22 +91,23 @@ describe('deepMap (functional)', () => {
     it('should handle setting root properties', () => {
         const store = deepMap({ name: 'Initial' }); // Use deepMap
         setPath(store, 'name', 'Updated'); // Use setPath
-        expect(get(store).name).toBe('Updated'); // Cast
+        expect(get(store).name).toBe('Updated'); // Cast (removed !)
         setPath(store, 'age', 42); // Use setPath
-        expect(get(store).age).toBe(42); // Cast
+        expect(get(store).age).toBe(42); // Cast (removed !)
     });
     it('should handle setting values in arrays correctly', () => {
         const store = deepMap({ items: ['a', 'b', 'c'] }); // Use deepMap
         setPath(store, 'items.1', 'B'); // Use setPath
-        expect(get(store).items).toEqual(['a', 'B', 'c']); // Cast
+        expect(get(store).items).toEqual(['a', 'B', 'c']); // Cast (removed !)
         setPath(store, ['items', 2], 3); // Use setPath
-        expect(get(store).items).toEqual(['a', 'B', 3]); // Cast
+        expect(get(store).items).toEqual(['a', 'B', 3]); // Cast (removed !)
         // Test adding beyond current length (should ideally handle sparse arrays or expand)
         setPath(store, 'items.4', 'e'); // Use setPath
-        expect(get(store).items.length).toBe(5); // Cast
-        expect(get(store).items[3]).toBeUndefined(); // Cast
-        expect(get(store).items[4]).toBe('e'); // Cast
+        expect(get(store).items.length).toBe(5); // Cast (removed !)
+        expect(get(store).items[3]).toBeUndefined(); // Cast (removed !)
+        expect(get(store).items[4]).toBe('e'); // Cast (removed !)
         expect(get(store).items).toEqual([
+            // Cast (removed !)
             'a',
             'B',
             3,
@@ -121,10 +122,10 @@ describe('deepMap (functional)', () => {
         const unsubscribe = subscribe(store, listener); // Use subscribe
         listener.mockClear();
         setPath(store, '', 'should not change'); // Use setPath
-        expect(get(store)).toEqual(initial); // Use get with non-null assertion
+        expect(get(store)).toEqual(initial); // Use get (removed !)
         expect(listener).not.toHaveBeenCalled();
         setPath(store, [], 'should also not change'); // Use setPath
-        expect(get(store)).toEqual(initial); // Use get with non-null assertion
+        expect(get(store)).toEqual(initial); // Use get (removed !)
         expect(listener).not.toHaveBeenCalled();
         unsubscribe();
     });

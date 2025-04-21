@@ -60,6 +60,7 @@ export function effect(stores, callback) {
             try {
                 // Run the main callback and store the new cleanup function
                 // Cast needed as values were checked for null above.
+                // biome-ignore lint/suspicious/noExplicitAny: Spread arguments require any here
                 lastCleanup = callback(...currentValues); // Cast needed for spread arguments
             }
             catch (_error) {
@@ -91,6 +92,8 @@ export function effect(stores, callback) {
             catch (_error) { }
         }
         // Unsubscribe from all stores
-        unsubscribers.forEach((unsub) => unsub());
+        for (const unsub of unsubscribers) {
+            unsub();
+        }
     };
 }

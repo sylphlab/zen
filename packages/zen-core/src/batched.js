@@ -34,6 +34,7 @@ export function batched(stores, calculation) {
                     }
                     // Use get() for all other types (atom, computed, map, etc.)
                     // Need 'as any' because TS struggles with the generic overload matching here.
+                    // biome-ignore lint/suspicious/noExplicitAny: TS struggles with generic overload resolution here
                     currentValues[i] = get(source);
                     // If get() returns null for a computed atom that should have updated,
                     // it implies an issue within get() or computed._update() itself.

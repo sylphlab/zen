@@ -11,6 +11,7 @@ describe('effect', () => {
         const atom1 = zen(10);
         const atom2 = zen('hello');
         const callback = vi.fn();
+        // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
         const cancel = effect([atom1, atom2], callback); // Cast stores
         expect(callback).toHaveBeenCalledTimes(1);
         expect(callback).toHaveBeenCalledWith(10, 'hello');
@@ -20,6 +21,7 @@ describe('effect', () => {
         const atom1 = zen(10);
         const atom2 = zen('hello');
         const callback = vi.fn();
+        // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
         const cancel = effect([atom1, atom2], callback); // Cast stores
         callback.mockClear(); // Clear initial call
         set(atom1, 11);
@@ -34,6 +36,7 @@ describe('effect', () => {
         const source = zen(0);
         const cleanupFn = vi.fn();
         const callback = vi.fn(() => cleanupFn);
+        // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
         const cancel = effect([source], callback); // Cast store
         expect(callback).toHaveBeenCalledTimes(1); // Initial run
         expect(cleanupFn).not.toHaveBeenCalled();
@@ -49,6 +52,7 @@ describe('effect', () => {
         const source = zen(0);
         const cleanupFn = vi.fn();
         const callback = vi.fn(() => cleanupFn);
+        // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
         const cancel = effect([source], callback); // Cast store
         expect(callback).toHaveBeenCalledTimes(1);
         expect(cleanupFn).not.toHaveBeenCalled();
@@ -67,11 +71,14 @@ describe('effect', () => {
     test('handles computed dependencies', async () => {
         // SKIP related NaN issue
         const base = zen(10);
+        // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
         const comp = computed(base, (val) => val * 2); // Cast needed, use unknown
         const callback = vi.fn();
         // Need to subscribe to computed first to initialize it
+        // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
         const unsubComp = subscribe(comp, () => { });
         await nextTick(); // Allow computed to calculate
+        // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
         const cancel = effect([comp], callback); // Cast needed
         expect(callback).toHaveBeenCalledTimes(1);
         expect(callback).toHaveBeenCalledWith(20);
@@ -85,8 +92,10 @@ describe('effect', () => {
     });
     test('handles batched dependencies', async () => {
         const base = zen(10);
+        // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
         const batchedDep = batched(base, (val) => val * 2); // Cast needed, use unknown
         const callback = vi.fn();
+        // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
         const cancel = effect([batchedDep], callback); // Cast needed
         // Callback shouldn't run immediately because batched is null initially
         expect(callback).not.toHaveBeenCalled();
@@ -105,6 +114,7 @@ describe('effect', () => {
     test('does not run callback if cancelled before first run', () => {
         const source = zen(0);
         const callback = vi.fn();
+        // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
         const cancel = effect([source], callback); // Cast store
         cancel(); // Cancel immediately
         // The callback WILL run once due to the synchronous initial execution after setup
@@ -131,6 +141,7 @@ describe('effect', () => {
         });
         const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
         // Test without cleanup
+        // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
         const cancel1 = effect([source], callback); // Cast store & callback type
         callback.mockClear();
         expect(() => set(source, 1)).not.toThrow(); // Error should be caught internally
@@ -140,6 +151,7 @@ describe('effect', () => {
         consoleErrorSpy.mockClear();
         // Test with cleanup
         set(source, 0); // Reset source
+        // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
         const cancel2 = effect([source], callbackWithCleanup); // Cast store
         callbackWithCleanup.mockClear();
         cleanupFn.mockClear();
@@ -163,6 +175,7 @@ describe('effect', () => {
         });
         const callback = vi.fn(() => cleanupFn);
         const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+        // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
         const cancel = effect([source], callback); // Cast store
         callback.mockClear();
         // Trigger cleanup error

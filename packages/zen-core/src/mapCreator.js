@@ -18,6 +18,7 @@ export function mapCreator(initializer) {
     const createStoreInstance = (id, ...args) => {
         // Check cache first
         if (cache.has(id)) {
+            // biome-ignore lint/style/noNonNullAssertion: cache.has(id) check guarantees existence
             return cache.get(id);
         }
         // Create a new map store with an empty initial object
