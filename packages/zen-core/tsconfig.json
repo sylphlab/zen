@@ -1,4 +1,4 @@
- {
+{
   // Removed "extends": "../../tsconfig.base.json"
   "compilerOptions": {
     // Copied necessary options from tsconfig.base.json

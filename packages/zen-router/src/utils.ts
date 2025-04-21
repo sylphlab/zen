@@ -13,7 +13,7 @@ export function parseQuery(queryString: string): Search {
   if (!queryString) {
     return search;
   }
-  queryString.split('&').forEach(pair => {
+  queryString.split('&').forEach((pair) => {
     const parts = pair.split('=');
     const keySource = parts[0];
     const valueSource = parts[1];
@@ -24,9 +24,8 @@ export function parseQuery(queryString: string): Search {
     if (!key) return; // Skip if key is empty after decoding
 
     // Handle cases like '?flag' where there's no value, and ensure valueSource exists before replace
-    const value = typeof valueSource === 'string'
-      ? decodeURIComponent(valueSource.replace(/\+/g, ' '))
-      : '';
+    const value =
+      typeof valueSource === 'string' ? decodeURIComponent(valueSource.replace(/\+/g, ' ')) : '';
 
     // Simple assignment, doesn't handle multiple values for the same key yet
     search[key] = value;
@@ -50,8 +49,6 @@ export function getPathFromUrl(urlOrPath: string): string {
     if (urlOrPath.startsWith('/') || urlOrPath === '') {
       return urlOrPath;
     }
-    // Handle relative paths or invalid inputs cautiously
-    console.warn(`[zen-router] Invalid URL or path provided to getPathFromUrl: ${urlOrPath}. Returning as is.`);
     return urlOrPath;
   }
 }

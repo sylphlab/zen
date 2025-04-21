@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 // Remove placeholder tests. Add meaningful integration tests later if needed.
 describe('Integration Tests', () => {

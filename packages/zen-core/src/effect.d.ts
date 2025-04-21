@@ -9,6 +9,11 @@ import type { AnyAtom, AtomValue, Unsubscribe } from './types';
  * @param callback The function to run on changes. It receives store values as arguments.
  * @returns A function to cancel the effect and unsubscribe from all stores.
  */
-export declare function effect<Stores extends AnyAtom[]>(stores: [...Stores], callback: (...values: {
-    [K in keyof Stores]: AtomValue<Stores[K]>;
-}) => (void | (() => void))): Unsubscribe;
+export declare function effect<Stores extends AnyAtom[]>(
+  stores: [...Stores],
+  callback: (
+    ...values: {
+      [K in keyof Stores]: AtomValue<Stores[K]>;
+    }
+  ) => undefined | (() => void),
+): Unsubscribe;

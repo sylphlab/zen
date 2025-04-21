@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { defineRoutes, getRoutes } from '../routes'; // Assuming getRoutes is exported or made available for testing
-import { matchRoutes } from '../matcher'; // Assuming matchRoutes is exported or made available for testing
-import { $router } from '../index';
 import { set } from '@sylphlab/zen-core'; // Import the functional set
+import { beforeEach, describe, expect, it } from 'vitest';
+import { $router } from '../index';
+import { matchRoutes } from '../matcher'; // Assuming matchRoutes is exported or made available for testing
+import { defineRoutes, getRoutes } from '../routes'; // Assuming getRoutes is exported or made available for testing
 
 // Mock routes for testing
 const testRoutes = [
@@ -14,7 +14,6 @@ const testRoutes = [
 ];
 
 describe('Router - Routing Logic', () => {
-
   beforeEach(() => {
     // Reset routes before each test if defineRoutes modifies global state
     // Or ensure defineRoutes returns a fresh set
@@ -65,7 +64,7 @@ describe('Router - Routing Logic', () => {
   });
 
   it('should return undefined if path does not match any route (no catch-all)', () => {
-    const routesWithoutCatchAll = testRoutes.filter(r => r.path !== '*');
+    const routesWithoutCatchAll = testRoutes.filter((r) => r.path !== '*');
     defineRoutes(routesWithoutCatchAll);
     const match = matchRoutes('/non/existent/path', getRoutes());
     expect(match).toBeNull(); // Should return null for no match

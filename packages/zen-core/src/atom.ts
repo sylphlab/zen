@@ -178,6 +178,7 @@ export function subscribe<A extends AnyAtom>(
     if (startLs?.size) {
       // Pass the current value (might be null for computed initial)
       // Use get() to ensure computed is calculated if needed for the listener
+      // biome-ignore lint/suspicious/noExplicitAny: TS struggles with generic overload resolution here
       const currentValue = get(atom as any);
       for (const fn of startLs) {
         try {
@@ -201,8 +202,10 @@ export function subscribe<A extends AnyAtom>(
   try {
     // Use type assertion `as any` because TS struggles to narrow `A` to match a specific `get` overload here.
     // The `get` function's internal switch statement handles the different atom kinds correctly.
+    // biome-ignore lint/suspicious/noExplicitAny: TS struggles with generic overload resolution here
     const initialValue = get(atom as any); // Reverted: Use generic type A, removed 'as any'
     // Pass undefined as oldValue for the initial call
+    // biome-ignore lint/suspicious/noExplicitAny: Listener type requires any here due to complex generic
     (listener as Listener<any>)(initialValue, undefined); // Reverted: Removed 'as Listener<any>'
   } catch (_e) {
     // Optionally re-throw or handle differently

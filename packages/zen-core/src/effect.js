@@ -26,13 +26,11 @@ export function effect(stores, callback) {
             try {
                 lastCleanup();
             }
-            catch (error) {
-                console.error("Error during effect cleanup:", error);
-            }
+            catch (_error) { }
             lastCleanup = undefined; // Reset cleanup after running
         }
         // Get current values, handling updates for computed/batched
-        const currentValues = stores.map(s => {
+        const currentValues = stores.map((s) => {
             switch (s._kind) {
                 case 'computed': {
                     const computed = s;
@@ -52,13 +50,11 @@ export function effect(stores, callback) {
                 case 'task':
                     return s._value; // Direct value
                 default:
-                    // Should be unreachable with AnyAtom
-                    console.error("Unknown atom kind encountered in effect:", s); // Log error instead
                     return null;
             }
         });
         // Check if any value is still null (initial state for computed/batched)
-        const dependenciesReady = !currentValues.some(v => v === null);
+        const dependenciesReady = !currentValues.some((v) => v === null);
         if (dependenciesReady) {
             // All values are non-null, proceed.
             try {
@@ -66,8 +62,7 @@ export function effect(stores, callback) {
                 // Cast needed as values were checked for null above.
                 lastCleanup = callback(...currentValues); // Cast needed for spread arguments
             }
-            catch (error) {
-                console.error("Error during effect callback:", error);
+            catch (_error) {
                 lastCleanup = undefined; // Reset cleanup on error
             }
         }
@@ -78,7 +73,7 @@ export function effect(stores, callback) {
     };
     // Subscribe to all stores. Pass the unmodified runCallback.
     // The initial synchronous call from subscribe will be ignored due to setupComplete flag.
-    const unsubscribers = stores.map(store => subscribe(store, runCallback));
+    const unsubscribers = stores.map((store) => subscribe(store, runCallback));
     // Mark setup as complete AFTER all subscriptions are done
     setupComplete = true;
     // Manually trigger the first run AFTER setup is complete
@@ -93,11 +88,9 @@ export function effect(stores, callback) {
             try {
                 lastCleanup();
             }
-            catch (error) {
-                console.error("Error during final effect cleanup:", error);
-            }
+            catch (_error) { }
         }
         // Unsubscribe from all stores
-        unsubscribers.forEach(unsub => unsub());
+        unsubscribers.forEach((unsub) => unsub());
     };
 }

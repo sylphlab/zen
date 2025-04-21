@@ -27,7 +27,7 @@
     "test:watch": "vitest",
     "bench": "vitest bench --run",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rimraf dist"
   },
   "dependencies": {
     "@sylphlab/zen-core": "workspace:*"

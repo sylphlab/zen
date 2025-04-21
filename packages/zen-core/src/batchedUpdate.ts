@@ -9,21 +9,19 @@
  * @returns A function that schedules `fn` to run in a microtask.
  */
 export function batchedUpdate(fn: () => void): () => void {
-    let microtaskScheduled = false;
+  let microtaskScheduled = false;
 
-    const runFn = () => {
-        microtaskScheduled = false;
-        try {
-            fn();
-        } catch (error) {
-            console.error("Error during batched callback execution:", error);
-        }
-    };
+  const runFn = () => {
+    microtaskScheduled = false;
+    try {
+      fn();
+    } catch (_error) {}
+  };
 
-    return () => {
-        if (!microtaskScheduled) {
-            microtaskScheduled = true;
-            queueMicrotask(runFn);
-        }
-    };
+  return () => {
+    if (!microtaskScheduled) {
+      microtaskScheduled = true;
+      queueMicrotask(runFn);
+    }
+  };
 }

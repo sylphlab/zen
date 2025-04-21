@@ -1,5 +1,5 @@
-import { defineConfig } from 'vitest/config';
 import preact from '@preact/preset-vite'; // Import preact plugin
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [preact()], // Add preact plugin

@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { task, runTask } from './task';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { subscribe } from './atom'; // Assuming subscribe handles TaskAtom
+import { runTask, task } from './task';
 
 // Helper to wait for promises/microtasks
-const tick = () => new Promise(resolve => setTimeout(resolve, 0));
+const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe('task', () => {
   let taskAtom;
@@ -64,7 +64,7 @@ describe('task', () => {
     expect(errorListener).toHaveBeenCalledTimes(1); // Ensure error was caught
   });
 
-   it('should notify subscribers on state changes', async () => {
+  it('should notify subscribers on state changes', async () => {
     taskAtom = task(asyncFnSuccess);
     const listener = vi.fn();
     const unsubscribe = subscribe(taskAtom, listener);
@@ -72,8 +72,8 @@ describe('task', () => {
     // Initial state notification from subscribe
     expect(listener).toHaveBeenCalledTimes(1);
     expect(listener).toHaveBeenLastCalledWith(
-        { loading: false, error: undefined, data: undefined },
-        undefined // oldValue is undefined on initial subscribe call
+      { loading: false, error: undefined, data: undefined },
+      undefined, // oldValue is undefined on initial subscribe call
     );
 
     const promise = runTask(taskAtom, 'notify');
@@ -81,8 +81,8 @@ describe('task', () => {
     // Loading state notification
     expect(listener).toHaveBeenCalledTimes(2);
     expect(listener).toHaveBeenLastCalledWith(
-        { loading: true, error: undefined, data: undefined },
-        { loading: false, error: undefined, data: undefined }
+      { loading: true, error: undefined, data: undefined },
+      { loading: false, error: undefined, data: undefined },
     );
 
     await promise;
@@ -90,21 +90,21 @@ describe('task', () => {
     // Success state notification
     expect(listener).toHaveBeenCalledTimes(3);
     expect(listener).toHaveBeenLastCalledWith(
-        { loading: false, error: undefined, data: 'Success: notify' },
-        { loading: true, error: undefined, data: undefined }
+      { loading: false, error: undefined, data: 'Success: notify' },
+      { loading: true, error: undefined, data: undefined },
     );
 
     unsubscribe();
   });
 
-   it('should handle multiple runs, only processing the latest if overlapping', async () => {
+  it('should handle multiple runs, only processing the latest if overlapping', async () => {
     const slowFn = vi.fn(async (arg: string) => {
-        if (arg === 'first') {
-            await new Promise(resolve => setTimeout(resolve, 50)); // Use timeout for delay
-            return 'First finished';
-        }
-        await tick();
-        return `Finished: ${arg}`;
+      if (arg === 'first') {
+        await new Promise((resolve) => setTimeout(resolve, 50)); // Use timeout for delay
+        return 'First finished';
+      }
+      await tick();
+      return `Finished: ${arg}`;
     });
 
     taskAtom = task(slowFn);
@@ -139,5 +139,4 @@ describe('task', () => {
 
     unsubscribe();
   });
-
 });

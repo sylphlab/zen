@@ -15,16 +15,30 @@ export function createRouter<S = unknown>(): Router<S> {
   let value: S | null = null;
   const listeners = new Set<(value: S | null, oldValue?: S | null) => void>();
   return {
-    get() { return value; },
+    get() {
+      return value;
+    },
     set(newValue: S) {
       const old = value;
       value = newValue;
-      listeners.forEach(fn => { try { fn(value, old); } catch { /* ignore errors */ } });
+      listeners.forEach((fn) => {
+        try {
+          fn(value, old);
+        } catch {
+          /* ignore errors */
+        }
+      });
     },
     subscribe(listener) {
       listeners.add(listener);
-      try { listener(value, undefined); } catch { /* ignore errors */ }
-      return () => { listeners.delete(listener); };
-    }
+      try {
+        listener(value, undefined);
+      } catch {
+        /* ignore errors */
+      }
+      return () => {
+        listeners.delete(listener);
+      };
+    },
   };
 }

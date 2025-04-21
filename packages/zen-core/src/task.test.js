@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { task, runTask } from './task';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { subscribe } from './atom'; // Assuming subscribe handles TaskAtom
+import { runTask, task } from './task';
 // Helper to wait for promises/microtasks
-const tick = () => new Promise(resolve => setTimeout(resolve, 0));
+const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 describe('task', () => {
     let taskAtom;
     const asyncFnSuccess = vi.fn(async (arg) => {
@@ -59,8 +59,7 @@ describe('task', () => {
         const unsubscribe = subscribe(taskAtom, listener);
         // Initial state notification from subscribe
         expect(listener).toHaveBeenCalledTimes(1);
-        expect(listener).toHaveBeenLastCalledWith({ loading: false, error: undefined, data: undefined }, undefined // oldValue is undefined on initial subscribe call
-        );
+        expect(listener).toHaveBeenLastCalledWith({ loading: false, error: undefined, data: undefined }, undefined);
         const promise = runTask(taskAtom, 'notify');
         // Loading state notification
         expect(listener).toHaveBeenCalledTimes(2);
@@ -74,7 +73,7 @@ describe('task', () => {
     it('should handle multiple runs, only processing the latest if overlapping', async () => {
         const slowFn = vi.fn(async (arg) => {
             if (arg === 'first') {
-                await new Promise(resolve => setTimeout(resolve, 50)); // Use timeout for delay
+                await new Promise((resolve) => setTimeout(resolve, 50)); // Use timeout for delay
                 return 'First finished';
             }
             await tick();

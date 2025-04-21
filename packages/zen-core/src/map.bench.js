@@ -1,7 +1,7 @@
-import { bench, describe } from 'vitest';
-import { map, set, setKey } from './map'; // Import map-specific functional API
-import { get } from './index'; // Import core 'get' from main entry
 import { map as nanoMap } from 'nanostores';
+import { bench, describe } from 'vitest';
+import { get } from './index'; // Import core 'get' from main entry
+import { map, set, setKey } from './map'; // Import map-specific functional API
 describe('Map Creation', () => {
     bench('zen', () => {
         map({ name: 'John', age: 30 });

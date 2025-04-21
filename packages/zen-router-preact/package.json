@@ -20,24 +20,15 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": [
-    "dist",
-    "README.md"
-  ],
-  "keywords": [
-    "zen",
-    "router",
-    "preact",
-    "hooks",
-    "state management"
-  ],
+  "files": ["dist", "README.md"],
+  "keywords": ["zen", "router", "preact", "hooks", "state management"],
   "homepage": "https://github.com/sylphlab/zen/tree/main/packages/zen-router-preact#readme",
   "bugs": {
     "url": "https://github.com/sylphlab/zen/issues"
   },
   "scripts": {
     "build": "tsup",
-    "clean": "rm -rf dist .turbo node_modules"
+    "clean": "rimraf dist .turbo"
   },
   "dependencies": {
     "@sylphlab/zen-core": "workspace:*",

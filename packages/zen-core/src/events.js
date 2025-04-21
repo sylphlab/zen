@@ -25,8 +25,7 @@ export const getDeep = (obj, path) => {
 // Removed isMutableAtom type guard as onSet now only accepts Atom<T>
 // --- Internal Helper for Removing Listeners ---
 // Update _unsubscribe to use generics properly
-function _unsubscribe(a, listenerSetProp, fn // Use AtomValue<A>
-) {
+function _unsubscribe(a, listenerSetProp, fn) {
     // Operate directly on atom 'a'
     const baseAtom = a; // Cast using AtomValue<A>
     const ls = baseAtom[listenerSetProp]; // Type is Set<LifecycleListener<AtomValue<A>>> | undefined
@@ -90,12 +89,12 @@ const keyListeners = new WeakMap(); // Add MapAtom back
  * Relies on the internal atom having the `STORE_MAP_KEY_SET` symbol.
  */
 // Use generic A constrained to MapAtom | DeepMapAtom, use AtomValue<A> for listener
-export function listenPaths(// Add MapAtom back
-a, paths, fn // Use AtomValue<A>
-) {
+export function listenPaths(
+// Add MapAtom back
+a, paths, fn) {
     // Check if it's a Map or DeepMap atom by checking _kind property
-    if (a._kind !== 'map' && a._kind !== 'deepMap') { // Add 'map' check back
-        console.warn('listenPaths called on an incompatible atom type. Listener ignored.');
+    if (a._kind !== 'map' && a._kind !== 'deepMap') {
+        // Add 'map' check back
         return () => { }; // Return no-op unsubscribe
     }
     // Get or create listeners map for this specific atom 'a'
@@ -105,21 +104,22 @@ a, paths, fn // Use AtomValue<A>
         pathListeners.set(a, atomPathListeners);
     }
     // Normalize paths to strings using null character separator for arrays
-    const pathStrings = paths.map(p => Array.isArray(p) ? p.join('\0') : String(p));
-    pathStrings.forEach(ps => {
-        let listenersForPath = atomPathListeners.get(ps);
+    const pathStrings = paths.map((p) => (Array.isArray(p) ? p.join('\0') : String(p)));
+    pathStrings.forEach((ps) => {
+        let listenersForPath = atomPathListeners?.get(ps);
         if (!listenersForPath) {
             listenersForPath = new Set();
-            atomPathListeners.set(ps, listenersForPath);
+            atomPathListeners?.set(ps, listenersForPath);
         }
         // Add the correctly typed listener
         listenersForPath.add(fn); // Cast needed due to WeakMap/Set variance issues
     });
     return () => {
+        // Return function starts here
         const currentAtomListeners = pathListeners.get(a);
         if (!currentAtomListeners)
             return;
-        pathStrings.forEach(ps => {
+        pathStrings.forEach((ps) => {
             const listenersForPath = currentAtomListeners.get(ps);
             if (listenersForPath) {
                 // Delete the correctly typed listener
@@ -142,15 +142,15 @@ a, paths, fn // Use AtomValue<A>
  * @internal
  */
 // Update _emitPathChanges signature
-export function _emitPathChanges(// Add MapAtom back
-a, changedPaths, finalValue // Use AtomValue
-) {
+export function _emitPathChanges(
+// Add MapAtom back
+a, changedPaths, finalValue) {
     const atomPathListeners = pathListeners.get(a);
     if (!atomPathListeners?.size || !changedPaths.length)
         return;
     // Normalize changed paths for efficient lookup (stringified with null char separator)
     const normalizedChanged = new Map();
-    changedPaths.forEach(p => {
+    changedPaths.forEach((p) => {
         const arrayPath = Array.isArray(p) ? p : String(p).split('.'); // Assume dot notation if string
         normalizedChanged.set(arrayPath.join('\0'), { path: p, array: arrayPath });
     });
@@ -178,15 +178,13 @@ a, changedPaths, finalValue // Use AtomValue
                 // If it's a match, get the value at the *changed* path and notify listeners
                 // This ensures listeners for 'a.b' get the value of 'a.b.c' if that's what changed.
                 const valueAtPath = getDeep(finalValue, changedPathArray);
-                listenersSet.forEach(listener => {
+                listenersSet.forEach((listener) => {
                     try {
                         // Pass the original changed path (string or array) back to the listener
                         // Cast finalValue to expected object type for listener
                         listener(valueAtPath, changedPath, finalValue);
                     }
-                    catch (err) {
-                        console.error(`Error in path listener for path "${registeredPathString}" on atom ${String(a)}:`, err);
-                    }
+                    catch (_err) { }
                 });
                 // Optimization: If a specific changed path matches, no need to check further changed paths for *this* registered listener path.
                 // However, different registered paths might match the same changed path, so we don't break the outer loop.
@@ -199,12 +197,12 @@ a, changedPaths, finalValue // Use AtomValue
  * Relies on the internal atom having the `STORE_MAP_KEY_SET` symbol.
  */
 // Update listenKeys signature
-export function listenKeys(// Add MapAtom back
-a, keys, fn // Use AtomValue<A>
-) {
+export function listenKeys(
+// Add MapAtom back
+a, keys, fn) {
     // Check if it's a Map or DeepMap atom by checking _kind property
-    if (a._kind !== 'map' && a._kind !== 'deepMap') { // Add 'map' check back
-        console.warn('listenKeys called on an incompatible atom type. Listener ignored.');
+    if (a._kind !== 'map' && a._kind !== 'deepMap') {
+        // Add 'map' check back
         return () => { }; // Return no-op unsubscribe
     }
     // Get or create listeners map for this specific atom 'a'
@@ -213,20 +211,21 @@ a, keys, fn // Use AtomValue<A>
         atomKeyListeners = new Map();
         keyListeners.set(a, atomKeyListeners);
     }
-    keys.forEach(k => {
-        let listenersForKey = atomKeyListeners.get(k);
+    keys.forEach((k) => {
+        let listenersForKey = atomKeyListeners?.get(k);
         if (!listenersForKey) {
             listenersForKey = new Set();
-            atomKeyListeners.set(k, listenersForKey);
+            atomKeyListeners?.set(k, listenersForKey);
         }
         // Add the correctly typed listener
         listenersForKey.add(fn); // Cast needed due to WeakMap/Set variance issues
     });
     return () => {
+        // Return function starts here
         const currentAtomListeners = keyListeners.get(a);
         if (!currentAtomListeners)
             return;
-        keys.forEach(k => {
+        keys.forEach((k) => {
             const listenersForKey = currentAtomListeners.get(k);
             if (listenersForKey) {
                 // Delete the correctly typed listener
@@ -249,13 +248,13 @@ a, keys, fn // Use AtomValue<A>
  * @internal
  */
 // Update _emitKeyChanges signature
-export function _emitKeyChanges(// Add MapAtom back
-a, changedKeys, finalValue // Use AtomValue
-) {
+export function _emitKeyChanges(
+// Add MapAtom back
+a, changedKeys, finalValue) {
     const atomKeyListeners = keyListeners.get(a);
     if (!atomKeyListeners?.size)
         return;
-    changedKeys.forEach(k => {
+    changedKeys.forEach((k) => {
         const listenersForKey = atomKeyListeners.get(k);
         if (listenersForKey?.size) {
             const valueAtKey = finalValue[k];
@@ -266,21 +265,17 @@ a, changedKeys, finalValue // Use AtomValue
                     // Pass correctly typed key and value
                     listener?.(valueAtKey, k, finalValue);
                 }
-                catch (err) {
-                    console.error(`Error in key listener for key "${String(k)}" on atom ${String(a)}:`, err);
-                }
+                catch (_err) { }
             }
             else {
                 // Iterate for multiple listeners
-                listenersForKey.forEach(listener => {
+                listenersForKey.forEach((listener) => {
                     const typedListener = listener; // Cast listener
                     try {
                         // Pass correctly typed key and value
                         typedListener?.(valueAtKey, k, finalValue);
                     }
-                    catch (err) {
-                        console.error(`Error in key listener for key "${String(k)}" on atom ${String(a)}:`, err);
-                    }
+                    catch (_err) { }
                 });
             }
         }

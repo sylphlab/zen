@@ -1,4 +1,4 @@
-import { subscribe, notifyListeners, get } from './atom'; // Use core subscribe, notifyListeners, AND get
+import { get, notifyListeners, subscribe } from './atom'; // Use core subscribe, notifyListeners, AND get
 // Implementation
 export function batched(stores, calculation) {
     const storesArray = Array.isArray(stores) ? stores : [stores];
@@ -68,8 +68,7 @@ export function batched(stores, calculation) {
                     notifyListeners(atom, newValue, oldInternalValue);
                 }
             }
-            catch (error) {
-                console.error("!!! Error during batched calculation:", error); // Make error more prominent
+            catch (_error) {
                 atom._dirty = true; // Remain dirty on error
             }
         },
@@ -83,7 +82,8 @@ export function batched(stores, calculation) {
                 queueMicrotask(atom._update); // Use queueMicrotask
             }
             const onChange = () => {
-                if (!atom._dirty) { // Only mark dirty if not already dirty
+                if (!atom._dirty) {
+                    // Only mark dirty if not already dirty
                     atom._dirty = true;
                 }
                 // Schedule an update if not already pending for this tick
@@ -92,15 +92,17 @@ export function batched(stores, calculation) {
                     queueMicrotask(atom._update); // Use queueMicrotask
                 }
             };
-            atom._unsubscribers = atom._stores.map(sourceStore => subscribe(sourceStore, onChange));
+            atom._unsubscribers = atom._stores.map((sourceStore) => subscribe(sourceStore, onChange));
         },
         _unsubscribeFromSources: () => {
-            atom._unsubscribers.forEach(unsub => unsub());
+            for (const unsub of atom._unsubscribers) {
+                unsub();
+            }
             atom._unsubscribers = [];
             // No queue cleanup needed anymore
             // If an update was pending, it might run but won't notify if listeners are gone.
             // Or we could try to cancel it, but queueMicrotask doesn't support cancellation.
-        }
+        },
     };
     // Need to import notifyListeners for the _update function
     // This import needs to be at the top level

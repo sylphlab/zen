@@ -1,6 +1,6 @@
-import { describe, test, expect, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
+import { batch, get, setKey, subscribe } from './index'; // Use index functions
 import { mapCreator } from './mapCreator';
-import { get, setKey, subscribe, batch } from './index'; // Use index functions
 describe('mapCreator', () => {
     test('creates a function that generates map stores', () => {
         const initializer = vi.fn();
@@ -49,8 +49,8 @@ describe('mapCreator', () => {
         expect(initializer).toHaveBeenCalledTimes(1); // Initializer not called again
     });
     test('handles async initializers (mapCreator itself is sync)', async () => {
-        const promise = new Promise(resolve => setTimeout(() => resolve('Async Data'), 10));
-        const initializer = async (store, id) => {
+        const promise = new Promise((resolve) => setTimeout(() => resolve('Async Data'), 10));
+        const initializer = async (store, _id) => {
             setKey(store, 'loading', true);
             const data = await promise;
             // Wrap subsequent updates in a batch
@@ -81,9 +81,9 @@ describe('mapCreator', () => {
         // Add check to ensure listener was called before accessing calls array
         if (listener.mock.calls.length > 0) {
             // Use non-null assertion operator (!) after checking length
-            expect(listener.mock.calls[listener.mock.calls.length - 1][0]).toEqual(finalState);
+            expect(listener.mock.calls[listener.mock.calls.length - 1]?.[0]).toEqual(finalState);
             // The oldValue should be the state after the sync part of the initializer
-            expect(listener.mock.calls[listener.mock.calls.length - 1][1]).toEqual({ loading: true });
+            expect(listener.mock.calls[listener.mock.calls.length - 1]?.[1]).toEqual({ loading: true });
         }
         else {
             // Fail the test explicitly if the listener wasn't called after clear

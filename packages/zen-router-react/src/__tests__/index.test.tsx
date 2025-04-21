@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import { useRouter } from '../index'; // The hook under test
-import { $router } from '@sylphlab/zen-router'; // The store the hook reads from
 import { setKey } from '@sylphlab/zen-core'; // To update the store
+import { $router } from '@sylphlab/zen-router'; // The store the hook reads from
+import { act, renderHook } from '@testing-library/react';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { useRouter } from '../index'; // The hook under test
 
 describe('useRouter Hook', () => {
   // Reset store before each test

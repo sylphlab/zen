@@ -1,4 +1,4 @@
-import { subscribe as subscribeToCoreAtom, notifyListeners } from './atom'; // Import core subscribe AND notifyListeners
+import { notifyListeners, subscribe as subscribeToCoreAtom } from './atom'; // Import core subscribe AND notifyListeners
 // Removed import { notifyListeners } from './internalUtils'; // Import notifyListeners
 // Removed createAtom, getAtomValue, setAtomValue, subscribeToAtom imports
 // --- Type Definition ---
@@ -18,10 +18,13 @@ const runningPromises = new WeakMap(); // Use unknown
  * @returns A TaskAtom instance.
  */
 // Add Args generic parameter matching TaskAtom type
-export function task(// Use unknown[] for Args
+export function task(
+// Use unknown[] for Args
 asyncFn) {
+    // Return TaskAtom with Args
     // Create the merged TaskAtom object directly
     const taskAtom = {
+        // Use TaskAtom with Args
         _kind: 'task',
         _value: { loading: false }, // Initial TaskState
         _asyncFn: asyncFn,
@@ -41,6 +44,7 @@ asyncFn) {
  */
 // Add Args generic parameter matching TaskAtom type
 export function runTask(taskAtom, ...args) {
+    // Use unknown[] for Args
     // Operate directly on taskAtom
     // const stateAtom = taskAtom._stateAtom; // Removed
     // Check if a promise is already running for this task using the WeakMap.
@@ -68,7 +72,8 @@ export function runTask(taskAtom, ...args) {
             // **Crucially**, only update the state if this *specific* promise instance
             // is still the one tracked in the WeakMap.
             // Cast taskAtom for WeakMap key compatibility
-            if (runningPromises.get(taskAtom) === promise) { // Cast to unknown
+            if (runningPromises.get(taskAtom) === promise) {
+                // Cast to unknown
                 // console.log('Task succeeded, updating state.'); // Optional debug log
                 const oldStateSuccess = taskAtom._value;
                 taskAtom._value = { loading: false, data: result, error: undefined };
@@ -85,7 +90,8 @@ export function runTask(taskAtom, ...args) {
         catch (error) {
             // Similar check for race conditions on error.
             // Cast taskAtom for WeakMap key compatibility
-            if (runningPromises.get(taskAtom) === promise) { // Cast to unknown
+            if (runningPromises.get(taskAtom) === promise) {
+                // Cast to unknown
                 // console.error('Task failed, updating state:', error); // Optional debug log
                 // Ensure the error stored is always an Error instance.
                 const errorObj = error instanceof Error ? error : new Error(String(error ?? 'Unknown error'));

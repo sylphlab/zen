@@ -74,7 +74,7 @@ function updateComputedValue(atom) {
     // Note: We proceed even if some vals are null, assuming null is a valid state.
     // The calculation function itself should handle null inputs if necessary.
     // *** ADDED CHECK: Ensure all collected values are not undefined before calculating ***
-    if (vals.some(v => v === undefined)) {
+    if (vals.some((v) => v === undefined)) {
         atom._dirty = true; // Remain dirty if any source value is still undefined
         return false;
     }
@@ -114,9 +114,7 @@ function computedSourceChanged(atom) {
                 // Cast to AnyAtom for notifyListeners
                 notifyListeners(atom, atom._value, oldValue); // Notify downstream listeners
             }
-            catch (e) {
-                console.error(`Error notifying listeners for computed atom ${String(atom)}:`, e);
-            }
+            catch (_e) { }
         }
     }
     // If no listeners, we just stay dirty until the next `getAtomValue()`.
@@ -140,7 +138,8 @@ function subscribeComputedToSources(atom) {
             // Trigger source's onStart/onMount logic removed
             if (isFirstSourceListener) {
                 // If the source is itself computed, trigger its source subscription
-                if (source._kind === 'computed') { // Check kind directly
+                if (source._kind === 'computed') {
+                    // Check kind directly
                     const computedSource = source; // Cast
                     if (typeof computedSource._subscribeToSources === 'function') {
                         computedSource._subscribeToSources();
@@ -156,7 +155,7 @@ function subscribeComputedToSources(atom) {
                     return;
                 srcListeners.delete(onChangeHandler);
                 if (!srcListeners.size) {
-                    delete baseSrc._listeners;
+                    baseSrc._listeners = undefined;
                     // onStop logic removed
                     if (source._kind === 'computed') {
                         const computedSource = source;
@@ -196,11 +195,11 @@ function unsubscribeComputedFromSources(atom) {
  *   Defaults to `Object.is`. If it returns true, listeners are not notified.
  * @returns A ReadonlyAtom representing the computed value.
  */
-export function computed(// Allow single atom or array
+export function computed(
+// Allow single atom or array
 stores, 
 // Change signature to accept unknown[] for compatibility with internal call
-calculation, equalityFn = Object.is // Default to Object.is
-) {
+calculation, equalityFn = Object.is) {
     // Normalize stores input to always be an array
     const storesArray = Array.isArray(stores) ? stores : [stores];
     // Define the structure adhering to ComputedAtom<T> type

@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from 'vitest';
-import { deepMap, get, setPath, set, subscribe } from './deepMap'; // Import updated functional API (listenPaths removed)
+import { describe, expect, it, vi } from 'vitest';
 import { batch } from './atom';
+import { deepMap, get, set, setPath, subscribe } from './deepMap'; // Import updated functional API (listenPaths removed)
 describe('deepMap (functional)', () => {
     it('should create a deep map store', () => {
         const initial = { user: { name: 'John', age: 30 }, settings: { theme: 'dark' } };
@@ -25,12 +25,17 @@ describe('deepMap (functional)', () => {
         expect(state.user.name).toBe('John');
     });
     it('should set a deep value using array path', () => {
-        const store = deepMap({ data: [{ id: 1, value: 'A' }, { id: 2, value: 'B' }] }); // Use deepMap
+        const store = deepMap({
+            data: [
+                { id: 1, value: 'A' },
+                { id: 2, value: 'B' },
+            ],
+        }); // Use deepMap
         setPath(store, ['data', 1, 'value'], 'New B'); // Use setPath
         // Add non-null assertions and cast to specific type
         const dataState = get(store);
-        expect(dataState.data[1].value).toBe('New B');
-        expect(dataState.data[0].value).toBe('A');
+        expect(dataState.data?.[1]?.value).toBe('New B');
+        expect(dataState.data?.[0]?.value).toBe('A');
     });
     it('should create intermediate objects/arrays if they do not exist', () => {
         const store = deepMap({}); // Use deepMap
@@ -67,6 +72,7 @@ describe('deepMap (functional)', () => {
         unsubscribe();
     });
     it('should notify listeners when a deep value changes via setPath', () => {
+        // Renamed test
         const store = deepMap({ user: { name: 'John' } }); // Use deepMap
         const listener = vi.fn();
         const unsubscribe = subscribe(store, listener); // Use subscribe
@@ -100,7 +106,13 @@ describe('deepMap (functional)', () => {
         expect(get(store).items.length).toBe(5); // Cast
         expect(get(store).items[3]).toBeUndefined(); // Cast
         expect(get(store).items[4]).toBe('e'); // Cast
-        expect(get(store).items).toEqual(['a', 'B', 3, undefined, 'e']); // Cast
+        expect(get(store).items).toEqual([
+            'a',
+            'B',
+            3,
+            undefined,
+            'e',
+        ]); // Cast
     });
     it('should handle empty path input gracefully', () => {
         const initial = { a: 1 };
@@ -200,6 +212,6 @@ describe('deepMap (functional)', () => {
     });
     // Batching tests need re-evaluation for functional API
     /*
-    it('listenPaths should work correctly with batching', () => { ... }); // Use listenPaths
-    */
+      it('listenPaths should work correctly with batching', () => { ... }); // Use listenPaths
+      */
 });

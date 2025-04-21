@@ -16,11 +16,13 @@ describe('batched', () => {
 
   test('calculates initial value after tick', async () => {
     const source = atom(10);
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const derived = batched(source as any, (value) => (value as number) * 2); // Cast source, add type hint for value
     const listener = vi.fn();
 
     expect(derived._value).toBeNull(); // Should be null initially
 
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsub = subscribe(derived as any, listener); // Cast derived
 
     // Subscribe now calls listener synchronously with the initial value (which is null for batched)
@@ -42,8 +44,10 @@ describe('batched', () => {
 
   test('updates value only after tick', async () => {
     const source = atom(10);
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const derived = batched(source as any, (value) => (value as number) * 2); // Cast source, add type hint for value
     const listener = vi.fn();
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsub = subscribe(derived as any, listener); // Cast derived
 
     await nextTick(); // Initial calculation
@@ -67,10 +71,12 @@ describe('batched', () => {
     const source1 = atom(10);
     const source2 = atom(100);
     const derived = batched(
+      // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
       [source1 as any, source2 as any],
       (v1, v2) => (v1 as number) + (v2 as number),
     ); // Cast sources, add type hints
     const listener = vi.fn();
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsub = subscribe(derived as any, listener); // Cast derived
 
     await nextTick(); // Initial calculation (110)
@@ -97,10 +103,12 @@ describe('batched', () => {
     const source1 = atom(10);
     const source2 = atom(100);
     const derived = batched(
+      // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
       [source1 as any, source2 as any],
       (v1, v2) => (v1 as number) + (v2 as number),
     ); // Cast sources, add type hints
     const listener = vi.fn();
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsub = subscribe(derived as any, listener); // Cast derived
 
     await nextTick(); // Initial calculation (110)
@@ -128,6 +136,7 @@ describe('batched', () => {
     // SKIP NaN issue again
     const base = atom(5);
     // Modify computed calculation to explicitly handle null
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const comp = computed(base as any, (val) => (val === null ? 0 : (val as number)) * 2); // Cast base, add type hint
     // Explicit function to avoid potential arrow function/ternary issues
     const calculationFn = (val: unknown) => {
@@ -140,10 +149,12 @@ describe('batched', () => {
       }
       return Number.NaN; // Or throw error
     };
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const batchedComp = batched(comp as any, calculationFn); // Cast comp, add type hint
     const listener = vi.fn();
 
     // Subscribe to batchedComp, which should trigger subscription to comp
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsub = subscribe(batchedComp as any, listener); // Cast batchedComp
 
     expect(comp._value).toBe(10); // comp should calculate synchronously via get() during subscribe
@@ -183,6 +194,7 @@ describe('batched', () => {
     let calculationCount = 0;
 
     // Calculation returns a stable reference sometimes
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const derived = batched(source as any, (value: unknown) => {
       // Accept unknown
       calculationCount++;
@@ -198,6 +210,7 @@ describe('batched', () => {
     const listener = vi.fn();
     // Need get() from index to read value
     const { get } = await import('./index');
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsub = subscribe(derived as any, listener);
 
     // Initial sync call: (null, undefined)
@@ -244,10 +257,12 @@ describe('batched', () => {
   test('unsubscribes from source stores when last listener leaves', async () => {
     const source = atom(10);
     const calculation = vi.fn((value) => value * 2);
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const derived = batched(source as any, calculation); // Cast source
 
     // expect(derived._unsubscribers).toHaveLength(0); // Remove check for internal property
 
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsub1 = subscribe(derived as any, () => {}); // Cast derived
     await nextTick(); // Allow initial setup
 
@@ -258,6 +273,7 @@ describe('batched', () => {
     await nextTick();
     expect(calculation).toHaveBeenCalledTimes(1); // Calculation runs
 
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsub2 = subscribe(derived as any, () => {}); // Cast derived
     // const unsubCountBefore = derived._unsubscribers.length; // Remove check for internal property
 

@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from 'vitest';
-import { deepMap, get, setPath, set, subscribe } from './deepMap'; // Import updated functional API (listenPaths removed)
+import { describe, expect, it, vi } from 'vitest';
 import { batch } from './atom';
+import { deepMap, get, set, setPath, subscribe } from './deepMap'; // Import updated functional API (listenPaths removed)
 import type { Path } from './deepMapInternal'; // Import Path type if needed
 
 describe('deepMap (functional)', () => {
@@ -24,32 +24,36 @@ describe('deepMap (functional)', () => {
   it('should set a deep value using string path', () => {
     const store = deepMap({ user: { name: 'John', address: { city: 'Old City' } } }); // Use deepMap
     setPath(store, 'user.address.city', 'New City'); // Use setPath
-    const state = get(store)! as { user: { name: string; address: { city: string; }; }; }; // Cast
+    const state = get(store) as { user: { name: string; address: { city: string } } }; // Cast (removed !)
     expect(state.user.address.city).toBe('New City');
     expect(state.user.name).toBe('John');
   });
 
   it('should set a deep value using array path', () => {
-    const store = deepMap({ data: [{ id: 1, value: 'A' }, { id: 2, value: 'B' }] }); // Use deepMap
+    const store = deepMap({
+      data: [
+        { id: 1, value: 'A' },
+        { id: 2, value: 'B' },
+      ],
+    }); // Use deepMap
     setPath(store, ['data', 1, 'value'], 'New B'); // Use setPath
     // Add non-null assertions and cast to specific type
-    const dataState = get(store)! as { data: ({ id: number; value: string; } | undefined)[] };
-    expect(dataState.data![1]!.value).toBe('New B');
-    expect(dataState.data![0]!.value).toBe('A');
+    const dataState = get(store) as { data: ({ id: number; value: string } | undefined)[] }; // (removed !)
+    expect(dataState.data?.[1]?.value).toBe('New B');
+    expect(dataState.data?.[0]?.value).toBe('A');
   });
 
-   it('should create intermediate objects/arrays if they do not exist', () => {
-    const store = deepMap<{ user?: { profile?: { name?: string }; tags?: string[] }}>({}); // Use deepMap
+  it('should create intermediate objects/arrays if they do not exist', () => {
+    const store = deepMap<{ user?: { profile?: { name?: string }; tags?: string[] } }>({}); // Use deepMap
 
     setPath(store, 'user.profile.name', 'Alice'); // Use setPath
-    const state1 = get(store)! as { user?: { profile?: { name?: string } } }; // Use get with non-null assertion and cast
+    const state1 = get(store) as { user?: { profile?: { name?: string } } }; // Use get (removed !) and cast
     // Check intermediate objects exist. Use ts-ignore as type narrowing is complex here.
     // @ts-ignore Testing path creation, expect properties to exist
     expect(state1.user.profile.name).toBe('Alice');
 
-
     setPath(store, 'user.tags.0', 'tag1'); // Use setPath
-    const state2 = get(store)! as { user?: { tags?: string[] } }; // Use get with non-null assertion and cast
+    const state2 = get(store) as { user?: { tags?: string[] } }; // Use get (removed !) and cast
     // Check intermediate array and element exist. Use ts-ignore.
     expect(Array.isArray(state2.user?.tags)).toBe(true);
     // @ts-ignore Testing path creation, expect properties to exist
@@ -59,18 +63,18 @@ describe('deepMap (functional)', () => {
   it('should maintain immutability', () => {
     const initial = { a: { b: 1 } };
     const store = deepMap(initial); // Use deepMap
-    const originalA = (get(store)! as typeof initial).a; // Use get with non-null assertion and cast
+    const originalA = (get(store) as typeof initial).a; // Use get (removed !) and cast
 
     setPath(store, 'a.b', 2); // Use setPath
 
-    const newState = get(store)! as typeof initial; // Use get with non-null assertion and cast
+    const newState = get(store) as typeof initial; // Use get (removed !) and cast
     const newA = newState.a;
     expect(newState.a.b).toBe(2);
     expect(newA).not.toBe(originalA); // The 'a' object should be a new reference
     expect(newState).not.toBe(initial);
   });
 
-   it('should not notify if value does not change', () => {
+  it('should not notify if value does not change', () => {
     const store = deepMap({ user: { name: 'John' } }); // Use deepMap
     const listener = vi.fn();
     const unsubscribe = subscribe(store, listener); // Use subscribe
@@ -84,13 +88,13 @@ describe('deepMap (functional)', () => {
     unsubscribe();
   });
 
-  it('should notify listeners when a deep value changes via setPath', () => { // Renamed test
+  it('should notify listeners when a deep value changes via setPath', () => {
+    // Renamed test
     const store = deepMap({ user: { name: 'John' } }); // Use deepMap
     const listener = vi.fn();
     const unsubscribe = subscribe(store, listener); // Use subscribe
-    const oldValue = get(store)! as { user: { name: string } }; // Use get with non-null assertion and cast
+    const oldValue = get(store) as { user: { name: string } }; // Use get (removed !) and cast
     listener.mockClear(); // Clear initial call from subscribe
-
 
     setPath(store, 'user.name', 'Jane'); // Use setPath
 
@@ -106,77 +110,79 @@ describe('deepMap (functional)', () => {
   it('should handle batching correctly with setPath', () => { ... }); // Use setPath
   */
 
-    it('should handle setting root properties', () => {
-      const store = deepMap<{ name: string; age?: number }>({ name: 'Initial' }); // Use deepMap
-      setPath(store, 'name', 'Updated'); // Use setPath
-      expect((get(store)! as { name: string; age?: number }).name).toBe('Updated'); // Cast
-      setPath(store, 'age', 42); // Use setPath
-      expect((get(store)! as { name: string; age?: number }).age).toBe(42); // Cast
+  it('should handle setting root properties', () => {
+    const store = deepMap<{ name: string; age?: number }>({ name: 'Initial' }); // Use deepMap
+    setPath(store, 'name', 'Updated'); // Use setPath
+    expect((get(store) as { name: string; age?: number }).name).toBe('Updated'); // Cast (removed !)
+    setPath(store, 'age', 42); // Use setPath
+    expect((get(store) as { name: string; age?: number }).age).toBe(42); // Cast (removed !)
+  });
+
+  it('should handle setting values in arrays correctly', () => {
+    const store = deepMap<{ items: (string | number)[] }>({ items: ['a', 'b', 'c'] }); // Use deepMap
+    setPath(store, 'items.1', 'B'); // Use setPath
+    expect((get(store) as { items: (string | number)[] }).items).toEqual(['a', 'B', 'c']); // Cast (removed !)
+
+    setPath(store, ['items', 2], 3); // Use setPath
+    expect((get(store) as { items: (string | number)[] }).items).toEqual(['a', 'B', 3]); // Cast (removed !)
+
+    // Test adding beyond current length (should ideally handle sparse arrays or expand)
+    setPath(store, 'items.4', 'e'); // Use setPath
+    expect((get(store) as { items: (string | number)[] }).items.length).toBe(5); // Cast (removed !)
+    expect((get(store) as { items: (string | number)[] }).items[3]).toBeUndefined(); // Cast (removed !)
+    expect((get(store) as { items: (string | number)[] }).items[4]).toBe('e'); // Cast (removed !)
+    expect((get(store) as { items: (string | number)[] }).items).toEqual([
+      // Cast (removed !)
+      'a',
+      'B',
+      3,
+      undefined,
+      'e',
+    ]); // Cast
+  });
+
+  it('should handle empty path input gracefully', () => {
+    const initial = { a: 1 };
+    const store = deepMap(initial); // Use deepMap
+    const listener = vi.fn();
+    const unsubscribe = subscribe(store, listener); // Use subscribe
+    listener.mockClear();
+
+    setPath(store, '', 'should not change'); // Use setPath
+    expect(get(store)).toEqual(initial); // Use get (removed !)
+    expect(listener).not.toHaveBeenCalled();
+
+    setPath(store, [], 'should also not change'); // Use setPath
+    expect(get(store)).toEqual(initial); // Use get (removed !)
+    expect(listener).not.toHaveBeenCalled();
+
+    unsubscribe();
+  });
+
+  it('should batch setPath updates', () => {
+    const initial = { user: { name: 'A', age: 1 }, settings: { theme: 'dark' } };
+    const store = deepMap(initial);
+    const listener = vi.fn();
+    const unsubscribe = subscribe(store, listener);
+    listener.mockClear(); // Clear initial call
+
+    batch(() => {
+      setPath(store, 'user.name', 'B');
+      setPath(store, 'settings.theme', 'light');
+      setPath(store, ['user', 'age'], 2);
+      expect(listener).not.toHaveBeenCalled(); // Not called inside batch
     });
 
-     it('should handle setting values in arrays correctly', () => {
-      const store = deepMap<{ items: (string | number)[] }>({ items: ['a', 'b', 'c'] }); // Use deepMap
-      setPath(store, 'items.1', 'B'); // Use setPath
-      expect((get(store)! as { items: (string | number)[] }).items).toEqual(['a', 'B', 'c']); // Cast
+    const expectedValue = { user: { name: 'B', age: 2 }, settings: { theme: 'light' } };
+    expect(get(store)).toEqual(expectedValue);
+    expect(listener).toHaveBeenCalledTimes(1); // Called once after batch
+    expect(listener).toHaveBeenCalledWith(expectedValue, initial);
 
-      setPath(store, ['items', 2], 3); // Use setPath
-      expect((get(store)! as { items: (string | number)[] }).items).toEqual(['a', 'B', 3]); // Cast
-
-       // Test adding beyond current length (should ideally handle sparse arrays or expand)
-      setPath(store, 'items.4', 'e'); // Use setPath
-       expect((get(store)! as { items: (string | number)[] }).items.length).toBe(5); // Cast
-       expect((get(store)! as { items: (string | number)[] }).items[3]).toBeUndefined(); // Cast
-       expect((get(store)! as { items: (string | number)[] }).items[4]).toBe('e'); // Cast
-       expect((get(store)! as { items: (string | number)[] }).items).toEqual(['a', 'B', 3, undefined, 'e']); // Cast
-
-    });
-
-      it('should handle empty path input gracefully', () => {
-        const initial = { a: 1 };
-        const store = deepMap(initial); // Use deepMap
-        const listener = vi.fn();
-        const unsubscribe = subscribe(store, listener); // Use subscribe
-        listener.mockClear();
-
-        setPath(store, '', 'should not change'); // Use setPath
-        expect(get(store)!).toEqual(initial); // Use get with non-null assertion
-        expect(listener).not.toHaveBeenCalled();
-
-         setPath(store, [], 'should also not change'); // Use setPath
-         expect(get(store)!).toEqual(initial); // Use get with non-null assertion
-         expect(listener).not.toHaveBeenCalled();
-
-        unsubscribe();
-      });
-
-
-
-    it('should batch setPath updates', () => {
-      const initial = { user: { name: 'A', age: 1 }, settings: { theme: 'dark' } };
-      const store = deepMap(initial);
-      const listener = vi.fn();
-      const unsubscribe = subscribe(store, listener);
-      listener.mockClear(); // Clear initial call
-
-      batch(() => {
-        setPath(store, 'user.name', 'B');
-        setPath(store, 'settings.theme', 'light');
-        setPath(store, ['user', 'age'], 2);
-        expect(listener).not.toHaveBeenCalled(); // Not called inside batch
-      });
-
-      const expectedValue = { user: { name: 'B', age: 2 }, settings: { theme: 'light' } };
-      expect(get(store)).toEqual(expectedValue);
-      expect(listener).toHaveBeenCalledTimes(1); // Called once after batch
-      expect(listener).toHaveBeenCalledWith(expectedValue, initial);
-
-      unsubscribe();
-    });
+    unsubscribe();
+  });
 
   // --- Path Subscription Tests Removed ---
   // All tests using listenPaths have been removed.
-
-
 
   describe('set (for deepMap)', () => {
     it('should replace the entire object value', () => {
@@ -220,7 +226,7 @@ describe('deepMap (functional)', () => {
       unsubscribe();
     });
 
-     it('should notify listeners if object reference is the same but forced', () => {
+    it('should notify listeners if object reference is the same but forced', () => {
       const initial = { a: 1 };
       const store = deepMap(initial);
       const listener = vi.fn();
@@ -255,9 +261,8 @@ describe('deepMap (functional)', () => {
     });
   });
 
-    // Batching tests need re-evaluation for functional API
-    /*
+  // Batching tests need re-evaluation for functional API
+  /*
     it('listenPaths should work correctly with batching', () => { ... }); // Use listenPaths
     */
-
-})
+});

@@ -1,7 +1,7 @@
-import { describe, test, expect, vi, afterEach } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { batchedUpdate } from './batchedUpdate';
 // Helper to wait for the next microtask tick
-const nextTick = () => new Promise(resolve => queueMicrotask(() => resolve(undefined)));
+const nextTick = () => new Promise((resolve) => queueMicrotask(() => resolve(undefined)));
 describe('batchedUpdate', () => {
     afterEach(() => {
         // Ensure any pending microtasks from failed tests are cleared
@@ -42,7 +42,7 @@ describe('batchedUpdate', () => {
         expect(fn).not.toHaveBeenCalled();
         await nextTick();
         expect(fn).toHaveBeenCalledTimes(1);
-        expect(consoleErrorSpy).toHaveBeenCalledWith("Error during batched callback execution:", error);
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Error during batched callback execution:', error);
         consoleErrorSpy.mockRestore();
     });
     test('should allow scheduling again after execution', async () => {

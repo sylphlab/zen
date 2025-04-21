@@ -20,17 +20,8 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": [
-    "dist",
-    "README.md"
-  ],
-  "keywords": [
-    "zen",
-    "router",
-    "react",
-    "hooks",
-    "state management"
-  ],
+  "files": ["dist", "README.md"],
+  "keywords": ["zen", "router", "react", "hooks", "state management"],
   "homepage": "https://github.com/sylphlab/zen/tree/main/packages/zen-router-react#readme",
   "bugs": {
     "url": "https://github.com/sylphlab/zen/issues"
@@ -40,7 +31,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
-    "clean": "rm -rf dist .turbo node_modules"
+    "clean": "rimraf dist .turbo"
   },
   "dependencies": {
     "@sylphlab/zen-core": "workspace:*",

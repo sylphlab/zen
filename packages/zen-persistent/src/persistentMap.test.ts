@@ -1,6 +1,6 @@
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { persistentMap } from './index';
 import { get, set } from '@sylphlab/zen-core';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { persistentMap } from './index';
 
 // --- Mocks ---
 
@@ -35,8 +35,8 @@ const localStorageMock = (() => {
       return keys[index] ?? null;
     },
     _getStore(): Record<string, string> {
-        return store;
-    }
+      return store;
+    },
   };
 })();
 

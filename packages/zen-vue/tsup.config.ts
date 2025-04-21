@@ -1,4 +1,4 @@
-import { defineConfig } from 'tsup'
+import { defineConfig } from 'tsup';
 
 export default defineConfig({
   entry: ['src/index.ts'],
@@ -9,4 +9,4 @@ export default defineConfig({
   dts: true, // Generate declaration files (.d.ts)
   external: ['@sylphlab/zen-core', 'vue'], // Mark peer dependencies as external
   outDir: 'dist',
-})
+});

@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from 'vitest';
-import { map, setKey, set } from './map';
-import { get, subscribe, batch } from './atom'; // get/subscribe/batch are from atom
+import { describe, expect, it, vi } from 'vitest';
+import { batch, get, subscribe } from './atom'; // get/subscribe/batch are from atom
+import { map, set, setKey } from './map';
 
 describe('map', () => {
   it('should create a map atom with initial value', () => {
@@ -67,7 +67,7 @@ describe('map', () => {
   });
 
   describe('set', () => {
-     it('should update the whole object and notify listeners', () => {
+    it('should update the whole object and notify listeners', () => {
       const initial = { name: 'A', value: 1 };
       const mapAtom = map(initial);
       const listener = vi.fn();
@@ -85,7 +85,7 @@ describe('map', () => {
       unsubscribe();
     });
 
-     it('should not notify if object reference is the same', () => {
+    it('should not notify if object reference is the same', () => {
       const initial = { name: 'A', value: 1 };
       const mapAtom = map(initial);
       const listener = vi.fn();
@@ -100,7 +100,7 @@ describe('map', () => {
       unsubscribe();
     });
 
-     it('should batch updates', () => {
+    it('should batch updates', () => {
       const initial = { name: 'A', value: 1 };
       const mapAtom = map(initial);
       const listener = vi.fn();

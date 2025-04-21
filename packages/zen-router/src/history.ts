@@ -1,8 +1,8 @@
-import { $router } from './index'; // Removed unused RouterState
 import { get, setKey } from '@sylphlab/zen-core'; // Import get and setKey
-import { parseQuery } from './utils';
+import { $router } from './index'; // Removed unused RouterState
 import { matchRoutes } from './matcher'; // Import matcher, removed unused RouteConfig
 import { getRoutes } from './routes'; // Import route getter
+import { parseQuery } from './utils';
 // Note: getPathFromUrl is not needed here as location.pathname/search/hash are direct properties.
 
 /**
@@ -11,7 +11,6 @@ import { getRoutes } from './routes'; // Import route getter
  */
 function updateStateFromLocation(): void {
   if (typeof window === 'undefined') {
-    console.warn('[zen-router] Attempted to update state from location outside browser environment.');
     return;
   }
 
@@ -30,44 +29,44 @@ function updateStateFromLocation(): void {
   }
   // Simple comparison; deep comparison might be needed for objects later
   if (JSON.stringify(currentState.search) !== JSON.stringify(currentSearch)) {
-     setKey($router, 'search', currentSearch); // Use setKey($router, ...)
+    setKey($router, 'search', currentSearch); // Use setKey($router, ...)
   }
   if (JSON.stringify(currentState.params) !== JSON.stringify(currentParams)) {
-     setKey($router, 'params', currentParams); // Use setKey($router, ...)
+    setKey($router, 'params', currentParams); // Use setKey($router, ...)
   }
 }
 
 // Function to handle link clicks
-export function handleLinkClick(event: MouseEvent): void { // Export for testing
+export function handleLinkClick(event: MouseEvent): void {
+  // Export for testing
   // Check for modified clicks (ctrl, meta, etc.) or non-primary button clicks
   if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || event.button !== 0) {
     return;
   }
 
   // Find the closest anchor tag using event.composedPath() for shadow DOM compatibility, falling back to target/parentElement
-  const path = event.composedPath && event.composedPath();
+  const path = event.composedPath?.();
   let link: HTMLAnchorElement | null = null;
   if (path) {
-      for (const element of path) {
-          if (element instanceof HTMLElement && element.nodeName === 'A') {
-              link = element as HTMLAnchorElement;
-              break;
-          }
+    for (const element of path) {
+      if (element instanceof HTMLElement && element.nodeName === 'A') {
+        link = element as HTMLAnchorElement;
+        break;
       }
+    }
   } else {
-      // Fallback for browsers not supporting composedPath
-      let currentTarget = event.target as Element | null;
-      while (currentTarget && currentTarget.nodeName !== 'A') {
-          currentTarget = currentTarget.parentElement;
-      }
-      if (currentTarget instanceof HTMLAnchorElement) {
-          link = currentTarget;
-      }
+    // Fallback for browsers not supporting composedPath
+    let currentTarget = event.target as Element | null;
+    while (currentTarget && currentTarget.nodeName !== 'A') {
+      currentTarget = currentTarget.parentElement;
+    }
+    if (currentTarget instanceof HTMLAnchorElement) {
+      link = currentTarget;
+    }
   }
 
-
   // Ensure it's a valid anchor tag and has an href
-  if (link && link.href) {
+  if (link?.href) {
     // Check target, download, and rel attributes
     if (link.target || link.hasAttribute('download') || link.getAttribute('rel') === 'external') {
       return;
@@ -87,7 +86,6 @@ export function handleLinkClick(event: MouseEvent): void { // Export for testing
   }
 }
 
-
 // --- Initialization ---
 
 /**
@@ -103,15 +101,12 @@ export function startHistoryListener(): void {
     // Listen for clicks globally to intercept navigation
     // Ensure body exists before adding listener
     if (document.body) {
-        document.body.addEventListener('click', handleLinkClick);
+      document.body.addEventListener('click', handleLinkClick);
     } else {
-        // Fallback or warning if body isn't available immediately
-        console.warn('[zen-router] document.body not found immediately during startHistoryListener. Click listener might not be attached.');
-        // Optionally, retry with DOMContentLoaded or similar if needed in real app
+      // Optionally, retry with DOMContentLoaded or similar if needed in real app
     }
     // console.log('[zen-router] History listeners started.'); // Optional debug log
   } else {
-    console.warn('[zen-router] startHistoryListener called outside browser environment.');
   }
 }
 
@@ -123,7 +118,7 @@ export function stopHistoryListener(): void {
     window.removeEventListener('popstate', updateStateFromLocation);
     // Ensure body exists before trying to remove listener
     if (document.body) {
-       document.body.removeEventListener('click', handleLinkClick);
+      document.body.removeEventListener('click', handleLinkClick);
     }
     // console.log('[zen-router] History listeners stopped.'); // Optional debug log
   }
@@ -141,7 +136,6 @@ export function open(path: string): void {
     history.pushState(null, '', path);
     updateStateFromLocation();
   } else {
-    console.warn('[zen-router] open() called outside browser environment.');
   }
 }
 
@@ -154,7 +148,6 @@ export function redirect(path: string): void {
     history.replaceState(null, '', path);
     updateStateFromLocation();
   } else {
-    console.warn('[zen-router] redirect() called outside browser environment.');
   }
 }
 

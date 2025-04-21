@@ -10,8 +10,11 @@ import { map, setKey as setMapKey } from './map'; // Use map
 describe('onStart/onStop Overhead (Atom)', () => {
   bench('zen', () => {
     const $a = zen(0); // Use zen factory
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsubStart = onStart($a as any, () => {}); // Add cast back
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsubStop = onStop($a as any, () => {}); // Add cast back
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsub = subscribe($a as any, () => {}); // Use subscribe, add cast back
     unsub();
     unsubStart();
@@ -32,9 +35,13 @@ describe('onStart/onStop Overhead (Atom)', () => {
 describe('onStart/onStop Overhead (Computed)', () => {
   bench('zen', () => {
     const $a = zen(0); // Use zen factory
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const $c = computed([$a as any], (a: unknown) => a as number); // Use computed, add cast back, fix signature
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsubStart = onStart($c as any, () => {}); // Add cast back
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsubStop = onStop($c as any, () => {}); // Add cast back
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsub = subscribe($c as any, () => {}); // Use subscribe, add cast back
     unsub();
     unsubStart();
@@ -56,8 +63,11 @@ describe('onStart/onStop Overhead (Computed)', () => {
 describe('onStart/onStop Overhead (Map)', () => {
   bench('zen', () => {
     const $m = map({}); // Use map factory
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsubStart = onStart($m as any, () => {}); // Add cast back
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsubStop = onStop($m as any, () => {}); // Add cast back
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsub = subscribe($m as any, () => {}); // Use subscribe, add cast back
     unsub();
     unsubStart();
@@ -79,8 +89,11 @@ describe('onStart/onStop Overhead (Map)', () => {
 describe('onStart/onStop Overhead (DeepMap - Zen only)', () => {
   bench('zen', () => {
     const $dm = deepMap({}); // Use deepMap factory
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsubStart = onStart($dm as any, () => {}); // Add cast back
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsubStop = onStop($dm as any, () => {}); // Add cast back
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsub = subscribe($dm as any, () => {}); // Use subscribe, add cast back
     unsub();
     unsubStart();
@@ -92,6 +105,7 @@ describe('onStart/onStop Overhead (DeepMap - Zen only)', () => {
 describe('Zen Specific Event Overheads', () => {
   bench('zen onSet overhead (atom)', () => {
     const $a = zen(0); // Use zen factory
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsubSet = onSet($a as any, () => {}); // Add cast back
     setAtom($a, 1);
     unsubSet();
@@ -99,6 +113,7 @@ describe('Zen Specific Event Overheads', () => {
 
   bench('zen onSet overhead (map)', () => {
     const $m = map<{ a?: number }>({}); // Use map factory
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsubSet = onSet($m as any, () => {}); // Add cast back
     setMapKey($m, 'a', 1);
     unsubSet();
@@ -106,6 +121,7 @@ describe('Zen Specific Event Overheads', () => {
 
   bench('zen onSet overhead (deepMap)', () => {
     const $dm = deepMap<{ a?: number }>({}); // Use deepMap factory
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsubSet = onSet($dm as any, () => {}); // Add cast back
     setDeepMapPath($dm, 'a', 1);
     unsubSet();
@@ -113,7 +129,9 @@ describe('Zen Specific Event Overheads', () => {
 
   bench('zen onNotify overhead (atom)', () => {
     const $a = zen(0); // Use zen factory
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsubNotify = onNotify($a as any, () => {}); // Add cast back
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     subscribe($a as any, () => {}); // Need a subscriber to trigger notify, use subscribe, add cast back
     setAtom($a, 1);
     unsubNotify();
@@ -121,8 +139,11 @@ describe('Zen Specific Event Overheads', () => {
 
   bench('zen onNotify overhead (computed)', () => {
     const $a = zen(0); // Use zen factory
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const $c = computed([$a as any], (a: unknown) => a as number); // Use computed, add cast back, fix signature
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsubNotify = onNotify($c as any, () => {}); // Add cast back
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     subscribe($c as any, () => {}); // Need a subscriber to trigger notify, use subscribe, add cast back
     setAtom($a, 1); // Trigger computed update
     unsubNotify();
@@ -130,6 +151,7 @@ describe('Zen Specific Event Overheads', () => {
 
   bench('zen onMount overhead (atom)', () => {
     const $a = zen(0); // Use zen factory
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     const unsubMount = onMount($a as any, () => {}); // Use onMount, Called immediately, add cast back
     unsubMount();
   });

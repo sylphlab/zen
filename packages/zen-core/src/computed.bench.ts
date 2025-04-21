@@ -52,6 +52,7 @@ describe('Computed Creation', () => {
   const baseAtomJ = jotaiAtom(0);
 
   bench('zen (1 dependency)', () => {
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
     zenCreateComputed([baseAtomZ as any], (...values) => (values[0] as number) * 2); // Use rest parameters
   });
 
@@ -77,6 +78,7 @@ describe('Computed Get (1 dependency)', () => {
   const baseProxyV = valtioProxy({ count: 5 });
   const baseStoreE = createEffectorStore(5);
 
+  // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
   const computedZ = zenCreateComputed([baseAtomZ as any], (...values) => (values[0] as number) * 2); // Use rest parameters
   const computedN = nanoComputed(baseAtomN, (val) => val * 2);
   const computedJ = jotaiAtom((get) => get(baseAtomJ) * 2);
@@ -133,6 +135,7 @@ describe('Computed Update Propagation (1 dependency)', () => {
   const setBaseE = createEffectorEvent<number>();
   const baseStoreE = createEffectorStore(0).on(setBaseE, (_, p) => p);
 
+  // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
   const computedZ = zenCreateComputed([baseAtomZ as any], (...values) => (values[0] as number) * 2); // Use rest parameters
   const computedN = nanoComputed(baseAtomN, (val) => val * 2);
   const computedJ = jotaiAtom((get) => get(baseAtomJ) * 2);

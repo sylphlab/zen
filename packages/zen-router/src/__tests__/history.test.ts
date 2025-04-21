@@ -1,8 +1,14 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { open, redirect, startHistoryListener, stopHistoryListener, handleLinkClick } from '../history'; // Import functions to test
+import { get, setKey } from '@sylphlab/zen-core';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  handleLinkClick,
+  open,
+  redirect,
+  startHistoryListener,
+  stopHistoryListener,
+} from '../history'; // Import functions to test
 // We might need to import $router and setKey/get if tests interact with state
 import { $router } from '../index';
-import { setKey, get } from '@sylphlab/zen-core';
 
 // Mock browser environment
 const mockPushState = vi.fn((_data, _unused, url) => {
@@ -47,7 +53,7 @@ beforeEach(() => {
       origin: 'http://localhost', // Important for same-origin checks
     } as Location,
     addEventListener: mockWindowAddEventListener,
-    removeEventListener: mockWindowRemoveEventListener
+    removeEventListener: mockWindowRemoveEventListener,
     // Add other window properties if needed
     // history mock moved to top level via vi.stubGlobal
   };
@@ -91,49 +97,53 @@ describe('Router History', () => {
     });
 
     it('should not call history.pushState outside browser environment', () => {
-       // Temporarily remove window
-       // @ts-ignore
-       const tempWindow = global.window;
-       // @ts-ignore
-       global.window = undefined;
-       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {}); // Suppress console warn
+      // Temporarily remove window
+      // @ts-ignore
+      const tempWindow = global.window;
+      // @ts-ignore
+      global.window = undefined;
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {}); // Suppress console warn
 
-       open('/another-path');
-       expect(mockPushState).not.toHaveBeenCalled();
-       expect(warnSpy).toHaveBeenCalledWith('[zen-router] open() called outside browser environment.');
+      open('/another-path');
+      expect(mockPushState).not.toHaveBeenCalled();
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[zen-router] open() called outside browser environment.',
+      );
 
-       // Restore
-       // @ts-ignore
-       global.window = tempWindow;
-       warnSpy.mockRestore();
+      // Restore
+      // @ts-ignore
+      global.window = tempWindow;
+      warnSpy.mockRestore();
     });
   });
 
   describe('redirect()', () => {
-     it('should call history.replaceState with the correct path', () => {
-       redirect('/redirect-path');
-       expect(mockReplaceState).toHaveBeenCalledOnce();
-       expect(mockReplaceState).toHaveBeenCalledWith(null, '', '/redirect-path');
-       expect(get($router).path).toBe('/redirect-path');
-     });
+    it('should call history.replaceState with the correct path', () => {
+      redirect('/redirect-path');
+      expect(mockReplaceState).toHaveBeenCalledOnce();
+      expect(mockReplaceState).toHaveBeenCalledWith(null, '', '/redirect-path');
+      expect(get($router).path).toBe('/redirect-path');
+    });
 
-     it('should not call history.replaceState outside browser environment', () => {
-        // Temporarily remove window
-        // @ts-ignore
-        const tempWindow = global.window;
-        // @ts-ignore
-        global.window = undefined;
-        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    it('should not call history.replaceState outside browser environment', () => {
+      // Temporarily remove window
+      // @ts-ignore
+      const tempWindow = global.window;
+      // @ts-ignore
+      global.window = undefined;
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-        redirect('/another-redirect');
-        expect(mockReplaceState).not.toHaveBeenCalled();
-        expect(warnSpy).toHaveBeenCalledWith('[zen-router] redirect() called outside browser environment.');
+      redirect('/another-redirect');
+      expect(mockReplaceState).not.toHaveBeenCalled();
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[zen-router] redirect() called outside browser environment.',
+      );
 
-        // Restore
-        // @ts-ignore
-        global.window = tempWindow;
-        warnSpy.mockRestore();
-     });
+      // Restore
+      // @ts-ignore
+      global.window = tempWindow;
+      warnSpy.mockRestore();
+    });
   });
 
   // TODO: Add tests for handleLinkClick simulation
@@ -159,7 +169,7 @@ describe('Router History', () => {
         // Mock composedPath or target/parentElement traversal if needed by handleLinkClick's logic
         // Simplest: provide target directly
         target: link,
-        composedPath: () => [link, document.body, document, window] // Simulate path
+        composedPath: () => [link, document.body, document, window], // Simulate path
       } as unknown as MouseEvent; // Cast to satisfy type checks
 
       // 3. Call the function directly
@@ -178,7 +188,7 @@ describe('Router History', () => {
 
       const modifiers: (keyof MouseEvent)[] = ['ctrlKey', 'metaKey', 'altKey', 'shiftKey'];
 
-      modifiers.forEach(modifier => {
+      modifiers.forEach((modifier) => {
         // Reset mocks for each modifier check
         mockPushState.mockClear();
         const mockEvent = {
@@ -191,7 +201,7 @@ describe('Router History', () => {
           button: 0,
           preventDefault: vi.fn(),
           target: link,
-          composedPath: () => [link]
+          composedPath: () => [link],
         } as unknown as MouseEvent;
 
         handleLinkClick(mockEvent);
@@ -206,10 +216,14 @@ describe('Router History', () => {
       link.target = '_blank'; // Set the target attribute
 
       const mockEvent = {
-        ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, button: 0,
+        ctrlKey: false,
+        metaKey: false,
+        altKey: false,
+        shiftKey: false,
+        button: 0,
         preventDefault: vi.fn(),
         target: link,
-        composedPath: () => [link]
+        composedPath: () => [link],
       } as unknown as MouseEvent;
 
       handleLinkClick(mockEvent);
@@ -223,10 +237,14 @@ describe('Router History', () => {
       link.setAttribute('download', ''); // Set download attribute
 
       const mockEvent = {
-        ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, button: 0,
+        ctrlKey: false,
+        metaKey: false,
+        altKey: false,
+        shiftKey: false,
+        button: 0,
         preventDefault: vi.fn(),
         target: link,
-        composedPath: () => [link]
+        composedPath: () => [link],
       } as unknown as MouseEvent;
 
       handleLinkClick(mockEvent);
@@ -240,10 +258,14 @@ describe('Router History', () => {
       link.setAttribute('rel', 'external'); // Set rel attribute
 
       const mockEvent = {
-        ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, button: 0,
+        ctrlKey: false,
+        metaKey: false,
+        altKey: false,
+        shiftKey: false,
+        button: 0,
         preventDefault: vi.fn(),
         target: link,
-        composedPath: () => [link]
+        composedPath: () => [link],
       } as unknown as MouseEvent;
 
       handleLinkClick(mockEvent);
@@ -256,10 +278,14 @@ describe('Router History', () => {
       link.href = 'http://example.com/other-page'; // Different origin
 
       const mockEvent = {
-        ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, button: 0,
+        ctrlKey: false,
+        metaKey: false,
+        altKey: false,
+        shiftKey: false,
+        button: 0,
         preventDefault: vi.fn(),
         target: link,
-        composedPath: () => [link]
+        composedPath: () => [link],
       } as unknown as MouseEvent;
 
       handleLinkClick(mockEvent);
@@ -274,10 +300,14 @@ describe('Router History', () => {
       link.appendChild(innerElement);
 
       const mockEvent = {
-        ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, button: 0,
+        ctrlKey: false,
+        metaKey: false,
+        altKey: false,
+        shiftKey: false,
+        button: 0,
         preventDefault: vi.fn(),
         target: innerElement, // Target is the inner element
-        composedPath: () => [innerElement, link, document.body, document, window] // Path includes link
+        composedPath: () => [innerElement, link, document.body, document, window], // Path includes link
       } as unknown as MouseEvent;
 
       handleLinkClick(mockEvent);

@@ -13,9 +13,7 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
@@ -23,14 +21,7 @@
     "coverage": "vitest run --coverage",
     "lint": "echo 'Lint script not implemented yet'"
   },
-  "keywords": [
-    "zen",
-    "router",
-    "routing",
-    "state management",
-    "minimal",
-    "tiny"
-  ],
+  "keywords": ["zen", "router", "routing", "state management", "minimal", "tiny"],
   "author": "Sylph Lab <hi@sylphlab.com>",
   "license": "MIT",
   "repository": {

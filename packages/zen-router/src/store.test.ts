@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createRouter } from './store'; // Assuming store.ts exports createRouter
 
 describe('createRouter (Simple Store)', () => {
@@ -21,7 +21,7 @@ describe('createRouter (Simple Store)', () => {
     expect(listener).toHaveBeenCalledWith('initial', undefined);
   });
 
-   it('should call listener on set', () => {
+  it('should call listener on set', () => {
     const router = createRouter<string>();
     const listener = vi.fn();
     router.subscribe(listener); // Initial call
@@ -64,25 +64,29 @@ describe('createRouter (Simple Store)', () => {
   });
 
   it('should ignore errors within listeners during set', () => {
-     const router = createRouter<string>();
-     const badListener = vi.fn(() => { throw new Error('Listener error'); });
-     const goodListener = vi.fn();
+    const router = createRouter<string>();
+    const badListener = vi.fn(() => {
+      throw new Error('Listener error');
+    });
+    const goodListener = vi.fn();
 
-     router.subscribe(badListener);
-     router.subscribe(goodListener);
-     badListener.mockClear();
-     goodListener.mockClear();
+    router.subscribe(badListener);
+    router.subscribe(goodListener);
+    badListener.mockClear();
+    goodListener.mockClear();
 
-     expect(() => router.set('test')).not.toThrow();
-     expect(badListener).toHaveBeenCalledTimes(1);
-     expect(goodListener).toHaveBeenCalledTimes(1); // Good listener should still be called
+    expect(() => router.set('test')).not.toThrow();
+    expect(badListener).toHaveBeenCalledTimes(1);
+    expect(goodListener).toHaveBeenCalledTimes(1); // Good listener should still be called
   });
 
-   it('should ignore errors within listeners during subscribe', () => {
-     const router = createRouter<string>();
-     const badListener = vi.fn(() => { throw new Error('Listener error'); });
+  it('should ignore errors within listeners during subscribe', () => {
+    const router = createRouter<string>();
+    const badListener = vi.fn(() => {
+      throw new Error('Listener error');
+    });
 
-     expect(() => router.subscribe(badListener)).not.toThrow();
-     expect(badListener).toHaveBeenCalledTimes(1); // Listener is still called initially
+    expect(() => router.subscribe(badListener)).not.toThrow();
+    expect(badListener).toHaveBeenCalledTimes(1); // Listener is still called initially
   });
 });

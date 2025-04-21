@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 // TODO: Add tests for useRouter hook.
 // Mocking dependencies (@sylphlab/zen-core or @sylphlab/zen-router)
