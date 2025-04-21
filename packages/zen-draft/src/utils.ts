@@ -25,7 +25,6 @@ export function isSet(value: unknown): value is Set<unknown> {
   return value instanceof Set;
 }
 
-
 // --- Auto-Freeze Implementation ---
 export function deepFreeze(obj: unknown) {
   // Avoid freezing non-objects or already frozen objects

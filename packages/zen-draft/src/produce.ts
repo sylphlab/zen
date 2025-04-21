@@ -1,13 +1,15 @@
+import type { Patch, ProduceOptions, ProduceResult } from './types';
 import { isDraftable, isMap, isSet } from './utils'; // Assuming utils.ts will be created
 import { deepFreeze } from './utils'; // Assuming utils.ts will contain deepFreeze
-import type { Patch, ProduceOptions, ProduceResult } from './types';
 
 // The core produce function
-export function produce<T, R = T>( // Add generic R for return type, defaults to T
+export function produce<T, R = T>(
+  // Add generic R for return type, defaults to T
   baseState: T,
   recipe: (draft: T) => R | undefined, // Recipe can return R or undefined
   options?: ProduceOptions,
-): ProduceResult<R> { // Return type uses R
+): ProduceResult<R> {
+  // Return type uses R
   if (!isDraftable(baseState)) {
     const result = recipe(baseState as T); // Try calling recipe directly
     const finalState: R | T = result === undefined ? baseState : result; // finalState can be R or T
@@ -53,18 +55,19 @@ export function produce<T, R = T>( // Add generic R for return type, defaults to
         mutatedObjects.add(base);
         // If generating inverse patches, store originals before copy (if not already stored)
         if (generateInversePatches && !originalValues.has(copy) && originalValues.has(base)) {
-           const baseOriginals = originalValues.get(base); // Remove !
-           if (baseOriginals) { // Add check
-              originalValues.set(copy, new Map(baseOriginals));
-           }
+          const baseOriginals = originalValues.get(base); // Remove !
+          if (baseOriginals) {
+            // Add check
+            originalValues.set(copy, new Map(baseOriginals));
+          }
         }
         return copy;
       }
       const copy = copies.get(base); // Remove !
       if (!copy) {
-         // This case should logically not be hit if copies.has(base) is true,
-         // but we need to satisfy TS/Biome. Returning original base is safest fallback.
-         return base;
+        // This case should logically not be hit if copies.has(base) is true,
+        // but we need to satisfy TS/Biome. Returning original base is safest fallback.
+        return base;
       }
       return copy;
     };
@@ -88,7 +91,9 @@ export function produce<T, R = T>( // Add generic R for return type, defaults to
               const copyOriginals = originalValues.get(copy);
               if (!copyOriginals) return; // Check added
               const mapKey: string | symbol = typeof key === 'symbol' ? key : String(key);
-              if (!copyOriginals.has(mapKey)) { copyOriginals.set(mapKey, oldValue); }
+              if (!copyOriginals.has(mapKey)) {
+                copyOriginals.set(mapKey, oldValue);
+              }
             }
             let result: unknown;
             if (method === 'clear') {
@@ -118,7 +123,11 @@ export function produce<T, R = T>( // Add generic R for return type, defaults to
                   const mapKey: string | symbol = typeof key === 'symbol' ? key : String(key);
                   const originalVal = copyOriginals?.get(mapKey);
                   const inverseOp = op === 'add' ? 'remove' : 'replace';
-                  inversePatches.push({ op: inverseOp, path: currentPath, value: op === 'add' ? undefined : originalVal });
+                  inversePatches.push({
+                    op: inverseOp,
+                    path: currentPath,
+                    value: op === 'add' ? undefined : originalVal,
+                  });
                 }
               } else if (method === 'delete') {
                 if (result === true) {
@@ -136,127 +145,196 @@ export function produce<T, R = T>( // Add generic R for return type, defaults to
           };
         }
         if (isSet(currentTarget) && setMutatingMethods[prop as keyof SetMutatingMethods]) {
-           ensureMutableCopy();
-           const method = prop as keyof SetMutatingMethods;
-           return (...args: unknown[]) => {
-             const copy = copies.get(base) as Set<unknown>;
-             if (!copy) return; // Check added
-             const originalSetAsArray = generateInversePatches ? Array.from(copy) : undefined;
-             const value = args[0];
-             let result: unknown;
-             let valueWasAdded = false;
-             let valueWasDeleted = false;
-             if (method === 'clear') {
-               result = copy.clear();
-             } else if (method === 'add') {
-               const hasBefore = copy.has(value);
-               result = copy.add(value);
-               valueWasAdded = !hasBefore && copy.has(value);
-             } else if (method === 'delete') {
-               result = copy.delete(value);
-               valueWasDeleted = result === true;
-             } else { result = undefined; }
-             if (generatePatches) {
-               const currentPath = [...path];
-               if (method === 'add' && valueWasAdded) {
-                 patches.push({ op: 'set_add', path: currentPath, value });
-                 if (generateInversePatches) { inversePatches.push({ op: 'set_delete', path: currentPath, value }); }
-               } else if (method === 'delete' && valueWasDeleted) {
-                 patches.push({ op: 'set_delete', path: currentPath, value });
-                 if (generateInversePatches) { inversePatches.push({ op: 'set_add', path: currentPath, value }); }
-               } else if (method === 'clear') {
-                 if (originalSetAsArray && originalSetAsArray.length > 0) {
-                   patches.push({ op: 'replace', path: currentPath, value: [] });
-                   if (generateInversePatches) { inversePatches.push({ op: 'replace', path: currentPath, value: originalSetAsArray }); }
-                 }
-               }
-             }
-             return result;
-           };
+          ensureMutableCopy();
+          const method = prop as keyof SetMutatingMethods;
+          return (...args: unknown[]) => {
+            const copy = copies.get(base) as Set<unknown>;
+            if (!copy) return; // Check added
+            const originalSetAsArray = generateInversePatches ? Array.from(copy) : undefined;
+            const value = args[0];
+            let result: unknown;
+            let valueWasAdded = false;
+            let valueWasDeleted = false;
+            if (method === 'clear') {
+              result = copy.clear();
+            } else if (method === 'add') {
+              const hasBefore = copy.has(value);
+              result = copy.add(value);
+              valueWasAdded = !hasBefore && copy.has(value);
+            } else if (method === 'delete') {
+              result = copy.delete(value);
+              valueWasDeleted = result === true;
+            } else {
+              result = undefined;
+            }
+            if (generatePatches) {
+              const currentPath = [...path];
+              if (method === 'add' && valueWasAdded) {
+                patches.push({ op: 'set_add', path: currentPath, value });
+                if (generateInversePatches) {
+                  inversePatches.push({ op: 'set_delete', path: currentPath, value });
+                }
+              } else if (method === 'delete' && valueWasDeleted) {
+                patches.push({ op: 'set_delete', path: currentPath, value });
+                if (generateInversePatches) {
+                  inversePatches.push({ op: 'set_add', path: currentPath, value });
+                }
+              } else if (method === 'clear') {
+                if (originalSetAsArray && originalSetAsArray.length > 0) {
+                  patches.push({ op: 'replace', path: currentPath, value: [] });
+                  if (generateInversePatches) {
+                    inversePatches.push({
+                      op: 'replace',
+                      path: currentPath,
+                      value: originalSetAsArray,
+                    });
+                  }
+                }
+              }
+            }
+            return result;
+          };
         }
-        if (Array.isArray(currentTarget) && arrayMutatingMethods[prop as keyof ArrayMutatingMethods]) {
-           ensureMutableCopy();
-           const method = prop as keyof ArrayMutatingMethods;
-           return (...args: unknown[]) => {
-             const copy = copies.get(base) as unknown[];
-             if (!copy) return; // Check added
-             const originalLength = copy.length;
-             let removedElements: unknown[] | undefined;
-             if (generateInversePatches) {
-               if (method === 'splice') { removedElements = copy.slice(args[0] as number, (args[0] as number) + ((args[1] as number) ?? 0)); }
-               else if (method === 'pop') { removedElements = copy.length > 0 ? [copy[copy.length - 1]] : []; }
-               else if (method === 'shift') { removedElements = copy.length > 0 ? [copy[0]] : []; }
-             }
-             let result: unknown;
-             if (method === 'sort') {
-               const originalArray = generateInversePatches ? [...copy] : undefined;
-               const compareFn = args[0] as ((a: unknown, b: unknown) => number) | undefined;
-               result = copy.sort(compareFn);
-               if (generatePatches) {
-                 patches.push({ op: 'replace', path: [...path], value: [...copy] });
-                 if (generateInversePatches && originalArray) { inversePatches.push({ op: 'replace', path: [...path], value: originalArray }); }
-               }
-             } else if (method === 'reverse') {
-               const originalArray = generateInversePatches ? [...copy] : undefined;
-               result = copy.reverse();
-               if (generatePatches) {
-                 patches.push({ op: 'replace', path: [...path], value: [...copy] });
-                 if (generateInversePatches && originalArray) { inversePatches.push({ op: 'replace', path: [...path], value: originalArray }); }
-               }
-             } else {
-               switch (method) {
-                 case 'push': result = copy.push(...args); break;
-                 case 'pop': result = copy.pop(); break;
-                 case 'shift': result = copy.shift(); break;
-                 case 'unshift': result = copy.unshift(...args); break;
-                 case 'splice': result = copy.splice(args[0] as number, (args[1] as number) ?? undefined, ...args.slice(2)); break;
-                 default: result = undefined;
-               }
-               const newLength = copy.length;
-               if (generatePatches) {
-                 switch (method) {
-                   case 'push':
-                     for (let i = originalLength; i < newLength; i++) {
-                       patches.push({ op: 'add', path: [...path, i], value: copy[i] });
-                       if (generateInversePatches) { inversePatches.push({ op: 'remove', path: [...path, i] }); }
-                     } break;
-                   case 'pop':
-                     if (originalLength > 0) {
-                       patches.push({ op: 'remove', path: [...path, originalLength - 1] });
-                       if (generateInversePatches && removedElements) { inversePatches.push({ op: 'add', path: [...path, originalLength - 1], value: removedElements[0] }); }
-                     } break;
-                   case 'shift':
-                     if (originalLength > 0) {
-                       patches.push({ op: 'remove', path: [...path, 0] });
-                       if (generateInversePatches && removedElements) { inversePatches.push({ op: 'add', path: [...path, 0], value: removedElements[0] }); }
-                     } break;
-                   case 'unshift':
-                     for (let i = 0; i < args.length; i++) {
-                       patches.push({ op: 'add', path: [...path, i], value: copy[i] });
-                       if (generateInversePatches) { inversePatches.push({ op: 'remove', path: [...path, i] }); }
-                     } break;
-                   case 'splice': {
-                     const startIndex = args[0] as number;
-                     const deleteCount = (args[1] as number) ?? 0;
-                     const itemsToAdd = args.slice(2);
-                     for (let i = 0; i < deleteCount; i++) {
-                       const removeIndex = startIndex; // Index stays same as elements are removed
-                       patches.push({ op: 'remove', path: [...path, removeIndex] });
-                       if (generateInversePatches && removedElements) { inversePatches.push({ op: 'add', path: [...path, startIndex + i], value: removedElements[i] }); }
-                     }
-                     for (let i = 0; i < itemsToAdd.length; i++) {
-                       const addIndex = startIndex + i;
-                       patches.push({ op: 'add', path: [...path, addIndex], value: itemsToAdd[i] });
-                       if (generateInversePatches) { inversePatches.push({ op: 'remove', path: [...path, addIndex] }); }
-                     }
-                     if (generateInversePatches) inversePatches.reverse(); // Apply inverse splice adds before removes
-                     break;
-                   }
-                 }
-               }
-             }
-             return result;
-           };
+        if (
+          Array.isArray(currentTarget) &&
+          arrayMutatingMethods[prop as keyof ArrayMutatingMethods]
+        ) {
+          ensureMutableCopy();
+          const method = prop as keyof ArrayMutatingMethods;
+          return (...args: unknown[]) => {
+            const copy = copies.get(base) as unknown[];
+            if (!copy) return; // Check added
+            const originalLength = copy.length;
+            let removedElements: unknown[] | undefined;
+            if (generateInversePatches) {
+              if (method === 'splice') {
+                removedElements = copy.slice(
+                  args[0] as number,
+                  (args[0] as number) + ((args[1] as number) ?? 0),
+                );
+              } else if (method === 'pop') {
+                removedElements = copy.length > 0 ? [copy[copy.length - 1]] : [];
+              } else if (method === 'shift') {
+                removedElements = copy.length > 0 ? [copy[0]] : [];
+              }
+            }
+            let result: unknown;
+            if (method === 'sort') {
+              const originalArray = generateInversePatches ? [...copy] : undefined;
+              const compareFn = args[0] as ((a: unknown, b: unknown) => number) | undefined;
+              result = copy.sort(compareFn);
+              if (generatePatches) {
+                patches.push({ op: 'replace', path: [...path], value: [...copy] });
+                if (generateInversePatches && originalArray) {
+                  inversePatches.push({ op: 'replace', path: [...path], value: originalArray });
+                }
+              }
+            } else if (method === 'reverse') {
+              const originalArray = generateInversePatches ? [...copy] : undefined;
+              result = copy.reverse();
+              if (generatePatches) {
+                patches.push({ op: 'replace', path: [...path], value: [...copy] });
+                if (generateInversePatches && originalArray) {
+                  inversePatches.push({ op: 'replace', path: [...path], value: originalArray });
+                }
+              }
+            } else {
+              switch (method) {
+                case 'push':
+                  result = copy.push(...args);
+                  break;
+                case 'pop':
+                  result = copy.pop();
+                  break;
+                case 'shift':
+                  result = copy.shift();
+                  break;
+                case 'unshift':
+                  result = copy.unshift(...args);
+                  break;
+                case 'splice':
+                  result = copy.splice(
+                    args[0] as number,
+                    (args[1] as number) ?? undefined,
+                    ...args.slice(2),
+                  );
+                  break;
+                default:
+                  result = undefined;
+              }
+              const newLength = copy.length;
+              if (generatePatches) {
+                switch (method) {
+                  case 'push':
+                    for (let i = originalLength; i < newLength; i++) {
+                      patches.push({ op: 'add', path: [...path, i], value: copy[i] });
+                      if (generateInversePatches) {
+                        inversePatches.push({ op: 'remove', path: [...path, i] });
+                      }
+                    }
+                    break;
+                  case 'pop':
+                    if (originalLength > 0) {
+                      patches.push({ op: 'remove', path: [...path, originalLength - 1] });
+                      if (generateInversePatches && removedElements) {
+                        inversePatches.push({
+                          op: 'add',
+                          path: [...path, originalLength - 1],
+                          value: removedElements[0],
+                        });
+                      }
+                    }
+                    break;
+                  case 'shift':
+                    if (originalLength > 0) {
+                      patches.push({ op: 'remove', path: [...path, 0] });
+                      if (generateInversePatches && removedElements) {
+                        inversePatches.push({
+                          op: 'add',
+                          path: [...path, 0],
+                          value: removedElements[0],
+                        });
+                      }
+                    }
+                    break;
+                  case 'unshift':
+                    for (let i = 0; i < args.length; i++) {
+                      patches.push({ op: 'add', path: [...path, i], value: copy[i] });
+                      if (generateInversePatches) {
+                        inversePatches.push({ op: 'remove', path: [...path, i] });
+                      }
+                    }
+                    break;
+                  case 'splice': {
+                    const startIndex = args[0] as number;
+                    const deleteCount = (args[1] as number) ?? 0;
+                    const itemsToAdd = args.slice(2);
+                    for (let i = 0; i < deleteCount; i++) {
+                      const removeIndex = startIndex; // Index stays same as elements are removed
+                      patches.push({ op: 'remove', path: [...path, removeIndex] });
+                      if (generateInversePatches && removedElements) {
+                        inversePatches.push({
+                          op: 'add',
+                          path: [...path, startIndex + i],
+                          value: removedElements[i],
+                        });
+                      }
+                    }
+                    for (let i = 0; i < itemsToAdd.length; i++) {
+                      const addIndex = startIndex + i;
+                      patches.push({ op: 'add', path: [...path, addIndex], value: itemsToAdd[i] });
+                      if (generateInversePatches) {
+                        inversePatches.push({ op: 'remove', path: [...path, addIndex] });
+                      }
+                    }
+                    if (generateInversePatches) inversePatches.reverse(); // Apply inverse splice adds before removes
+                    break;
+                  }
+                }
+              }
+            }
+            return result;
+          };
         }
 
         // --- Corrected CoW Get Logic ---
@@ -279,19 +357,19 @@ export function produce<T, R = T>( // Add generic R for return type, defaults to
 
         // If the child itself isn't draftable after potential copy, return it
         if (!isDraftable(valueFromCopy)) {
-           return valueFromCopy;
+          return valueFromCopy;
         }
 
         // Create and cache the nested proxy
         const newPath = [...path, prop as string | number];
         const nestedProxy = new Proxy(
           valueFromCopy as object, // Proxy the value *from the copy*
-          createProxyHandler(value as object, newPath) // Handler still tracks the *original* value for CoW lookups
+          createProxyHandler(value as object, newPath), // Handler still tracks the *original* value for CoW lookups
         );
         proxyCache.set(value as object, nestedProxy); // Cache against original value identity
         // Also cache against the copied value identity if it differs (e.g., array spread)
         if (valueFromCopy !== value) {
-           proxyCache.set(valueFromCopy as object, nestedProxy);
+          proxyCache.set(valueFromCopy as object, nestedProxy);
         }
         return nestedProxy;
       }, // End get
@@ -376,7 +454,7 @@ export function produce<T, R = T>( // Add generic R for return type, defaults to
           }
         }
         return Reflect.deleteProperty(copy, prop);
-      } // End deleteProperty
+      }, // End deleteProperty
     }; // End ProxyHandler return object
   }
 
@@ -443,9 +521,10 @@ export function produce<T, R = T>( // Add generic R for return type, defaults to
     // Immer doesn't generate patches when a value is returned. Mimic this.
     patches.length = 0;
     inversePatches.length = 0;
-  } else if (copies.size > 0) { // If any copies were made anywhere...
+  } else if (copies.size > 0) {
+    // If any copies were made anywhere...
     // ...return the (potentially copied) root object. ensureMutableCopy should have handled creating the root copy if needed.
-    finalState = (copies.get(baseState as object) as T ?? baseState);
+    finalState = (copies.get(baseState as object) as T) ?? baseState;
   }
   // If recipeResult is undefined and the root base state was *not* copied,
   // it means no mutations occurred that affect the root's identity,

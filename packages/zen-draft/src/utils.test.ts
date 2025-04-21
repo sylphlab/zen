@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { isDraftable, isMap, isSet, deepFreeze } from './utils';
+import { describe, expect, it } from 'vitest';
+import { deepFreeze, isDraftable, isMap, isSet } from './utils';
 
 describe('isDraftable', () => {
   it('should return true for plain objects and arrays', () => {
@@ -77,8 +77,8 @@ describe('deepFreeze', () => {
   });
 
   it('should handle already frozen objects', () => {
-     const obj = Object.freeze({ a: 1 });
-     expect(() => deepFreeze(obj)).not.toThrow();
-     expect(Object.isFrozen(obj)).toBe(true);
+    const obj = Object.freeze({ a: 1 });
+    expect(() => deepFreeze(obj)).not.toThrow();
+    expect(Object.isFrozen(obj)).toBe(true);
   });
 });

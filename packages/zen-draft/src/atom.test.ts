@@ -1,11 +1,16 @@
-import { describe, it, expect, vi } from 'vitest';
 import { zen as atom, get, subscribe } from '@sylphlab/zen-core';
+import { describe, expect, it, vi } from 'vitest';
 import { produceAtom } from './atom';
 import type { Patch } from './types';
 
 // Define interfaces for test states
-interface SimpleState { a: number; b?: { c: number } }
-interface NestedState { data: { value: number; items: string[] } }
+interface SimpleState {
+  a: number;
+  b?: { c: number };
+}
+interface NestedState {
+  data: { value: number; items: string[] };
+}
 
 describe('produceAtom', () => {
   it('should update atom state immutably based on recipe mutations', () => {
@@ -14,13 +19,18 @@ describe('produceAtom', () => {
     const listener = vi.fn();
     subscribe(myAtom, listener);
 
-    const [patches, inversePatches] = produceAtom(myAtom, (draft) => {
-      draft.a = 10;
-      if (draft.b) { // Type guard
-        draft.b.c = 20;
-      }
-      return undefined;
-    }, { patches: true, inversePatches: true });
+    const [patches, inversePatches] = produceAtom(
+      myAtom,
+      (draft) => {
+        draft.a = 10;
+        if (draft.b) {
+          // Type guard
+          draft.b.c = 20;
+        }
+        return undefined;
+      },
+      { patches: true, inversePatches: true },
+    );
 
     const nextState = get(myAtom);
     expect(nextState).not.toBe(baseState); // Ensure new root reference
@@ -47,10 +57,14 @@ describe('produceAtom', () => {
     const listener = vi.fn();
     subscribe(myAtom, listener);
 
-    const [patches, inversePatches] = produceAtom(myAtom, (_draft) => {
-      // No changes made
-      return undefined;
-    }, { patches: true, inversePatches: true });
+    const [patches, inversePatches] = produceAtom(
+      myAtom,
+      (_draft) => {
+        // No changes made
+        return undefined;
+      },
+      { patches: true, inversePatches: true },
+    );
 
     expect(get(myAtom)).toBe(baseState); // Should be the exact same object
     expect(listener).not.toHaveBeenCalled();
@@ -68,11 +82,15 @@ describe('produceAtom', () => {
     // produceAtom's recipe *should* ideally return T | undefined.
     // We test if the underlying produce handles returning a new object,
     // even if the type signature isn't perfect.
-    const [patches, inversePatches] = produceAtom(myAtom, (draft) => {
-      draft.a = 100; // This mutation is ignored
-      // biome-ignore lint/suspicious/noExplicitAny: Testing return override behavior
-      return newState as any;
-    }, { patches: true, inversePatches: true });
+    const [patches, inversePatches] = produceAtom(
+      myAtom,
+      (draft) => {
+        draft.a = 100; // This mutation is ignored
+        // biome-ignore lint/suspicious/noExplicitAny: Testing return override behavior
+        return newState as any;
+      },
+      { patches: true, inversePatches: true },
+    );
 
     expect(get(myAtom)).toBe(newState); // Should be the exact new object returned
     expect(listener).toHaveBeenCalledTimes(1);
@@ -88,11 +106,15 @@ describe('produceAtom', () => {
     const listener = vi.fn();
     subscribe(myAtom, listener);
 
-    const [patches, inversePatches] = produceAtom(myAtom, (draft) => {
-      draft.data.value = 20;
-      draft.data.items.push('z');
-      return undefined;
-    }, { patches: true, inversePatches: true });
+    const [patches, inversePatches] = produceAtom(
+      myAtom,
+      (draft) => {
+        draft.data.value = 20;
+        draft.data.items.push('z');
+        return undefined;
+      },
+      { patches: true, inversePatches: true },
+    );
 
     const nextState = get(myAtom);
     expect(nextState).not.toBe(baseState);
@@ -115,20 +137,20 @@ describe('produceAtom', () => {
   });
 
   it('should pass options correctly to the underlying produce function', () => {
-     const baseState = { count: 0 };
-     const myAtom = atom(baseState);
-     const [patches, inversePatches] = produceAtom(
-       myAtom,
-       (draft) => {
-         draft.count++;
-         return undefined;
-       },
-       { patches: true, inversePatches: true }, // Request both patches
-     );
+    const baseState = { count: 0 };
+    const myAtom = atom(baseState);
+    const [patches, inversePatches] = produceAtom(
+      myAtom,
+      (draft) => {
+        draft.count++;
+        return undefined;
+      },
+      { patches: true, inversePatches: true }, // Request both patches
+    );
 
-     expect(get(myAtom)).toEqual({ count: 1 });
-     expect(patches).toEqual([{ op: 'replace', path: ['count'], value: 1 }]);
-     expect(inversePatches).toEqual([{ op: 'replace', path: ['count'], value: 0 }]);
+    expect(get(myAtom)).toEqual({ count: 1 });
+    expect(patches).toEqual([{ op: 'replace', path: ['count'], value: 1 }]);
+    expect(inversePatches).toEqual([{ op: 'replace', path: ['count'], value: 0 }]);
   });
 
   // Add more tests for complex scenarios, Map/Set within atoms, etc. if needed
