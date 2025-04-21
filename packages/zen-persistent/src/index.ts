@@ -2,6 +2,7 @@
 import {
   type Atom,
   type MapAtom,
+  type Unsubscribe, // Added missing import
   get,
   map,
   onMount,
@@ -65,27 +66,50 @@ export function persistentAtom<Value>(
     return zen<Value>(initialValue); // Fallback to regular atom if no storage
   }
 
-  const baseAtom = zen<Value>(initialValue); // Use zen
+  // --- Revised Initialization ---
+  let initialValueFromStorage: Value | undefined;
+  let storageIsEmpty = true;
+  try {
+    const raw = storage.getItem(key);
+    if (raw !== null) {
+      initialValueFromStorage = serializer.decode(raw);
+      storageIsEmpty = false;
+    }
+  } catch (_error) { /* Ignore decode error */ }
+
+  const actualInitialValue = initialValueFromStorage ?? initialValue;
+  const baseAtom = zen<Value>(actualInitialValue);
+  // --- End Revised Initialization ---
+
+
   let ignoreNextStorageEvent = false; // Flag to prevent echo from self-triggered events
 
   // Function to write the current atom value to storage
   const writeToStorage = (value: Value) => {
     try {
+      console.log(`[persistent] Encoding value for key "${key}":`, value); // DEBUG
       const encoded = serializer.encode(value);
+      console.log(`[persistent] Writing to storage key "${key}":`, encoded); // DEBUG
       ignoreNextStorageEvent = true; // Mark that we are causing the potential storage event
       storage.setItem(key, encoded);
     } catch (_error) {
+      console.error(`[persistent] Error writing to storage key "${key}":`, _error); // DEBUG
     } finally {
-      // Reset flag shortly after, hoping storage event fires sync
-      // This is imperfect, a better sync mechanism might be needed
-      setTimeout(() => {
-        ignoreNextStorageEvent = false;
-      }, 50);
+      // Reset flag immediately
+      ignoreNextStorageEvent = false;
     }
   };
 
-  // Subscribe to base atom changes AFTER initial value is set
-  let stopCoreListener: (() => void) | undefined;
+  // If storage was initially empty, write the determined initial value now.
+  if (storageIsEmpty) {
+    writeToStorage(actualInitialValue);
+  }
+
+  // Subscribe to persist future changes immediately after creation.
+  // We don't need to store the unsubscribe function unless we plan to stop persisting later.
+  subscribe(baseAtom, (newValue: Value) => {
+      writeToStorage(newValue);
+  });
 
   // Handler for storage events (cross-tab sync)
   const storageEventHandler = (event: StorageEvent) => {
@@ -114,33 +138,9 @@ export function persistentAtom<Value>(
   };
 
   // Use onMount to load initial value and set up listeners
+  // onMount is now only used for cross-tab sync setup/teardown
   const _unmount = onMount(baseAtom, () => {
-    // --- Mount (runs when the first listener subscribes) ---
-    let valueFromStorage: Value | undefined;
-    try {
-      const raw = storage.getItem(key);
-      if (raw !== null) {
-        valueFromStorage = serializer.decode(raw);
-      }
-    } catch (_error) {}
-
-    // Set initial value from storage if different from current
-    if (valueFromStorage !== undefined && get(baseAtom) !== valueFromStorage) {
-      // Use get() function
-      set(baseAtom, valueFromStorage); // Use set() function
-      // Note: This set() will trigger the core listener below if it's already active
-    } else if (valueFromStorage === undefined) {
-      // If nothing in storage, write the current (initial) value
-      writeToStorage(get(baseAtom)); // Use get() function
-    }
-
-    // Start listening to core atom changes *after* initial load/set
-    if (!stopCoreListener) {
-      // Use subscribe() function instead of listen() method
-      stopCoreListener = subscribe(baseAtom, (newValue: Value) => {
-        writeToStorage(newValue);
-      });
-    }
+    // --- Mount ---
 
     // Add cross-tab listener if enabled
     if (shouldListen) {
@@ -152,8 +152,7 @@ export function persistentAtom<Value>(
       if (shouldListen) {
         window.removeEventListener('storage', storageEventHandler); // Add semicolon
       }
-      // We intentionally DO NOT stop the core listener (`stopCoreListener`) here.
-      // The persistence should continue even if UI components unmount temporarily.
+      // Stop the core listener? No, persistence should continue.
     };
   }); // End of onMount call
 
@@ -187,26 +186,48 @@ export function persistentMap<Value extends object>(
     return map<Value>(initialValue); // Fallback to regular map if no storage
   }
 
-  const baseMap = map<Value>(initialValue);
+  // --- Revised Initialization ---
+  let initialValueFromStorage: Value | undefined;
+  let storageIsEmpty = true;
+  try {
+    const raw = storage.getItem(key);
+    if (raw !== null) {
+      initialValueFromStorage = serializer.decode(raw);
+      storageIsEmpty = false;
+    }
+  } catch (_error) { /* Ignore decode error */ }
+
+  const actualInitialValue = initialValueFromStorage ?? initialValue;
+  const baseMap = map<Value>(actualInitialValue);
+   // --- End Revised Initialization ---
+
   let ignoreNextStorageEvent = false; // Flag to prevent echo from self-triggered events
 
   // Function to write the current map value to storage
   const writeToStorage = (value: Value) => {
     try {
+      console.log(`[persistentMap] Encoding value for key "${key}":`, value); // DEBUG
       const encoded = serializer.encode(value);
+      console.log(`[persistentMap] Writing to storage key "${key}":`, encoded); // DEBUG
       ignoreNextStorageEvent = true; // Mark that we are causing the potential storage event
       storage.setItem(key, encoded);
     } catch (_error) {
+      console.error(`[persistentMap] Error writing to storage key "${key}":`, _error); // DEBUG
     } finally {
-      // Reset flag shortly after
-      setTimeout(() => {
-        ignoreNextStorageEvent = false;
-      }, 50);
+      // Reset flag immediately
+      ignoreNextStorageEvent = false;
     }
   };
 
-  // Subscribe to base map changes AFTER initial value is set
-  let stopCoreListener: (() => void) | undefined;
+  // If storage was initially empty, write the determined initial value now.
+  if (storageIsEmpty) {
+    writeToStorage(actualInitialValue);
+  }
+
+  // Subscribe to persist future changes immediately after creation.
+  subscribe(baseMap, (newValue: Value) => {
+      writeToStorage(newValue);
+  });
 
   // Handler for storage events (cross-tab sync)
   const storageEventHandler = (event: StorageEvent) => {
@@ -231,29 +252,27 @@ export function persistentMap<Value extends object>(
   const _unmount = onMount(baseMap, () => {
     // --- Mount ---
     let valueFromStorage: Value | undefined;
+    let storageIsEmpty = true; // Determine emptiness inside onMount now
     try {
       const raw = storage.getItem(key);
       if (raw !== null) {
         valueFromStorage = serializer.decode(raw);
+        storageIsEmpty = false;
       }
     } catch (_error) {}
 
     // Set initial value from storage if different from current
-    // Use set() which replaces the whole map content
-    if (valueFromStorage !== undefined) {
-      set(baseMap, valueFromStorage);
-    } else {
+    if (!storageIsEmpty && valueFromStorage !== undefined) {
+       // Use set() which replaces the whole map content
+       // Check if different before setting? Deep compare might be needed.
+       // For simplicity, setting unconditionally if storage had value.
+       set(baseMap, valueFromStorage);
+    } else if (storageIsEmpty) {
       // If nothing in storage, write the current (initial) value
       writeToStorage(get(baseMap));
     }
 
-    // Start listening to core map changes *after* initial load/set
-    if (!stopCoreListener) {
-      stopCoreListener = subscribe(baseMap, (newValue: Value) => {
-        // Add type Value
-        writeToStorage(newValue);
-      });
-    }
+    // Start listening to core map changes (Now handled outside onMount)
 
     // Add cross-tab listener if enabled
     if (shouldListen) {
@@ -265,7 +284,7 @@ export function persistentMap<Value extends object>(
       if (shouldListen) {
         window.removeEventListener('storage', storageEventHandler);
       }
-      // Persistence continues even if UI unmounts
+      // Stop the core listener? No, persistence should continue.
     };
   });
 

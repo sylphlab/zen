@@ -26,7 +26,9 @@ export function effect(stores, callback) {
             try {
                 lastCleanup();
             }
-            catch (_error) { }
+            catch (_error) {
+                console.error('Error during effect cleanup:', _error); // Log error here too
+            }
             lastCleanup = undefined; // Reset cleanup after running
         }
         // Get current values, handling updates for computed/batched
@@ -64,6 +66,7 @@ export function effect(stores, callback) {
                 lastCleanup = callback(...currentValues); // Cast needed for spread arguments
             }
             catch (_error) {
+                console.error('Error during effect callback:', _error); // Log error
                 lastCleanup = undefined; // Reset cleanup on error
             }
         }
@@ -89,7 +92,9 @@ export function effect(stores, callback) {
             try {
                 lastCleanup();
             }
-            catch (_error) { }
+            catch (_error) {
+                console.error('Error during effect cleanup:', _error); // Log error (Adjusted message)
+            }
         }
         // Unsubscribe from all stores
         for (const unsub of unsubscribers) {

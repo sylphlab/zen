@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it, vi } from 'vitest';
 import type { Search } from './index'; // Import Search type if needed for clarity
 import { getPathFromUrl, parseQuery } from './utils';
@@ -80,6 +81,7 @@ describe('utils', () => {
 
     it('should return relative paths as is and warn (mock console.warn)', () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      // Environment set by directive, no need to mock window
       expect(getPathFromUrl('users/1')).toBe('users/1');
       expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining('[zen-router] Invalid URL or path provided'),

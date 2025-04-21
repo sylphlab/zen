@@ -178,7 +178,7 @@ export function listenPaths<A extends MapAtom<any> | DeepMapAtom<any>>(
   }
 
   // Normalize paths to strings using null character separator for arrays
-  const pathStrings = paths.map((p) => (Array.isArray(p) ? p.join('\0') : String(p)));
+  const pathStrings = paths.map((p) => (Array.isArray(p) ? p.join('\0') : String(p).split('.').join('\0'))); // Normalize string paths too
 
   for (const ps of pathStrings) {
     let listenersForPath = atomPathListeners?.get(ps);
@@ -230,6 +230,7 @@ export function _emitPathChanges<A extends MapAtom<any> | DeepMapAtom<any>>(
   finalValue: AtomValue<A>, // Use AtomValue
 ): void {
   const atomPathListeners = pathListeners.get(a);
+  console.log('[DEBUG] _emitPathChanges called. Atom:', a._kind, 'ChangedPaths:', JSON.stringify(changedPaths), 'ListenersMap Size:', atomPathListeners?.size); // DEBUG
   if (!atomPathListeners?.size || !changedPaths.length) return;
 
   // Normalize changed paths for efficient lookup (stringified with null char separator)
@@ -240,7 +241,8 @@ export function _emitPathChanges<A extends MapAtom<any> | DeepMapAtom<any>>(
   }
 
   // Iterate through registered listener paths (also stringified with null char separator)
-  atomPathListeners.forEach((listenersSet, registeredPathString) => {
+  for (const [registeredPathString, listenersSet] of atomPathListeners) {
+    console.log('[DEBUG] Checking registered path:', registeredPathString, 'Listener count:', listenersSet.size); // DEBUG
     const registeredPathArray = registeredPathString.split('\0');
     const registeredPathLength = registeredPathArray.length;
 
@@ -261,6 +263,7 @@ export function _emitPathChanges<A extends MapAtom<any> | DeepMapAtom<any>>(
       }
       // --- End Path Matching Logic ---
 
+      console.log('[DEBUG] Comparing with changed path:', changedPathArray, 'isPrefixMatch:', isPrefixMatch); // DEBUG
       if (isPrefixMatch) {
         // If it's a match, get the value at the *changed* path and notify listeners
         // This ensures listeners for 'a.b' get the value of 'a.b.c' if that's what changed.
@@ -276,7 +279,7 @@ export function _emitPathChanges<A extends MapAtom<any> | DeepMapAtom<any>>(
         // However, different registered paths might match the same changed path, so we don't break the outer loop.
       }
     }
-  });
+  }
 }
 
 /**
@@ -362,6 +365,7 @@ export function _emitKeyChanges<A extends MapAtom<any> | DeepMapAtom<any>>(
       const valueAtKey = finalValue[k];
       // Optimization for single listener
       if (listenersForKey.size === 1) {
+        // biome-ignore lint/suspicious/noExplicitAny: Requires explicit cast within loop
         const listener = listenersForKey.values().next().value as KeyListener<
           AtomValue<A>,
           typeof k
@@ -373,6 +377,7 @@ export function _emitKeyChanges<A extends MapAtom<any> | DeepMapAtom<any>>(
       } else {
         // Iterate for multiple listeners
         for (const listener of listenersForKey) {
+          // biome-ignore lint/suspicious/noExplicitAny: Requires explicit cast within loop
           const typedListener = listener as KeyListener<AtomValue<A>, typeof k>; // Cast listener
           try {
             // Pass correctly typed key and value

@@ -27,6 +27,16 @@ export function notifyListeners(atom, value, oldValue) {
             catch (_e) { }
         }
     }
+    // Notify onNotify listeners AFTER value listeners
+    const notifyLs = baseAtom._notifyListeners;
+    if (notifyLs?.size) {
+        for (const fn of [...notifyLs]) {
+            try {
+                fn(value);
+            }
+            catch (_e) { } // Pass new value
+        }
+    }
 }
 // General implementation signature using AtomValue
 export function get(atom) {
@@ -76,7 +86,18 @@ export function set(atom, value, force = false) {
     // Runtime checks were removed for performance/simplicity after $$type removal.
     const oldValue = atom._value;
     if (force || !Object.is(value, oldValue)) {
-        // onSet listener logic removed
+        // Call onSet listeners BEFORE value change, only outside batch
+        if (batchDepth <= 0) {
+            const setLs = atom._setListeners;
+            if (setLs?.size) {
+                for (const fn of setLs) {
+                    try {
+                        fn(value); // Pass the NEW value
+                    }
+                    catch (_e) { }
+                }
+            }
+        }
         atom._value = value;
         // Use local batching logic (queueAtomForBatch defined below)
         if (batchDepth > 0) {

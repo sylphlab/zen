@@ -4,44 +4,17 @@ import { persistentAtom } from './index';
 
 // --- Mocks ---
 
-// Basic localStorage mock for testing
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
-  return {
-    getItem(key: string): string | null {
-      return store[key] ?? null;
-    },
-    setItem(key: string, value: string): void {
-      store[key] = value.toString();
-      // Simulate storage event dispatch (basic) - needs refinement for real cross-tab tests
-      // const event = new StorageEvent('storage', { key, newValue: value, storageArea: localStorageMock });
-      // window.dispatchEvent(event);
-    },
-    removeItem(key: string): void {
-      delete store[key];
-      // Simulate storage event dispatch (basic)
-      // const event = new StorageEvent('storage', { key, newValue: null, storageArea: localStorageMock });
-      // window.dispatchEvent(event);
-    },
-    clear(): void {
-      store = {};
-      // Simulate storage event dispatch (basic) - clear might not fire specific events
-      // const event = new StorageEvent('storage', { storageArea: localStorageMock });
-      // window.dispatchEvent(event);
-    },
-    get length(): number {
-      return Object.keys(store).length;
-    },
-    key(index: number): string | null {
-      const keys = Object.keys(store);
-      return keys[index] ?? null;
-    },
-    // Helper to inspect store
-    _getStore(): Record<string, string> {
-      return store;
-    },
-  };
-})();
+// Simple in-memory mock for localStorage
+let simpleStorageMock: Record<string, string> = {};
+const localStorageMock = {
+  getItem: (key: string): string | null => simpleStorageMock[key] ?? null,
+  setItem: (key: string, value: string): void => { simpleStorageMock[key] = value; },
+  removeItem: (key: string): void => { delete simpleStorageMock[key]; },
+  clear: (): void => { simpleStorageMock = {}; },
+  // Add length and key if needed by tests, otherwise omit for simplicity
+  get length(): number { return Object.keys(simpleStorageMock).length; },
+  key: (index: number): string | null => Object.keys(simpleStorageMock)[index] ?? null,
+};
 
 // --- Tests ---
 
@@ -49,30 +22,29 @@ describe('persistentAtom', () => {
   const TEST_KEY = 'testAtomKey';
 
   beforeEach(() => {
-    // Assign mock to global localStorage before each test
-    Object.defineProperty(window, 'localStorage', {
-      value: localStorageMock,
-      writable: true,
-    });
-    localStorageMock.clear(); // Ensure clean state
+    // Assign the simple mock to globalThis for the test
+    (globalThis as any).localStorage = localStorageMock;
+    localStorageMock.clear();
   });
 
   afterEach(() => {
     localStorageMock.clear();
+    (globalThis as any).localStorage = undefined; // Clean up mock
     // Restore original localStorage if needed, though usually not necessary in test env
   });
 
-  it('should initialize with initialValue if storage is empty', () => {
+  it('should initialize with initialValue if storage is empty', () => { // Remove async
     const initial = { count: 0 };
     const store = persistentAtom(TEST_KEY, initial);
     expect(get(store)).toEqual(initial);
     // Check if initial value was written to storage
-    expect(localStorageMock.getItem(TEST_KEY)).toBe(JSON.stringify(initial));
+    // await nextTick(); // Remove await
+    expect(localStorageMock.getItem(TEST_KEY)).toBe(JSON.stringify(initial)); // Use mock
   });
 
-  it('should load value from storage if present', () => {
+  it('should load value from storage if present', () => { // Remove async
     const storedValue = { count: 10 };
-    localStorageMock.setItem(TEST_KEY, JSON.stringify(storedValue));
+    localStorageMock.setItem(TEST_KEY, JSON.stringify(storedValue)); // Use mock
 
     const initial = { count: 0 }; // Different initial value
     const store = persistentAtom(TEST_KEY, initial);
@@ -81,7 +53,7 @@ describe('persistentAtom', () => {
     expect(get(store)).toEqual(storedValue);
   });
 
-  it('should update storage when atom value is set', () => {
+  it('should update storage when atom value is set', () => { // Remove async
     const initial = { count: 0 };
     const store = persistentAtom(TEST_KEY, initial);
     const newValue = { count: 5 };
@@ -89,7 +61,8 @@ describe('persistentAtom', () => {
     set(store, newValue);
 
     expect(get(store)).toEqual(newValue);
-    expect(localStorageMock.getItem(TEST_KEY)).toBe(JSON.stringify(newValue));
+    // await nextTick(); // Remove await
+    expect(localStorageMock.getItem(TEST_KEY)).toBe(JSON.stringify(newValue)); // Use mock
   });
 
   // TODO: Add tests for:

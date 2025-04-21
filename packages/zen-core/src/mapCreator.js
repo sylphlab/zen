@@ -31,6 +31,7 @@ export function mapCreator(initializer) {
             initializer(store, id, ...args);
         }
         catch (_error) {
+            console.error(`Error during mapCreator initializer for ID "${id}":`, _error); // Log error (Reverted message)
             // Optionally: remove from cache if initialization fails?
             // cache.delete(id);
             // Or set an error state in the store? Depends on desired behavior.

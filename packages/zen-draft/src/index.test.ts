@@ -1,5 +1,5 @@
 // Import zen atom factory and functions directly
-import { atom, get, set } from '@sylphlab/zen-core';
+import { zen as atom, get, set } from '@sylphlab/zen-core'; // Import zen as atom for minimal changes below
 import type { Atom } from '@sylphlab/zen-core';
 // Import immer for comparison
 import { produce as immerProduce } from 'immer';
@@ -13,6 +13,7 @@ describe('produce', () => {
       baseState,
       (draft: { name: string; age?: number }) => {
         draft.age = 30;
+        return undefined;
       },
       { patches: true, inversePatches: true },
     );
@@ -29,6 +30,7 @@ describe('produce', () => {
       baseState,
       (draft: { name: string; age: number }) => {
         draft.age = 31;
+        return undefined;
       },
       { patches: true, inversePatches: true },
     );
@@ -45,13 +47,14 @@ describe('produce', () => {
       baseState,
       (draft: { name: string; age: number; city?: string }) => {
         draft.city = undefined;
+        return undefined;
       },
       { patches: true, inversePatches: true },
     );
 
     expect(nextState).toEqual({ name: 'Alice', age: 30 });
     expect(nextState).not.toBe(baseState);
-    expect(patches).toEqual([{ op: 'remove', path: ['city'] }]);
+    expect(patches).toEqual([{ op: 'replace', path: ['city'], value: undefined }]); // Setting to undefined is a replace, not remove
     expect(inversePatches).toEqual([{ op: 'add', path: ['city'], value: 'Wonderland' }]);
   });
 
@@ -61,6 +64,7 @@ describe('produce', () => {
       baseState,
       (_draft: { name: string; age: number }) => {
         // No mutations
+        return undefined;
       },
       { patches: true, inversePatches: true },
     );
@@ -78,6 +82,7 @@ describe('produce', () => {
       (draft: { user: { name: string; address: { street: string } } }) => {
         draft.user.name = 'Bob';
         draft.user.address.street = '456 Side St';
+        return undefined;
       },
       { patches: true, inversePatches: true },
     );
@@ -103,6 +108,7 @@ describe('produce', () => {
       (draft: { items: number[] }) => {
         draft.items.push(3);
         draft.items.push(4);
+        return undefined;
       },
       { patches: true, inversePatches: true },
     );
@@ -124,6 +130,7 @@ describe('produce', () => {
       baseState,
       (draft: { items: number[] }) => {
         expect(draft.items.pop()).toBe(3);
+        return undefined;
       },
       { patches: true, inversePatches: true },
     );
@@ -139,6 +146,7 @@ describe('produce', () => {
       baseState,
       (draft: { items: number[] }) => {
         draft.items.splice(1, 2); // Remove 2 and 3
+        return undefined;
       },
       { patches: true, inversePatches: true },
     );
@@ -160,6 +168,7 @@ describe('produce', () => {
       baseState,
       (draft: { items: number[] }) => {
         draft.items.splice(1, 0, 2, 3); // Insert 2 and 3 at index 1
+        return undefined;
       },
       { patches: true, inversePatches: true },
     );
@@ -181,6 +190,7 @@ describe('produce', () => {
       baseState,
       (draft: { items: number[] }) => {
         draft.items.splice(1, 2, 2, 3); // Replace 9, 9 with 2, 3
+        return undefined;
       },
       { patches: true, inversePatches: true },
     );
@@ -206,6 +216,7 @@ describe('produce', () => {
       baseState,
       (draft: { data: Map<string, number> }) => {
         draft.data.set('b', 2);
+        return undefined;
       },
       { patches: true, inversePatches: true },
     );
@@ -222,6 +233,7 @@ describe('produce', () => {
       baseState,
       (draft: { data: Map<string, number> }) => {
         draft.data.set('a', 10);
+        return undefined;
       },
       { patches: true, inversePatches: true },
     );
@@ -243,6 +255,7 @@ describe('produce', () => {
       baseState,
       (draft: { data: Map<string, number> }) => {
         draft.data.delete('b');
+        return undefined;
       },
       { patches: true, inversePatches: true },
     );
@@ -264,6 +277,7 @@ describe('produce', () => {
       baseState,
       (draft: { data: Map<string, number> }) => {
         draft.data.clear();
+        return undefined;
       },
       { patches: true, inversePatches: true },
     );
@@ -286,6 +300,7 @@ describe('produce', () => {
       baseState,
       (draft: { data: Set<string> }) => {
         draft.data.add('b');
+        return undefined;
       },
       { patches: true, inversePatches: true },
     );
@@ -302,6 +317,7 @@ describe('produce', () => {
       baseState,
       (draft: { data: Set<string> }) => {
         draft.data.delete('b');
+        return undefined;
       },
       { patches: true, inversePatches: true },
     );
@@ -318,6 +334,7 @@ describe('produce', () => {
       baseState,
       (draft: { data: Set<string> }) => {
         draft.data.clear();
+        return undefined;
       },
       { patches: true, inversePatches: true },
     );
@@ -334,6 +351,7 @@ describe('produce', () => {
       baseState,
       (draft: { items: number[] }) => {
         draft.items.sort((a: number, b: number) => a - b);
+        return undefined;
       },
       { patches: true, inversePatches: true },
     );
@@ -349,6 +367,7 @@ describe('produce', () => {
       baseState,
       (draft: { items: number[] }) => {
         draft.items.reverse();
+        return undefined;
       },
       { patches: true, inversePatches: true },
     );
@@ -365,6 +384,7 @@ describe('produce', () => {
       baseState,
       (draft: { date: Date; otherProp: number }) => {
         draft.otherProp = 1;
+        return undefined;
       },
       { patches: true },
     );
@@ -381,6 +401,7 @@ describe('produce', () => {
       baseState,
       (draft: { regex: RegExp; otherProp: number }) => {
         draft.otherProp = 1;
+        return undefined;
       },
       { patches: true },
     );
@@ -415,6 +436,7 @@ describe('produce', () => {
       baseState,
       (draft) => {
         draft.a.b = 2;
+        return undefined;
       },
       { autoFreeze: true },
     );
@@ -429,6 +451,7 @@ describe('produce', () => {
       baseState,
       (draft) => {
         draft.a.b = 2;
+        return undefined;
       },
       // autoFreeze is omitted
     );
@@ -440,6 +463,7 @@ describe('produce', () => {
       baseState,
       (draft) => {
         draft.a.b = 3;
+        return undefined;
       },
       { autoFreeze: false },
     );
@@ -454,6 +478,7 @@ describe('produce', () => {
       baseState,
       (draft) => {
         draft.a.b = 2;
+        return undefined;
       },
       { autoFreeze: true },
     );
@@ -616,6 +641,7 @@ describe('produceAtom', () => {
       myAtom,
       (draft: { value: number }) => {
         draft.value = 20;
+        return undefined;
       },
       { patches: true, inversePatches: true },
     );
@@ -647,6 +673,7 @@ describe('produceAtom', () => {
       myAtom,
       (_draft: { value: number }) => {
         // No changes
+        return undefined;
       },
       { patches: true, inversePatches: true },
     );

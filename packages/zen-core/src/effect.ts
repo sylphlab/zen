@@ -32,7 +32,9 @@ export function effect<Stores extends AnyAtom[]>(
     if (!initialRun && typeof lastCleanup === 'function') {
       try {
         lastCleanup();
-      } catch (_error) {}
+      } catch (_error) {
+        console.error('Error during effect cleanup:', _error); // Log error here too
+      }
       lastCleanup = undefined; // Reset cleanup after running
     }
 
@@ -72,6 +74,7 @@ export function effect<Stores extends AnyAtom[]>(
         // biome-ignore lint/suspicious/noExplicitAny: Spread arguments require any here
         lastCleanup = callback(...(currentValues as any)); // Cast needed for spread arguments
       } catch (_error) {
+        console.error('Error during effect callback:', _error); // Log error
         lastCleanup = undefined; // Reset cleanup on error
       }
     }
@@ -101,7 +104,9 @@ export function effect<Stores extends AnyAtom[]>(
     if (typeof lastCleanup === 'function') {
       try {
         lastCleanup();
-      } catch (_error) {}
+      } catch (_error) {
+        console.error('Error during effect cleanup:', _error); // Log error (Adjusted message)
+      }
     }
 
     // Unsubscribe from all stores

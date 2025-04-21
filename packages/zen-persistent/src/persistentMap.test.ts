@@ -4,41 +4,16 @@ import { persistentMap } from './index';
 
 // --- Mocks ---
 
-// Basic localStorage mock (Consider extracting to a shared test utility later)
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
-  return {
-    getItem(key: string): string | null {
-      return store[key] ?? null;
-    },
-    setItem(key: string, value: string): void {
-      store[key] = value.toString();
-      // Basic event simulation (can be improved)
-      // const event = new StorageEvent('storage', { key, newValue: value, storageArea: localStorageMock });
-      // window.dispatchEvent(event);
-    },
-    removeItem(key: string): void {
-      delete store[key];
-      // const event = new StorageEvent('storage', { key, newValue: null, storageArea: localStorageMock });
-      // window.dispatchEvent(event);
-    },
-    clear(): void {
-      store = {};
-      // const event = new StorageEvent('storage', { storageArea: localStorageMock });
-      // window.dispatchEvent(event);
-    },
-    get length(): number {
-      return Object.keys(store).length;
-    },
-    key(index: number): string | null {
-      const keys = Object.keys(store);
-      return keys[index] ?? null;
-    },
-    _getStore(): Record<string, string> {
-      return store;
-    },
-  };
-})();
+// Simple in-memory mock for localStorage
+let simpleStorageMock: Record<string, string> = {};
+const localStorageMock = {
+  getItem: (key: string): string | null => simpleStorageMock[key] ?? null,
+  setItem: (key: string, value: string): void => { simpleStorageMock[key] = value; },
+  removeItem: (key: string): void => { delete simpleStorageMock[key]; },
+  clear: (): void => { simpleStorageMock = {}; },
+  get length(): number { return Object.keys(simpleStorageMock).length; },
+  key: (index: number): string | null => Object.keys(simpleStorageMock)[index] ?? null,
+};
 
 // --- Tests ---
 
@@ -46,25 +21,25 @@ describe('persistentMap', () => {
   const TEST_KEY = 'testMapKey';
 
   beforeEach(() => {
-    Object.defineProperty(window, 'localStorage', {
-      value: localStorageMock,
-      writable: true,
-    });
+    // Assign the simple mock to globalThis for the test
+    (globalThis as any).localStorage = localStorageMock;
     localStorageMock.clear();
   });
 
   afterEach(() => {
     localStorageMock.clear();
+    (globalThis as any).localStorage = undefined; // Clean up mock
   });
 
-  it('should initialize with initialValue if storage is empty', () => {
+  it('should initialize with initialValue if storage is empty', () => { // Remove async
     const initial = { name: 'Anon', age: 0 };
     const store = persistentMap(TEST_KEY, initial);
     expect(get(store)).toEqual(initial);
-    expect(localStorageMock.getItem(TEST_KEY)).toBe(JSON.stringify(initial));
+    // await nextTick(); // Remove await
+    expect(localStorageMock.getItem(TEST_KEY)).toBe(JSON.stringify(initial)); // Use mock
   });
 
-  it('should load value from storage if present', () => {
+  it('should load value from storage if present', () => { // Remove async
     const storedValue = { name: 'Zen', age: 1 };
     localStorageMock.setItem(TEST_KEY, JSON.stringify(storedValue));
 
@@ -74,7 +49,7 @@ describe('persistentMap', () => {
     expect(get(store)).toEqual(storedValue);
   });
 
-  it('should update storage when the whole map value is set', () => {
+  it('should update storage when the whole map value is set', () => { // Remove async
     const initial = { name: 'Anon', age: 0 };
     const store = persistentMap(TEST_KEY, initial);
     const newValue = { name: 'Zen Master', age: 99, location: 'Cloud' };
@@ -82,7 +57,8 @@ describe('persistentMap', () => {
     set(store, newValue); // Use core set function for maps
 
     expect(get(store)).toEqual(newValue);
-    expect(localStorageMock.getItem(TEST_KEY)).toBe(JSON.stringify(newValue));
+    // await nextTick(); // Remove await
+    expect(localStorageMock.getItem(TEST_KEY)).toBe(JSON.stringify(newValue)); // Use mock
   });
 
   // Note: setKey is not directly tested here as it modifies the underlying map,

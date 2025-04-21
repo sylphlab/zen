@@ -106,7 +106,7 @@ a, paths, fn) {
         pathListeners.set(a, atomPathListeners);
     }
     // Normalize paths to strings using null character separator for arrays
-    const pathStrings = paths.map((p) => (Array.isArray(p) ? p.join('\0') : String(p)));
+    const pathStrings = paths.map((p) => (Array.isArray(p) ? p.join('\0') : String(p).split('.').join('\0'))); // Normalize string paths too
     for (const ps of pathStrings) {
         let listenersForPath = atomPathListeners?.get(ps);
         if (!listenersForPath) {
@@ -151,6 +151,7 @@ export function _emitPathChanges(
 // Add MapAtom back
 a, changedPaths, finalValue) {
     const atomPathListeners = pathListeners.get(a);
+    console.log('[DEBUG] _emitPathChanges called. Atom:', a._kind, 'ChangedPaths:', JSON.stringify(changedPaths), 'ListenersMap Size:', atomPathListeners?.size); // DEBUG
     if (!atomPathListeners?.size || !changedPaths.length)
         return;
     // Normalize changed paths for efficient lookup (stringified with null char separator)
@@ -160,7 +161,8 @@ a, changedPaths, finalValue) {
         normalizedChanged.set(arrayPath.join('\0'), { path: p, array: arrayPath });
     }
     // Iterate through registered listener paths (also stringified with null char separator)
-    atomPathListeners.forEach((listenersSet, registeredPathString) => {
+    for (const [registeredPathString, listenersSet] of atomPathListeners) {
+        console.log('[DEBUG] Checking registered path:', registeredPathString, 'Listener count:', listenersSet.size); // DEBUG
         const registeredPathArray = registeredPathString.split('\0');
         const registeredPathLength = registeredPathArray.length;
         // Check each changed path against the registered path
@@ -179,6 +181,7 @@ a, changedPaths, finalValue) {
                 }
             }
             // --- End Path Matching Logic ---
+            console.log('[DEBUG] Comparing with changed path:', changedPathArray, 'isPrefixMatch:', isPrefixMatch); // DEBUG
             if (isPrefixMatch) {
                 // If it's a match, get the value at the *changed* path and notify listeners
                 // This ensures listeners for 'a.b' get the value of 'a.b.c' if that's what changed.
@@ -195,7 +198,7 @@ a, changedPaths, finalValue) {
                 // However, different registered paths might match the same changed path, so we don't break the outer loop.
             }
         }
-    });
+    }
 }
 /**
  * Listens to changes for specific keys within a map atom.

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { get, map, setKey } from '@sylphlab/zen-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -188,8 +189,8 @@ describe('History API', () => {
     });
 
     // Test non-browser warning via startHistoryListener
+    // This test now runs in node environment via directive
     it('should warn if trying to update state outside browser', () => {
-      global.window = undefined as any; // Simulate non-browser
       startHistoryListener();
       // The first warning is from startHistoryListener itself
       expect(mockConsoleWarn).toHaveBeenCalledWith(
@@ -223,8 +224,9 @@ describe('History API', () => {
       expect(vi.mocked(matcher.matchRoutes)).toHaveBeenCalledTimes(1); // Called again on popstate
     });
 
+    // This test now runs in node environment via directive, document is undefined
     it('should warn on start if body not present', () => {
-      global.document.body = null as any; // Simulate body not ready
+      // In node env, document is undefined, so body check fails implicitly
       startHistoryListener();
       expect(mockConsoleWarn).toHaveBeenCalledWith(
         expect.stringContaining('document.body not found'),
@@ -232,8 +234,8 @@ describe('History API', () => {
       expect(mockAddEventListener).not.toHaveBeenCalledWith('click', expect.any(Function)); // Click listener not added
     });
 
+    // This test now runs in node environment via directive
     it('should warn on start if outside browser', () => {
-      global.window = undefined as any;
       startHistoryListener();
       expect(mockConsoleWarn).toHaveBeenCalledWith(
         expect.stringContaining('startHistoryListener called outside browser'),
@@ -261,8 +263,8 @@ describe('History API', () => {
       expect(core.get($router).path).toBe('/new-path');
     });
 
+    // This test now runs in node environment via directive
     it('should warn if called outside browser', () => {
-      global.window = undefined as any;
       open('/new-path');
       expect(mockConsoleWarn).toHaveBeenCalledWith(
         expect.stringContaining('open() called outside browser'),
@@ -284,8 +286,8 @@ describe('History API', () => {
       expect(core.get($router).path).toBe('/another-path');
     });
 
+    // This test now runs in node environment via directive
     it('should warn if called outside browser', () => {
-      global.window = undefined as any;
       redirect('/another-path');
       expect(mockConsoleWarn).toHaveBeenCalledWith(
         expect.stringContaining('redirect() called outside browser'),
@@ -418,7 +420,7 @@ describe('History API', () => {
     // --- End of ignore tests ---
 
     it('should use parentElement fallback if composedPath is unavailable', () => {
-      const { anchor, span } = createNestedElements();
+      const { span } = createNestedElements(); // anchor is unused
       // Create event targeting the inner span, with composedPath undefined
       const event = createMockEvent(span, {}, () => undefined as any); // Force composedPath to be undefined
 
