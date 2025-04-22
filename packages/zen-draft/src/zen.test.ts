@@ -15,12 +15,12 @@ interface NestedState {
 describe('produceAtom', () => {
   it('should update atom state immutably based on recipe mutations', () => {
     const baseState: SimpleState = { a: 1, b: { c: 2 } };
-    const myAtom = atom(baseState);
+    const myZen = atom(baseState);
     const listener = vi.fn();
-    subscribe(myAtom, listener);
+    subscribe(myZen, listener);
 
     const [patches, inversePatches] = produceZen(
-      myAtom,
+      myZen,
       (draft) => {
         draft.a = 10;
         if (draft.b) {
@@ -32,7 +32,7 @@ describe('produceAtom', () => {
       { patches: true, inversePatches: true },
     );
 
-    const nextState = get(myAtom);
+    const nextState = get(myZen);
     expect(nextState).not.toBe(baseState); // Ensure new root reference
     expect(nextState.b).not.toBe(baseState.b); // Ensure nested object is new reference
     expect(nextState).toEqual({ a: 10, b: { c: 20 } });
@@ -56,12 +56,12 @@ describe('produceAtom', () => {
 
   it('should not update atom or call listener if recipe results in no changes', () => {
     const baseState = { a: 1 };
-    const myAtom = atom(baseState);
+    const myZen = atom(baseState);
     const listener = vi.fn();
-    subscribe(myAtom, listener);
+    subscribe(myZen, listener);
 
     const [patches, inversePatches] = produceZen(
-      myAtom,
+      myZen,
       (_draft) => {
         // No changes made
         return undefined;
@@ -69,7 +69,7 @@ describe('produceAtom', () => {
       { patches: true, inversePatches: true },
     );
 
-    expect(get(myAtom)).toBe(baseState); // Should be the exact same object
+    expect(get(myZen)).toBe(baseState); // Should be the exact same object
     // TODO: Listener called 1x due to immer returning new ref always? Investigate zen-core set.
     expect(listener).toHaveBeenCalledTimes(1); // Adjusted expectation
     expect(patches).toEqual([]);
@@ -78,16 +78,16 @@ describe('produceAtom', () => {
 
   it('should update atom with the exact value returned by the recipe', () => {
     const baseState = { a: 1 };
-    const myAtom = atom(baseState);
+    const myZen = atom(baseState);
     const listener = vi.fn();
-    subscribe(myAtom, listener);
+    subscribe(myZen, listener);
     const newState = { b: 2 }; // A completely different object
 
     // produceAtom's recipe *should* ideally return T | undefined.
     // We test if the underlying produce handles returning a new object,
     // even if the type signature isn't perfect.
     const [patches, inversePatches] = produceZen(
-      myAtom,
+      myZen,
       (_draft) => {
         // Change draft to _draft as it's not used
         // Don't mutate draft if returning a new value (Immer rule)
@@ -98,7 +98,7 @@ describe('produceAtom', () => {
       { patches: true, inversePatches: true },
     );
 
-    expect(get(myAtom)).toBe(newState); // Should be the exact new object returned
+    expect(get(myZen)).toBe(newState); // Should be the exact new object returned
     // TODO: Listener called 2x due to subscribe + set. Check 2nd call args.
     expect(listener).toHaveBeenCalledTimes(2); // Adjusted expectation
     expect(listener).toHaveBeenNthCalledWith(2, newState, baseState); // Check 2nd call (new state, old state)
@@ -112,12 +112,12 @@ describe('produceAtom', () => {
 
   it('should handle mutations in nested structures', () => {
     const baseState: NestedState = { data: { value: 10, items: ['x', 'y'] } };
-    const myAtom = atom(baseState);
+    const myZen = atom(baseState);
     const listener = vi.fn();
-    subscribe(myAtom, listener);
+    subscribe(myZen, listener);
 
     const [patches, inversePatches] = produceZen(
-      myAtom,
+      myZen,
       (draft) => {
         draft.data.value = 20;
         draft.data.items.push('z');
@@ -126,7 +126,7 @@ describe('produceAtom', () => {
       { patches: true, inversePatches: true },
     );
 
-    const nextState = get(myAtom);
+    const nextState = get(myZen);
     expect(nextState).not.toBe(baseState);
     expect(nextState.data).not.toBe(baseState.data);
     expect(nextState.data.items).not.toBe(baseState.data.items);
@@ -151,9 +151,9 @@ describe('produceAtom', () => {
 
   it('should pass options correctly to the underlying produce function', () => {
     const baseState = { count: 0 };
-    const myAtom = atom(baseState);
+    const myZen = atom(baseState);
     const [patches, inversePatches] = produceZen(
-      myAtom,
+      myZen,
       (draft) => {
         draft.count++;
         return undefined;
@@ -161,7 +161,7 @@ describe('produceAtom', () => {
       { patches: true, inversePatches: true }, // Request both patches
     );
 
-    expect(get(myAtom)).toEqual({ count: 1 });
+    expect(get(myZen)).toEqual({ count: 1 });
     expect(patches).toEqual([{ op: 'replace', path: ['count'], value: 1 }]);
     expect(inversePatches).toEqual([{ op: 'replace', path: ['count'], value: 0 }]);
   });

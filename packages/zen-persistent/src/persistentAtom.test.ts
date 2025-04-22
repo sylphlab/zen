@@ -1,6 +1,6 @@
 import { get, set } from '@sylphlab/zen-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { persistentAtom } from './index';
+import { persistentZen } from './index';
 
 // --- Mocks ---
 
@@ -18,7 +18,7 @@ const localStorageMock = {
 
 // --- Tests ---
 
-describe('persistentAtom', () => {
+describe('persistentZen', () => {
   const TEST_KEY = 'testAtomKey';
 
   beforeEach(() => {
@@ -35,7 +35,7 @@ describe('persistentAtom', () => {
 
   it('should initialize with initialValue if storage is empty', () => { // Remove async
     const initial = { count: 0 };
-    const store = persistentAtom(TEST_KEY, initial);
+    const store = persistentZen(TEST_KEY, initial);
     expect(get(store)).toEqual(initial);
     // Check if initial value was written to storage
     // await nextTick(); // Remove await
@@ -47,7 +47,7 @@ describe('persistentAtom', () => {
     localStorageMock.setItem(TEST_KEY, JSON.stringify(storedValue)); // Use mock
 
     const initial = { count: 0 }; // Different initial value
-    const store = persistentAtom(TEST_KEY, initial);
+    const store = persistentZen(TEST_KEY, initial);
 
     // Value should be loaded from storage, overriding initialValue
     expect(get(store)).toEqual(storedValue);
@@ -55,7 +55,7 @@ describe('persistentAtom', () => {
 
   it('should update storage when atom value is set', () => { // Remove async
     const initial = { count: 0 };
-    const store = persistentAtom(TEST_KEY, initial);
+    const store = persistentZen(TEST_KEY, initial);
     const newValue = { count: 5 };
 
     set(store, newValue);

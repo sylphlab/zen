@@ -227,8 +227,8 @@ describe('produce: Set Clear', () => {
 describe('produceAtom: Simple Object Replace', () => {
   const createBaseAtom = () => atom({ value: 1 });
   bench('zen-draft + atom', () => {
-    const myAtom = createBaseAtom();
-    produceAtom(myAtom, (draft) => {
+    const myZen = createBaseAtom();
+    produceAtom(myZen, (draft) => {
       draft.value = 2;
     });
   });
@@ -237,8 +237,8 @@ describe('produceAtom: Simple Object Replace', () => {
 describe('produceAtom: Nested Object Replace', () => {
   const createBaseAtom = () => atom({ a: { b: { c: 1 } } });
   bench('zen-draft + atom', () => {
-    const myAtom = createBaseAtom();
-    produceAtom(myAtom, (draft) => {
+    const myZen = createBaseAtom();
+    produceAtom(myZen, (draft) => {
       draft.a.b.c = 2;
     });
   });
@@ -247,8 +247,8 @@ describe('produceAtom: Nested Object Replace', () => {
 describe('produceAtom: Array Push (Small)', () => {
   const createBaseAtom = () => atom({ items: [1, 2, 3] });
   bench('zen-draft + atom', () => {
-    const myAtom = createBaseAtom();
-    produceAtom(myAtom, (draft) => {
+    const myZen = createBaseAtom();
+    produceAtom(myZen, (draft) => {
       draft.items.push(4);
     });
   });
@@ -258,8 +258,8 @@ describe('produceAtom: Array Push (Large)', () => {
   const createLargeArrayBaseAtom = () => atom({ items: Array.from({ length: 1000 }, (_, i) => i) });
   bench('zen-draft + atom', () => {
     // Create atom inside bench for fair comparison if needed, though setup cost is usually excluded
-    const myAtom = createLargeArrayBaseAtom();
-    produceAtom(myAtom, (draft) => {
+    const myZen = createLargeArrayBaseAtom();
+    produceAtom(myZen, (draft) => {
       draft.items.push(1000);
     });
   });
