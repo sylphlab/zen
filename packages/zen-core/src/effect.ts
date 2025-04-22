@@ -32,9 +32,7 @@ export function effect<Stores extends AnyZen[]>(
     if (!initialRun && typeof lastCleanup === 'function') {
       try {
         lastCleanup();
-      } catch (_error) {
-        console.error('Error during effect cleanup:', _error);
-      }
+      } catch (_error) {}
       lastCleanup = undefined; // Reset cleanup after running
     }
 
@@ -74,7 +72,6 @@ export function effect<Stores extends AnyZen[]>(
         // biome-ignore lint/suspicious/noExplicitAny: Spread arguments require any here
         lastCleanup = callback(...(currentValues as any)); // Cast needed for spread arguments
       } catch (_error) {
-        console.error('Error during effect callback:', _error);
         lastCleanup = undefined; // Reset cleanup on error
       }
     }
@@ -104,9 +101,7 @@ export function effect<Stores extends AnyZen[]>(
     if (typeof lastCleanup === 'function') {
       try {
         lastCleanup();
-      } catch (_error) {
-        console.error('Error during effect cleanup:', _error);
-      }
+      } catch (_error) {}
     }
 
     // Unsubscribe from all stores

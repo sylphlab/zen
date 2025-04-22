@@ -55,7 +55,6 @@ export function mapCreator<T extends object, ID = string, Args extends unknown[]
       // Run the provided initializer logic
       initializer(store, id, ...args);
     } catch (_error) {
-      console.error(`Error during mapCreator initializer for ID "${id}":`, _error);
       // Optionally: remove from cache if initialization fails?
       // cache.delete(id);
       // Or set an error state in the store? Depends on desired behavior.
