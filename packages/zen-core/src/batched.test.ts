@@ -289,10 +289,100 @@ describe('batched', () => {
     await nextTick();
     expect(calculation).not.toHaveBeenCalled();
   });
+
+  test('handles dependency on another dirty batched store', async () => {
+    const source = atom(1);
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
+    const b1 = batched(source as any, (v) => (v as number) * 2); // b1 = 2 initially
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
+    const b2 = batched(b1 as any, (v) => (v as number) + 1); // b2 = 3 initially
+    const listener = vi.fn();
+
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
+    const unsub = subscribe(b2 as any, listener);
+    await nextTick(); // Initial calculations (b1=2, b2=3)
+    expect(b1._value).toBe(2);
+    expect(b2._value).toBe(3);
+    expect(listener).toHaveBeenCalledTimes(2); // Initial null, then 3
+    listener.mockClear();
+
+    // Update source, making b1 dirty, which should make b2 unable to calculate immediately
+    set(source, 2);
+
+    // b1 is marked dirty, update scheduled. b2 is NOT dirty yet.
+    expect(b1._dirty).toBe(true);
+    // expect(b2._dirty).toBe(true); // Removed: Incorrect assertion. b2 only gets dirty after b1 notifies.
+    expect(b1._value).toBe(2); // Old value
+    expect(b2._value).toBe(3); // Old value
+    expect(listener).not.toHaveBeenCalled();
+
+    await nextTick(); // Wait for microtask
+
+    // b1 calculates first (4), then b2 calculates (5)
+    expect(b1._value).toBe(4);
+    expect(b2._value).toBe(5);
+    // Listener for b2 should only be called ONCE with the final value
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledWith(5, 3);
+
+    unsub();
+  });
+
+  test('handles errors during calculation gracefully', async () => {
+    const source = atom(1);
+    const error = new Error('Calculation failed');
+    const calculation = vi.fn((v: unknown) => {
+      if ((v as number) === 2) {
+        throw error;
+      }
+      return (v as number) * 10;
+    });
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
+    const derived = batched(source as any, calculation);
+    const listener = vi.fn();
+
+    // biome-ignore lint/suspicious/noExplicitAny: Test setup requires cast
+    const unsub = subscribe(derived as any, listener);
+    await nextTick(); // Initial calculation (10)
+    expect(derived._value).toBe(10);
+    expect(derived._dirty).toBe(false);
+    expect(listener).toHaveBeenCalledTimes(2); // Initial null, then 10
+    listener.mockClear();
+
+    // Trigger error
+    expect(() => {
+      set(source, 2);
+    }).not.toThrow(); // Update itself shouldn't throw
+
+    expect(derived._dirty).toBe(true); // Marked dirty
+    expect(derived._value).toBe(10); // Value remains old
+    expect(listener).not.toHaveBeenCalled(); // Listener not called
+
+    await nextTick(); // Wait for microtask where calculation fails
+
+    expect(derived._dirty).toBe(true); // Should remain dirty after failed calculation
+    expect(derived._value).toBe(10); // Value should still be the old value
+    expect(listener).not.toHaveBeenCalled(); // Listener should not have been called
+
+    // Update source again to a non-error value
+    set(source, 3);
+    expect(derived._dirty).toBe(true); // Still dirty
+    expect(derived._value).toBe(10);
+    expect(listener).not.toHaveBeenCalled();
+
+    await nextTick(); // Wait for microtask for successful calculation
+
+    expect(derived._dirty).toBe(false); // Should be clean now
+    expect(derived._value).toBe(30); // New value calculated
+    expect(listener).toHaveBeenCalledTimes(1); // Listener called with new value
+    expect(listener).toHaveBeenCalledWith(30, 10);
+
+    unsub();
+  });
 });
 
 // Need to declare batchDepth for the test file scope if it's used internally
 // and not exported in a way TS can see for the test.
 // However, it's better if the implementation detail is not needed here.
 // Let's assume batched.ts handles its state correctly.
-declare let batchDepth: number | undefined;
+// declare let batchDepth: number | undefined; // Removed declare as it's not used

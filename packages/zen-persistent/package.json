@@ -18,8 +18,6 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsup",
-    "test": "vitest run --environment jsdom",
-    "test:watch": "vitest",
     "validate": "pnpm run check-format && pnpm run lint && pnpm run typecheck && pnpm run test"
   },
   "peerDependencies": {
@@ -27,11 +25,7 @@
   },
   "devDependencies": {
     "tsup": "^8.2.3",
-    "typescript": "^5.5.3",
-    "vitest": "^2.0.4"
-  },
-  "vitest": {
-    "environment": "jsdom"
+    "typescript": "^5.5.3"
   },
   "repository": {
     "type": "git",

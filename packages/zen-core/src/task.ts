@@ -141,7 +141,9 @@ export function runTask<T, Args extends unknown[]>(
  * @param taskZen The task zen to read from.
  * @returns The current TaskState.
  */
-export function getTaskState<T>(taskZen: TaskZen<T>): TaskState<T> {
+export function getTaskState<T, Args extends unknown[]>(
+  taskZen: TaskZen<T, Args>,
+): TaskState<T> {
   // TaskZen now directly holds the TaskState value
   return taskZen._value;
 }
@@ -152,8 +154,8 @@ export function getTaskState<T>(taskZen: TaskZen<T>): TaskState<T> {
  * @param listener The listener function.
  * @returns An unsubscribe function.
  */
-export function subscribeToTask<T>(
-  taskZen: TaskZen<T>,
+export function subscribeToTask<T, Args extends unknown[]>(
+  taskZen: TaskZen<T, Args>,
   listener: Listener<TaskState<T>>,
 ): Unsubscribe {
   // Subscribe directly to the TaskZen using the core subscribe function.
