@@ -21,6 +21,9 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@sylphlab/biome-config": "^0.2.0",
+    "lefthook": "^1.11.11",
     "@changesets/cli": "^2.29.2",
     "@reduxjs/toolkit": "^2.7.0",
     "@size-limit/preset-small-lib": "^11.2.0",
@@ -47,8 +50,5 @@
     "zustand": "^5.0.3"
   },
   "dependencies": {
-    "@biomejs/biome": "^1.9.4",
-    "@sylphlab/biome-config": "^0.2.0",
-    "lefthook": "^1.11.11"
   }
 }
