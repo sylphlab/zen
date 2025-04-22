@@ -23,10 +23,6 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "bench": "vitest bench --run",
-    "typecheck": "tsc --noEmit",
     "clean": "rimraf dist"
   },
   "dependencies": {

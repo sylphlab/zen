@@ -16,11 +16,7 @@
   "files": ["dist"],
   "sideEffects": false,
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "build": "tsup",
-    "test": "vitest run --environment jsdom",
-    "test:watch": "vitest",
-    "validate": "pnpm run check-format && pnpm run lint && pnpm run typecheck && pnpm run test"
+    "build": "tsup"
   },
   "peerDependencies": {
     "@sylphlab/zen-core": "workspace:*",
@@ -33,11 +29,7 @@
 
     "tsup": "^8.2.3",
     "typescript": "^5.5.3",
-    "vitest": "^2.0.4",
     "vue": "^3.4.34"
-  },
-  "vitest": {
-    "environment": "jsdom"
   },
   "repository": {
     "type": "git",

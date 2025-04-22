@@ -15,11 +15,7 @@
   },
   "files": ["dist"],
   "scripts": {
-    "build": "tsup",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "coverage": "vitest run --coverage",
-    "lint": "echo 'Lint script not implemented yet'"
+    "build": "tsup"
   },
   "keywords": ["zen", "router", "routing", "state management", "minimal", "tiny"],
   "author": "Sylph Lab <hi@sylphlab.com>",
@@ -34,9 +30,7 @@
     "url": "https://github.com/sylphlab/zen/issues"
   },
   "devDependencies": {
-    "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^1.6.1",
-    "@vitest/coverage-v8": "^1.6.1"
+    "vite-tsconfig-paths": "^5.1.4"
   },
   "publishConfig": {
     "access": "public"
