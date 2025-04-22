@@ -1,11 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import {
-  get as getAtomValue,
-  set as setAtomValue,
-  subscribe as subscribeToAtom,
-  zen,
-} from './atom'; // Import updated functional API
 import { computed } from './computed'; // Import computed
+import { get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom, zen } from './zen'; // Import updated functional API
 
 // // Mock the internal subscribe/unsubscribe functions for dependency tracking test - REMOVED due to vi.mock error
 // vi.mock('./atom', async (importOriginal) => {

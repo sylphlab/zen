@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { batch, set, subscribe, zen } from './atom';
 import { deepMap, setPath } from './deepMap';
 import { listenKeys, listenPaths, onMount, onNotify, onSet, onStart, onStop } from './events';
 import { map, setKey } from './map';
+import { batch, set, subscribe, zen } from './zen';
 
 describe('events', () => {
   describe('onMount', () => {

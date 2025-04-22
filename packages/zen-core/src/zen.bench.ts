@@ -21,7 +21,7 @@ import {
   get as zenGetAtomValue,
   set as zenSetAtomValue,
   subscribe as zenSubscribeToAtom,
-} from './atom'; // Import updated functional API, alias atom as zenCreateAtom
+} from './zen'; // Import updated functional API, alias atom as zenCreateAtom
 
 // --- Common Setup Helpers (Duplicated from original index.bench.ts for atom tests) ---
 const createJotaiReadBenchSetup = <T>(atomToRead: Atom<T>) => {

@@ -1,10 +1,10 @@
 import { map } from './map'; // Import the map factory function
-import type { MapAtom } from './types'; // Import MapAtom type
+import type { MapZen } from './types'; // Import MapZen type
 
 // Type for the initializer function passed to mapCreator
 // It receives the newly created store and the ID (and potentially other args)
 type MapInitializer<T extends object, ID = string, Args extends unknown[] = unknown[]> = (
-  store: MapAtom<T>,
+  store: MapZen<T>,
   id: ID,
   ...args: Args
 ) => void;
@@ -13,7 +13,7 @@ type MapInitializer<T extends object, ID = string, Args extends unknown[] = unkn
 type StoreInstanceCreator<T extends object, ID = string, Args extends unknown[] = unknown[]> = (
   id: ID,
   ...args: Args
-) => MapAtom<T>;
+) => MapZen<T>;
 
 /**
  * Creates a factory function for generating map stores with shared initialization logic.
@@ -25,19 +25,19 @@ type StoreInstanceCreator<T extends object, ID = string, Args extends unknown[] 
  * @template Args The type of additional arguments passed to the initializer.
  * @param initializer A function that receives the newly created store instance and the ID (plus any extra args)
  *                    to perform initialization logic (e.g., setting initial state, fetching data).
- * @returns A function that takes an ID (and optional extra args) and returns a MapAtom instance.
+ * @returns A function that takes an ID (and optional extra args) and returns a MapZen instance.
  */
 export function mapCreator<T extends object, ID = string, Args extends unknown[] = unknown[]>(
   initializer: MapInitializer<T, ID, Args>,
 ): StoreInstanceCreator<T, ID, Args> {
   // Cache to store created instances, keyed by ID
-  const cache = new Map<ID, MapAtom<T>>();
+  const cache = new Map<ID, MapZen<T>>();
 
   // The factory function returned to the user
   const createStoreInstance: StoreInstanceCreator<T, ID, Args> = (
     id: ID,
     ...args: Args
-  ): MapAtom<T> => {
+  ): MapZen<T> => {
     // Check cache first
     if (cache.has(id)) {
       // biome-ignore lint/style/noNonNullAssertion: cache.has(id) check guarantees existence
@@ -55,7 +55,6 @@ export function mapCreator<T extends object, ID = string, Args extends unknown[]
       // Run the provided initializer logic
       initializer(store, id, ...args);
     } catch (_error) {
-      console.error(`Error during mapCreator initializer for ID "${id}":`, _error); // Log error (Reverted message)
       // Optionally: remove from cache if initialization fails?
       // cache.delete(id);
       // Or set an error state in the store? Depends on desired behavior.

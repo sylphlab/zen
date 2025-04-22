@@ -1,8 +1,8 @@
 import { deepMap as nanostoresDeepMap } from 'nanostores';
 import { bench, describe } from 'vitest';
-import { zen } from './atom'; // Use correct name
-import type { Atom } from './atom'; // Import Atom type from atom.ts
 import { deepMap, setPath } from './deepMap'; // Use correct names
+import { zen } from './zen'; // Use correct name
+import type { Atom } from './zen'; // Import Atom type from atom.ts
 
 // Note: Direct comparison for deep immutable updates is difficult as libraries handle it differently.
 // - Immer uses proxies for mutable-like updates.

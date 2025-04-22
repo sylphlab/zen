@@ -1,4 +1,4 @@
-import { type Atom, get, subscribe } from '@sylphlab/zen-core';
+import { type Zen, get, subscribe } from '@sylphlab/zen-core';
 import { type Ref, onMounted, onUnmounted, ref } from 'vue';
 
 /**
@@ -8,7 +8,7 @@ import { type Ref, onMounted, onUnmounted, ref } from 'vue';
  * @param store The Zen store to subscribe to.
  * @returns A reactive Vue ref containing the store's current value.
  */
-export function useStore<Value>(store: Atom<Value>): Ref<Value> {
+export function useStore<Value>(store: Zen<Value>): Ref<Value> {
   // Get the initial value synchronously
   const initialValue: Value = get(store);
   // Create a reactive ref with the initial value

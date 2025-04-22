@@ -1,10 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-  get as getAtomValue,
-  set as setAtomValue,
-  subscribe as subscribeToAtom,
-  zen,
-} from './atom'; // Import updated functional API
+import { get as getAtomValue, set as setAtomValue, subscribe as subscribeToAtom, zen } from './zen'; // Import updated functional API
 
 describe('atom (functional)', () => {
   it('should initialize with the correct value', () => {

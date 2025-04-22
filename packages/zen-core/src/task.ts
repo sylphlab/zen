@@ -1,50 +1,50 @@
-import { notifyListeners, subscribe as subscribeToCoreAtom } from './atom'; // Import core subscribe AND notifyListeners
-// Task atom implementation for managing asynchronous operations.
-// import type { Atom } from './atom'; // Removed unused Atom import
+// Task zen implementation for managing asynchronous operations.
+// import type { Zen } from './zen'; // Removed unused Zen import
 import type {
-  AnyAtom,
+  AnyZen,
   Listener,
-  TaskAtom,
   TaskState,
-  Unsubscribe /* AtomWithValue, */,
-} from './types'; // Removed unused AtomWithValue, Add AnyAtom, Remove unused AtomValue
+  TaskZen,
+  Unsubscribe /* ZenWithValue, */,
+} from './types'; // Removed unused ZenWithValue, Add AnyZen, Remove unused ZenValue
+import { notifyListeners, subscribe as subscribeToCoreZen } from './zen'; // Import core subscribe AND notifyListeners
 // Removed import { notifyListeners } from './internalUtils'; // Import notifyListeners
-// Removed createAtom, getAtomValue, setAtomValue, subscribeToAtom imports
+// Removed createZen, getZenValue, setZenValue, subscribeToZen imports
 
 // --- Type Definition ---
 /**
- * Represents a Task Atom, which wraps an asynchronous function
+ * Represents a Task Zen, which wraps an asynchronous function
  * and provides its state (loading, error, data) reactively.
  */
-// TaskAtom type is now defined in types.ts
+// TaskZen type is now defined in types.ts
 
 // --- Internal state for tracking running promises ---
-// WeakMap to associate TaskAtom instances with their currently running promise.
-const runningPromises = new WeakMap<TaskAtom<unknown>, Promise<unknown>>(); // Use unknown
+// WeakMap to associate TaskZen instances with their currently running promise.
+const runningPromises = new WeakMap<TaskZen<unknown>, Promise<unknown>>(); // Use unknown
 
 /**
- * Creates a Task Atom to manage the state of an asynchronous operation.
+ * Creates a Task Zen to manage the state of an asynchronous operation.
  *
  * @template T The type of the data returned by the async function.
  * @param asyncFn The asynchronous function to execute when `runTask` is called.
- * @returns A TaskAtom instance.
+ * @returns A TaskZen instance.
  */
-// Add Args generic parameter matching TaskAtom type
+// Add Args generic parameter matching TaskZen type
 export function task<T = void, Args extends unknown[] = unknown[]>(
   // Use unknown[] for Args
   asyncFn: (...args: Args) => Promise<T>,
-): TaskAtom<T, Args> {
-  // Return TaskAtom with Args
-  // Create the merged TaskAtom object directly
-  const taskAtom: TaskAtom<T, Args> = {
-    // Use TaskAtom with Args
+): TaskZen<T, Args> {
+  // Return TaskZen with Args
+  // Create the merged TaskZen object directly
+  const taskZen: TaskZen<T, Args> = {
+    // Use TaskZen with Args
     _kind: 'task',
     _value: { loading: false }, // Initial TaskState
     _asyncFn: asyncFn,
     // Listener properties (_listeners, etc.) are initially undefined
   };
-  // No need for STORE_MAP_KEY_SET marker for task atoms
-  return taskAtom;
+  // No need for STORE_MAP_KEY_SET marker for task zens
+  return taskZen;
 }
 
 // --- Functional API for Task ---
@@ -52,23 +52,23 @@ export function task<T = void, Args extends unknown[] = unknown[]>(
 /**
  * Runs the asynchronous function associated with the task.
  * If the task is already running, returns the existing promise.
- * Updates the task's state atom based on the outcome.
- * @param taskAtom The task atom to run.
+ * Updates the task's state zen based on the outcome.
+ * @param taskZen The task zen to run.
  * @param args Arguments to pass to the asynchronous function.
  * @returns A promise that resolves with the result or rejects with the error.
  */
-// Add Args generic parameter matching TaskAtom type
+// Add Args generic parameter matching TaskZen type
 export function runTask<T, Args extends unknown[]>(
-  taskAtom: TaskAtom<T, Args>,
+  taskZen: TaskZen<T, Args>,
   ...args: Args
 ): Promise<T> {
   // Use unknown[] for Args
-  // Operate directly on taskAtom
-  // const stateAtom = taskAtom._stateAtom; // Removed
+  // Operate directly on taskZen
+  // const stateZen = taskZen._stateZen; // Removed
 
   // Check if a promise is already running for this task using the WeakMap.
-  // Cast taskAtom for WeakMap key compatibility
-  const existingPromise = runningPromises.get(taskAtom as TaskAtom<unknown>); // Cast to unknown
+  // Cast taskZen for WeakMap key compatibility
+  const existingPromise = runningPromises.get(taskZen as TaskZen<unknown>); // Cast to unknown
   if (existingPromise) {
     // console.log('Task already running, returning existing promise.'); // Optional debug log
     // Cast existing promise back to Promise<T> for return type compatibility
@@ -78,15 +78,15 @@ export function runTask<T, Args extends unknown[]>(
   // Define the actual execution logic within an async function.
   const execute = async (): Promise<T> => {
     // Set loading state immediately. Clear previous error/data.
-    const oldState = taskAtom._value;
-    taskAtom._value = { loading: true, error: undefined, data: undefined };
-    // Notify listeners directly attached to TaskAtom, cast to AnyAtom.
-    notifyListeners(taskAtom as AnyAtom, taskAtom._value, oldState);
+    const oldState = taskZen._value;
+    taskZen._value = { loading: true, error: undefined, data: undefined };
+    // Notify listeners directly attached to TaskZen, cast to AnyZen.
+    notifyListeners(taskZen as AnyZen, taskZen._value, oldState);
 
     // Call the stored async function and store the promise.
-    const promise = taskAtom._asyncFn(...args);
-    // Cast taskAtom for WeakMap key compatibility
-    runningPromises.set(taskAtom as TaskAtom<unknown>, promise); // Cast to unknown
+    const promise = taskZen._asyncFn(...args);
+    // Cast taskZen for WeakMap key compatibility
+    runningPromises.set(taskZen as TaskZen<unknown>, promise); // Cast to unknown
 
     try {
       // Wait for the async function to complete.
@@ -94,16 +94,16 @@ export function runTask<T, Args extends unknown[]>(
 
       // **Crucially**, only update the state if this *specific* promise instance
       // is still the one tracked in the WeakMap.
-      // Cast taskAtom for WeakMap key compatibility
-      if (runningPromises.get(taskAtom as TaskAtom<unknown>) === promise) {
+      // Cast taskZen for WeakMap key compatibility
+      if (runningPromises.get(taskZen as TaskZen<unknown>) === promise) {
         // Cast to unknown
         // console.log('Task succeeded, updating state.'); // Optional debug log
-        const oldStateSuccess = taskAtom._value;
-        taskAtom._value = { loading: false, data: result, error: undefined };
-        // Notify listeners directly attached to TaskAtom, cast to AnyAtom.
-        notifyListeners(taskAtom as AnyAtom, taskAtom._value, oldStateSuccess);
-        // Cast taskAtom for WeakMap key compatibility
-        runningPromises.delete(taskAtom as TaskAtom<unknown>); // Cast to unknown
+        const oldStateSuccess = taskZen._value;
+        taskZen._value = { loading: false, data: result, error: undefined };
+        // Notify listeners directly attached to TaskZen, cast to AnyZen.
+        notifyListeners(taskZen as AnyZen, taskZen._value, oldStateSuccess);
+        // Cast taskZen for WeakMap key compatibility
+        runningPromises.delete(taskZen as TaskZen<unknown>); // Cast to unknown
       } else {
         // console.log('Task succeeded, but a newer run is active. Ignoring result.'); // Optional debug log
       }
@@ -111,19 +111,19 @@ export function runTask<T, Args extends unknown[]>(
       return result; // Return the successful result.
     } catch (error) {
       // Similar check for race conditions on error.
-      // Cast taskAtom for WeakMap key compatibility
-      if (runningPromises.get(taskAtom as TaskAtom<unknown>) === promise) {
+      // Cast taskZen for WeakMap key compatibility
+      if (runningPromises.get(taskZen as TaskZen<unknown>) === promise) {
         // Cast to unknown
         // console.error('Task failed, updating state:', error); // Optional debug log
         // Ensure the error stored is always an Error instance.
         const errorObj =
           error instanceof Error ? error : new Error(String(error ?? 'Unknown error'));
-        const oldStateError = taskAtom._value;
-        taskAtom._value = { loading: false, error: errorObj, data: undefined };
-        // Notify listeners directly attached to TaskAtom, cast to AnyAtom.
-        notifyListeners(taskAtom as AnyAtom, taskAtom._value, oldStateError);
-        // Cast taskAtom for WeakMap key compatibility
-        runningPromises.delete(taskAtom as TaskAtom<unknown>); // Cast to unknown
+        const oldStateError = taskZen._value;
+        taskZen._value = { loading: false, error: errorObj, data: undefined };
+        // Notify listeners directly attached to TaskZen, cast to AnyZen.
+        notifyListeners(taskZen as AnyZen, taskZen._value, oldStateError);
+        // Cast taskZen for WeakMap key compatibility
+        runningPromises.delete(taskZen as TaskZen<unknown>); // Cast to unknown
       } else {
         // console.error('Task failed, but a newer run is active. Ignoring error.'); // Optional debug log
       }
@@ -137,29 +137,29 @@ export function runTask<T, Args extends unknown[]>(
 }
 
 /**
- * Gets the current state of a task atom.
- * @param taskAtom The task atom to read from.
+ * Gets the current state of a task zen.
+ * @param taskZen The task zen to read from.
  * @returns The current TaskState.
  */
-export function getTaskState<T>(taskAtom: TaskAtom<T>): TaskState<T> {
-  // TaskAtom now directly holds the TaskState value
-  return taskAtom._value;
+export function getTaskState<T>(taskZen: TaskZen<T>): TaskState<T> {
+  // TaskZen now directly holds the TaskState value
+  return taskZen._value;
 }
 
 /**
- * Subscribes to changes in a task atom's state.
- * @param taskAtom The task atom to subscribe to.
+ * Subscribes to changes in a task zen's state.
+ * @param taskZen The task zen to subscribe to.
  * @param listener The listener function.
  * @returns An unsubscribe function.
  */
 export function subscribeToTask<T>(
-  taskAtom: TaskAtom<T>,
+  taskZen: TaskZen<T>,
   listener: Listener<TaskState<T>>,
 ): Unsubscribe {
-  // Subscribe directly to the TaskAtom using the core subscribe function.
-  // Cast taskAtom to AnyAtom and listener to any to satisfy the generic signature.
+  // Subscribe directly to the TaskZen using the core subscribe function.
+  // Cast taskZen to AnyZen and listener to any to satisfy the generic signature.
   // biome-ignore lint/suspicious/noExplicitAny: Listener type requires any due to complex generic resolution
-  return subscribeToCoreAtom(taskAtom as AnyAtom, listener as any);
+  return subscribeToCoreZen(taskZen as AnyZen, listener as any);
 }
 
-// Removed temporary UpdatedTaskAtom type and updatedCreateTask function
+// Removed temporary UpdatedTaskZen type and updatedCreateTask function

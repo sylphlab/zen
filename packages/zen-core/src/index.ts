@@ -2,20 +2,20 @@
 // This file re-exports all public APIs.
 
 // --- Core Types ---
-export * from './types'; // Export all base types (Listener, Unsubscribe, AtomWithValue, AnyAtom, TaskState, MapAtom, DeepMapAtom, TaskAtom, etc.)
-export type { MapAtom } from './types'; // Re-add explicit export
-// Import Atom type specifically
-import type { Atom as _Atom } from './atom';
-export type Atom<T = unknown> = _Atom<T>; // Re-export Atom type
+export * from './types'; // Export all base types (Listener, Unsubscribe, ZenWithValue, AnyZen, TaskState, MapZen, DeepMapZen, TaskZen, etc.)
+export type { MapZen } from './types'; // Re-add explicit export
+// Import Zen type specifically
+import type { Zen as _Zen } from './zen';
+export type Zen<T = unknown> = _Zen<T>; // Re-export Zen type
 
 // --- Other Types ---
-export type { ReadonlyAtom, ComputedAtom } from './computed'; // Keep specific computed types
+export type { ReadonlyZen, ComputedZen } from './computed'; // Keep specific computed types
 export type { Path } from './deepMap';
 export type { LifecycleListener, KeyListener, PathListener } from './events';
 
 // --- Core Factories ---
 // Import factories
-import { zen as _zen } from './atom'; // Import zen
+import { zen as _zen } from './zen'; // Import zen
 // Removed: import { map as _map } from './map';
 // Re-export factories
 export const zen = _zen; // Export zen
@@ -28,8 +28,8 @@ export { task } from './task';
 export { mapCreator } from './mapCreator';
 
 // --- Core Functions ---
-// Import core functions from atom
-import { batch as _batch, get as _get, set as _set, subscribe as _subscribe } from './atom';
+// Import core functions from zen
+import { batch as _batch, get as _get, set as _set, subscribe as _subscribe } from './zen';
 // Re-export them
 export const get = _get;
 export const set = _set;

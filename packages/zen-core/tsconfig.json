@@ -26,7 +26,6 @@
     "declarationMap": false,
     "inlineSources": false,
     "forceConsistentCasingInFileNames": true,
-    "composite": true, // Required for project references
 
     // Removed other package-specific options: emitDeclarationOnly
     "declarationDir": "dist", // Explicitly set declaration output directory

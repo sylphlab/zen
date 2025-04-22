@@ -1,11 +1,11 @@
 import { atom as nanoAtom, computed as nanoComputed, map as nanoMap } from 'nanostores';
 import { onStart as nanoOnStart, onStop as nanoOnStop } from 'nanostores';
 import { bench, describe } from 'vitest';
-import { set as setAtom, subscribe, zen } from './atom'; // Use zen, subscribe
 import { computed } from './computed'; // Use computed
 import { deepMap, setPath as setDeepMapPath } from './deepMap'; // Use deepMap
 import { onMount, onNotify, onSet, onStart, onStop } from './events'; // Use default names
 import { map, setKey as setMapKey } from './map'; // Use map
+import { set as setAtom, subscribe, zen } from './zen'; // Use zen, subscribe
 
 describe('onStart/onStop Overhead (Atom)', () => {
   bench('zen', () => {

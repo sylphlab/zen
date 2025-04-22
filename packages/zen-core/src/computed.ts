@@ -1,18 +1,18 @@
-import { notifyListeners } from './atom';
-import type { BatchedAtom } from './batched'; // Import BatchedAtom type
+import type { BatchedZen } from './batched'; // Import BatchedZen type
 // Functional computed (derived state) implementation.
-import type { AnyAtom, AtomWithValue, Unsubscribe } from './types';
-// Removed getAtomValue, subscribeToAtom imports as logic is inlined
+import type { AnyZen, Unsubscribe, ZenWithValue } from './types';
+import { notifyListeners } from './zen';
+// Removed getZenValue, subscribeToZen imports as logic is inlined
 
 // --- Type Definitions ---
-/** Represents a computed atom's specific properties (functional style). */
-// It directly includes AtomWithValue properties now.
-export type ComputedAtom<T = unknown> = AtomWithValue<T | null> & {
+/** Represents a computed zen's specific properties (functional style). */
+// It directly includes ZenWithValue properties now.
+export type ComputedZen<T = unknown> = ZenWithValue<T | null> & {
   // Value can be null initially
   _kind: 'computed';
   _value: T | null; // Override value type
   _dirty: boolean;
-  readonly _sources: ReadonlyArray<AnyAtom>; // Use AnyAtom recursively
+  readonly _sources: ReadonlyArray<AnyZen>; // Use AnyZen recursively
   _sourceValues: unknown[]; // Use unknown[] instead of any[]
   // Internal calculation function accepts spread arguments
   readonly _calculation: (...values: unknown[]) => T;
@@ -24,91 +24,100 @@ export type ComputedAtom<T = unknown> = AtomWithValue<T | null> & {
   _unsubscribeFromSources: () => void;
 };
 
-/** Alias for ComputedAtom, representing the read-only nature. */
-export type ReadonlyAtom<T = unknown> = ComputedAtom<T>;
+/** Alias for ComputedZen, representing the read-only nature. */
+export type ReadonlyZen<T = unknown> = ComputedZen<T>;
 
 // --- Types ---
-/** Represents an array of source atoms. */
-type Stores = ReadonlyArray<AnyAtom>; // Use AnyAtom directly
+/** Represents an array of source zens. */
+type Stores = ReadonlyArray<AnyZen>; // Use AnyZen directly
 
 // Removed unused StoreValues type
 
 // --- Internal Computed Logic ---
 
 /**
- * Recalculates the computed value based on current source values.
- * Updates the internal `_value` and notifies listeners if the value changes.
- * Assumes the atom is already marked as dirty or needs initial calculation.
- * @returns True if the value changed, false otherwise.
+ * Fetches current values from dependency stores and checks readiness.
+ * Mutates the targetValueArray with fetched values.
+ * @param sources Array of dependency stores.
+ * @param targetValueArray Array to populate with fetched values.
+ * @returns True if all dependencies are ready, false otherwise.
  * @internal
  */
-function updateComputedValue<T>(atom: ComputedAtom<T>): boolean {
-  const srcs = atom._sources;
-
-  // If there are no sources, the value cannot be computed.
-  if (!srcs || srcs.length === 0) {
-    atom._dirty = true; // Remain dirty
-    return false;
-  }
-
-  const vals = atom._sourceValues;
-  const calc = atom._calculation;
-  const old = atom._value; // Capture value BEFORE recalculation (could be null)
-
-  // 1. Get current values from all source atoms and check readiness
-  let computedCanUpdate = true; // Flag to track if all dependencies are ready
-  for (let i = 0; i < srcs.length; i++) {
-    const source = srcs[i];
+function _getSourceValuesAndReadiness(
+  sources: ReadonlyArray<AnyZen>,
+  targetValueArray: unknown[], // Mutates this array
+): boolean {
+  let computedCanUpdate = true;
+  for (let i = 0; i < sources.length; i++) {
+    const source = sources[i];
     if (!source) {
-      vals[i] = undefined;
+      targetValueArray[i] = undefined;
       continue; // Skip missing sources
     }
 
     let sourceValue: unknown;
     switch (source._kind) {
-      case 'atom':
-      case 'map': // Assume map/deepMap values are read directly
+      case 'zen':
+      case 'map':
       case 'deepMap':
         sourceValue = source._value;
         break;
       case 'computed': {
-        const computedSource = source as ComputedAtom<unknown>;
+        const computedSource = source as ComputedZen<unknown>;
         if (computedSource._dirty || computedSource._value === null) {
-          // Try to update the computed source synchronously
-          computedSource._update(); // This might recursively call updateComputedValue
-          // If it's *still* dirty or null after update attempt, computed cannot update now
+          computedSource._update(); // Recursive call
           if (computedSource._dirty || computedSource._value === null) {
             computedCanUpdate = false;
           }
         }
-        sourceValue = computedSource._value; // Read value after potential update
+        sourceValue = computedSource._value;
         break;
       }
       case 'batched': {
-        const batchedSource = source as BatchedAtom<unknown>;
-        // If a batched dependency is dirty, computed cannot update synchronously
+        const batchedSource = source as BatchedZen<unknown>;
         if (batchedSource._dirty) {
           computedCanUpdate = false;
         }
-        // Read the current value, might be null or stale if dirty
         sourceValue = batchedSource._value;
         break;
       }
-      // No default needed for AnyAtom union
     }
 
-    // If computed cannot update (due to dirty/null computed or dirty batched dependency), stop collecting values
     if (!computedCanUpdate) {
-      break;
+      break; // Stop collecting if not ready
     }
-    vals[i] = sourceValue;
+    targetValueArray[i] = sourceValue;
   }
+  return computedCanUpdate;
+}
+
+/**
+ * Recalculates the computed value based on current source values.
+ * Updates the internal `_value` and notifies listeners if the value changes.
+ * Assumes the zen is already marked as dirty or needs initial calculation.
+ * @returns True if the value changed, false otherwise.
+ * @internal
+ */
+function updateComputedValue<T>(zen: ComputedZen<T>): boolean {
+  const srcs = zen._sources;
+
+  // If there are no sources, the value cannot be computed.
+  if (!srcs || srcs.length === 0) {
+    zen._dirty = true; // Remain dirty
+    return false;
+  }
+
+  const vals = zen._sourceValues;
+  const calc = zen._calculation;
+  const old = zen._value; // Capture value BEFORE recalculation (could be null)
+
+  // 1. Get current values and check readiness using helper
+  const computedCanUpdate = _getSourceValuesAndReadiness(srcs, vals);
 
   // If dependencies weren't ready (e.g., dirty batched dependency, or nested computed failed update),
   // mark computed as dirty and return false (no change).
-  // Let the calculation function handle potentially null values if needed.
   if (!computedCanUpdate) {
-    atom._dirty = true;
+    zen._dirty = true;
     return false;
   }
   // Note: We proceed even if some vals are null, assuming null is a valid state.
@@ -116,23 +125,23 @@ function updateComputedValue<T>(atom: ComputedAtom<T>): boolean {
 
   // *** ADDED CHECK: Ensure all collected values are not undefined before calculating ***
   if (vals.some((v) => v === undefined)) {
-    atom._dirty = true; // Remain dirty if any source value is still undefined
+    zen._dirty = true; // Remain dirty if any source value is still undefined
     return false;
   }
   // *** END ADDED CHECK ***
 
   // 2. Dependencies are ready, proceed with calculation
   const newValue = calc(...vals); // vals are now guaranteed non-null AND non-undefined
-  atom._dirty = false; // Mark as clean *after* successful calculation
+  zen._dirty = false; // Mark as clean *after* successful calculation
 
   // 3. Check if the value actually changed using the equality function
   // Handle the initial null case for 'old'
-  if (old !== null && atom._equalityFn(newValue, old)) {
+  if (old !== null && zen._equalityFn(newValue, old)) {
     return false; // No change, exit early
   }
 
   // 4. Update internal value
-  atom._value = newValue;
+  zen._value = newValue;
 
   // 5. Value updated. Return true to indicate change.
   // DO NOT notify here. Notification is handled by the caller (e.g., computedSourceChanged or batch end).
@@ -140,130 +149,152 @@ function updateComputedValue<T>(atom: ComputedAtom<T>): boolean {
 }
 
 /**
- * Handler called when any source atom changes.
- * Marks the computed atom as dirty and triggers an update if active.
+ * Handler called when any source zen changes.
+ * Marks the computed zen as dirty and triggers an update if active.
  * @internal
  */
-function computedSourceChanged<T>(atom: ComputedAtom<T>): void {
-  if (atom._dirty) return; // Already dirty, no need to do anything further.
+function computedSourceChanged<T>(zen: ComputedZen<T>): void {
+  if (zen._dirty) return; // Already dirty, no need to do anything further.
 
-  atom._dirty = true;
+  zen._dirty = true;
 
   // If there are active listeners, trigger an update and notify *if* the value changed.
   // This propagates the change down the computed chain.
-  if (atom._listeners?.size) {
-    const oldValue = atom._value; // Store value before potential update
+  if (zen._listeners?.size) {
+    const oldValue = zen._value; // Store value before potential update
     // Use the internal _update method which calls updateComputedValue
-    const changed = updateComputedValue(atom); // Directly call update logic
+    const changed = updateComputedValue(zen); // Directly call update logic
     if (changed) {
       // Use the exported notifyListeners
       try {
-        // Cast to AnyAtom for notifyListeners
-        notifyListeners(atom as AnyAtom, atom._value, oldValue); // Notify downstream listeners (removed !)
+        // Cast to AnyZen for notifyListeners
+        notifyListeners(zen as AnyZen, zen._value, oldValue); // Notify downstream listeners (removed !)
       } catch (_e) {}
     }
   }
-  // If no listeners, we just stay dirty until the next `getAtomValue()`.
+  // If no listeners, we just stay dirty until the next `getZenValue()`.
 }
 
-/** Subscribes a computed atom to all its source atoms. @internal */
-function subscribeComputedToSources<T>(atom: ComputedAtom<T>): void {
-  if (atom._unsubscribers) return; // Avoid double subscriptions
+/**
+ * Subscribes to a single source zen and returns the unsubscribe function.
+ * @internal
+ */
+function _subscribeToSingleSource( // Remove unused computedZen parameter
+  source: AnyZen | undefined,
+  onChangeHandler: () => void,
+): Unsubscribe | undefined {
+  if (!source) return undefined;
 
-  const sources = atom._sources;
-  atom._unsubscribers = new Array(sources.length);
+  const baseSource = source as ZenWithValue<unknown>; // Cast to unknown
+  const isFirstSourceListener = !baseSource._listeners?.size;
+  baseSource._listeners ??= new Set();
+  baseSource._listeners.add(onChangeHandler); // Add the computed's handler
 
-  // Create a bound handler specific to this computed atom instance
-  const onChangeHandler = () => computedSourceChanged(atom);
-
-  for (let i = 0; i < sources.length; i++) {
-    const source = sources[i];
-    if (source) {
-      // Inline subscribeToAtom logic to avoid overload resolution issues
-      const baseSource = source as AtomWithValue<unknown>; // Cast to unknown
-      const isFirstSourceListener = !baseSource._listeners?.size;
-      baseSource._listeners ??= new Set();
-      baseSource._listeners.add(onChangeHandler); // Add the computed's handler
-
-      // Trigger source's onStart/onMount logic removed
-      if (isFirstSourceListener) {
-        // If the source is itself computed, trigger its source subscription
-        if (source._kind === 'computed') {
-          // Check kind directly
-          const computedSource = source as ComputedAtom<unknown>; // Cast
-          if (typeof computedSource._subscribeToSources === 'function') {
-            computedSource._subscribeToSources();
-          }
-        }
+  // Trigger source's onStart/onMount logic removed
+  if (isFirstSourceListener) {
+    // If the source is itself computed, trigger its source subscription
+    if (source._kind === 'computed') {
+      // Check kind directly
+      const computedSource = source as ComputedZen<unknown>; // Cast
+      if (typeof computedSource._subscribeToSources === 'function') {
+        computedSource._subscribeToSources();
       }
-      // Don't call the listener immediately here, computed handles initial calc
+    }
+  }
+  // Don't call the listener immediately here, computed handles initial calc
 
-      // Store the unsubscribe logic for this specific source
-      atom._unsubscribers[i] = () => {
-        const baseSrc = source as AtomWithValue<unknown>; // Cast to unknown
-        const srcListeners = baseSrc._listeners;
-        if (!srcListeners?.has(onChangeHandler)) return;
+  // Return the unsubscribe logic for this specific source
+  return () => _handleSourceUnsubscribeCleanup(source, onChangeHandler);
+}
 
-        srcListeners.delete(onChangeHandler);
+/**
+ * Handles the cleanup logic when unsubscribing from a single source.
+ * @internal
+ */
+function _handleSourceUnsubscribeCleanup(
+  source: AnyZen, // Source is guaranteed non-null here
+  onChangeHandler: () => void,
+): void {
+  const baseSrc = source as ZenWithValue<unknown>; // Cast to unknown
+  const srcListeners = baseSrc._listeners;
+  if (!srcListeners?.has(onChangeHandler)) return;
 
-        if (!srcListeners.size) {
-          baseSrc._listeners = undefined;
-          // onStop logic removed
-          if (source._kind === 'computed') {
-            const computedSource = source as ComputedAtom<unknown>;
-            if (typeof computedSource._unsubscribeFromSources === 'function') {
-              computedSource._unsubscribeFromSources();
-            }
-          }
-        }
-      };
+  srcListeners.delete(onChangeHandler);
+
+  if (!srcListeners.size) {
+    baseSrc._listeners = undefined;
+    // onStop logic removed
+    if (source._kind === 'computed') {
+      const computedSource = source as ComputedZen<unknown>;
+      if (typeof computedSource._unsubscribeFromSources === 'function') {
+        computedSource._unsubscribeFromSources();
+      }
     }
   }
 }
 
-/** Unsubscribes a computed atom from all its source atoms. @internal */
-function unsubscribeComputedFromSources<T>(atom: ComputedAtom<T>): void {
-  if (!atom._unsubscribers) return; // Nothing to unsubscribe from
+/** Subscribes a computed zen to all its source zens. @internal */
+function subscribeComputedToSources<T>(zen: ComputedZen<T>): void {
+  if (zen._unsubscribers) return; // Avoid double subscriptions
 
-  for (const unsub of atom._unsubscribers) {
-    unsub?.(); // Call each unsubscribe function
+  const sources = zen._sources;
+  const newUnsubscribers: Unsubscribe[] = []; // Collect valid unsubscribers
+
+  // Create a bound handler specific to this computed zen instance
+  const onChangeHandler = () => computedSourceChanged(zen);
+
+  for (let i = 0; i < sources.length; i++) {
+    const unsub = _subscribeToSingleSource(sources[i], onChangeHandler); // Call without computedZen
+    if (unsub) {
+      newUnsubscribers.push(unsub); // Add only valid unsub functions
+    }
   }
-  atom._unsubscribers = undefined; // Clear the array
-  atom._dirty = true; // Mark as dirty when inactive, forces recalc on next activation
+  zen._unsubscribers = newUnsubscribers; // Assign the filtered array
 }
 
-// --- Override getAtomValue for Computed ---
-// We need to modify or wrap getAtomValue to handle computed logic.
-// This is now handled in atom.ts's getAtomValue by calling updateComputedValue.
+/** Unsubscribes a computed zen from all its source zens. @internal */
+function unsubscribeComputedFromSources<T>(zen: ComputedZen<T>): void {
+  if (!zen._unsubscribers) return; // Nothing to unsubscribe from
+
+  for (const unsub of zen._unsubscribers) {
+    unsub?.(); // Call each unsubscribe function
+  }
+  zen._unsubscribers = undefined; // Clear the array
+  zen._dirty = true; // Mark as dirty when inactive, forces recalc on next activation
+}
+
+// --- Override getZenValue for Computed ---
+// We need to modify or wrap getZenValue to handle computed logic.
+// This is now handled in zen.ts's getZenValue by calling updateComputedValue.
 
 // --- Computed Factory (Functional Style) ---
 
 /**
- * Creates a read-only computed atom (functional style).
- * Its value is derived from one or more source atoms using a calculation function.
+ * Creates a read-only computed zen (functional style).
+ * Its value is derived from one or more source zens using a calculation function.
  *
  * @template T The type of the computed value.
  * @template S Tuple type of the source stores.
- * @param stores An array or tuple of source atoms (AnyAtom).
+ * @param stores An array or tuple of source zens (AnyZen).
  * @param calculation A function that takes the current values of the source stores
  *   as individual arguments and returns the computed value.
  * @param equalityFn Optional function to compare the old and new computed values.
  *   Defaults to `Object.is`. If it returns true, listeners are not notified.
- * @returns A ReadonlyAtom representing the computed value.
+ * @returns A ReadonlyZen representing the computed value.
  */
-export function computed<T, S extends AnyAtom | Stores>(
-  // Allow single atom or array
+export function computed<T, S extends AnyZen | Stores>(
+  // Allow single zen or array
   stores: S,
   // Change signature to accept unknown[] for compatibility with internal call
   calculation: (...values: unknown[]) => T,
   equalityFn: (a: T, b: T) => boolean = Object.is, // Default to Object.is
-): ReadonlyAtom<T> {
+): ReadonlyZen<T> {
   // Normalize stores input to always be an array
   const storesArray = Array.isArray(stores) ? stores : [stores];
 
-  // Define the structure adhering to ComputedAtom<T> type
+  // Define the structure adhering to ComputedZen<T> type
   // Optimize: Only initialize essential computed properties. Listeners omitted.
-  const computedAtom: ComputedAtom<T> = {
+  const computedZen: ComputedZen<T> = {
     _kind: 'computed', // Set kind
     _value: null, // Start as null
     _dirty: true,
@@ -275,18 +306,18 @@ export function computed<T, S extends AnyAtom | Stores>(
     // Listener properties (e.g., _listeners, _startListeners) are omitted
     // _unsubscribers will be added by _subscribeToSources when needed
     // Add back internal methods needed by core logic (get, subscribe)
-    _subscribeToSources: () => subscribeComputedToSources(computedAtom),
-    _unsubscribeFromSources: () => unsubscribeComputedFromSources(computedAtom),
-    _update: () => updateComputedValue(computedAtom),
+    _subscribeToSources: () => subscribeComputedToSources(computedZen),
+    _unsubscribeFromSources: () => unsubscribeComputedFromSources(computedZen),
+    _update: () => updateComputedValue(computedZen),
     // _onChange is not directly called externally, computedSourceChanged handles it
   };
 
   // onMount logic removed
 
-  // The getAtomValue in atom.ts now calls updateComputedValue if dirty.
-  // The subscribeToAtom in atom.ts now calls subscribeComputedToSources/unsubscribeComputedFromSources.
+  // The getZenValue in zen.ts now calls updateComputedValue if dirty.
+  // The subscribeToZen in zen.ts now calls subscribeComputedToSources/unsubscribeComputedFromSources.
 
-  return computedAtom; // Return the computed atom structure
+  return computedZen; // Return the computed zen structure
 }
 
-// Note: getAtomValue and subscribeToAtom logic in atom.ts handles computed atom specifics.
+// Note: getZenValue and subscribeToZen logic in zen.ts handles computed zen specifics.

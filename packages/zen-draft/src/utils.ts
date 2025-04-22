@@ -55,3 +55,107 @@ export function deepFreeze(obj: unknown) {
   // Note: This basic deepFreeze might not cover all edge cases handled by Immer's freeze.
 }
 // --- End Auto-Freeze ---
+
+// --- Deep Equality Check Helpers ---
+
+/** @internal Compares two Map objects deeply. */
+function _deepEqualMaps(a: Map<unknown, unknown>, b: Map<unknown, unknown>): boolean {
+  if (a.size !== b.size) return false;
+  for (const [key, value] of a) {
+    // Use deepEqual recursively for values
+    if (!b.has(key) || !deepEqual(value, b.get(key))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/** @internal Compares two Set objects deeply. */
+function _deepEqualSets(a: Set<unknown>, b: Set<unknown>): boolean {
+  if (a.size !== b.size) return false;
+  for (const value of a) {
+    // This simple check might be insufficient for sets of objects if order matters
+    // or if object equality needs deeper comparison within the set context.
+    // For now, it relies on deepEqual finding an equivalent value in the other set.
+    let found = false;
+    for (const bValue of b) {
+      if (deepEqual(value, bValue)) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) return false;
+  }
+  return true;
+}
+
+/** @internal Compares two Arrays or plain Objects deeply. */
+function _deepEqualArraysOrObjects(a: object, b: object): boolean {
+  // Filter keys to only strings/numbers for indexing
+  const keysA = Reflect.ownKeys(a).filter(
+    (k) => typeof k === 'string' || typeof k === 'number',
+  ) as (string | number)[];
+  const keysB = Reflect.ownKeys(b).filter(
+    (k) => typeof k === 'string' || typeof k === 'number',
+  ) as (string | number)[];
+
+  if (keysA.length !== keysB.length) {
+    return false;
+  }
+
+  // Check if key sets are identical first
+  const keysASet = new Set(keysA);
+  for (const keyB of keysB) {
+    if (!keysASet.has(keyB)) {
+      return false;
+    }
+  }
+
+  for (const key of keysA) {
+    // Use deepEqual recursively for values
+    if (
+      !Object.prototype.hasOwnProperty.call(b, key) ||
+      !deepEqual(
+        (a as Record<string | number, unknown>)[key],
+        (b as Record<string | number, unknown>)[key],
+      )
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
+// --- Deep Equality Check ---
+// Basic deep equality check (replace with robust library if needed)
+export function deepEqual(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) {
+    return true;
+  }
+  if (typeof a !== 'object' || a === null || typeof b !== 'object' || b === null) {
+    return false;
+  }
+
+  // After base cases, we know a and b are non-null objects
+
+  // Handle Maps
+  if (isMap(a) && isMap(b)) {
+    return _deepEqualMaps(a, b);
+  }
+
+  // Handle Sets
+  if (isSet(a) && isSet(b)) {
+    return _deepEqualSets(a, b);
+  }
+
+  // Handle Arrays and Objects (assuming type check passed earlier)
+  if (Array.isArray(a) === Array.isArray(b)) { // Ensure both are arrays or both are objects
+      return _deepEqualArraysOrObjects(a, b);
+  }
+
+  // Should not be reached if initial type checks are correct, but return false as fallback
+  return false;
+}
+// --- End Deep Equality Check ---

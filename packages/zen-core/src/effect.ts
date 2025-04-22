@@ -1,5 +1,5 @@
-import { subscribe } from './atom'; // Use core subscribe
-import type { AnyAtom, AtomValue, Unsubscribe } from './types';
+import type { AnyZen, Unsubscribe, ZenValue } from './types';
+import { subscribe } from './zen'; // Use core subscribe
 // Removed unused get import
 
 /**
@@ -12,9 +12,9 @@ import type { AnyAtom, AtomValue, Unsubscribe } from './types';
  * @param callback The function to run on changes. It receives store values as arguments.
  * @returns A function to cancel the effect and unsubscribe from all stores.
  */
-export function effect<Stores extends AnyAtom[]>(
+export function effect<Stores extends AnyZen[]>(
   stores: [...Stores],
-  callback: (...values: { [K in keyof Stores]: AtomValue<Stores[K]> }) => undefined | (() => void),
+  callback: (...values: { [K in keyof Stores]: ZenValue<Stores[K]> }) => undefined | (() => void),
 ): Unsubscribe {
   let lastCleanup: undefined | (() => void);
   let isCancelled = false;
@@ -32,9 +32,7 @@ export function effect<Stores extends AnyAtom[]>(
     if (!initialRun && typeof lastCleanup === 'function') {
       try {
         lastCleanup();
-      } catch (_error) {
-        console.error('Error during effect cleanup:', _error); // Log error here too
-      }
+      } catch (_error) {}
       lastCleanup = undefined; // Reset cleanup after running
     }
 
@@ -42,18 +40,18 @@ export function effect<Stores extends AnyAtom[]>(
     const currentValues = stores.map((s) => {
       switch (s._kind) {
         case 'computed': {
-          const computed = s as import('./computed').ComputedAtom<unknown>;
+          const computed = s as import('./computed').ComputedZen<unknown>;
           if (computed._dirty || computed._value === null) {
             computed._update();
           }
           return computed._value; // Can be null
         }
         case 'batched': {
-          // Batched atoms update via microtask, read current value (might be null/stale)
-          // The effect will re-run if the batched atom updates later.
+          // Batched zens update via microtask, read current value (might be null/stale)
+          // The effect will re-run if the batched zen updates later.
           return s._value; // Can be null
         }
-        case 'atom':
+        case 'zen':
         case 'map':
         case 'deepMap':
         case 'task':
@@ -74,7 +72,6 @@ export function effect<Stores extends AnyAtom[]>(
         // biome-ignore lint/suspicious/noExplicitAny: Spread arguments require any here
         lastCleanup = callback(...(currentValues as any)); // Cast needed for spread arguments
       } catch (_error) {
-        console.error('Error during effect callback:', _error); // Log error
         lastCleanup = undefined; // Reset cleanup on error
       }
     }
@@ -87,7 +84,7 @@ export function effect<Stores extends AnyAtom[]>(
 
   // Subscribe to all stores. Pass the unmodified runCallback.
   // The initial synchronous call from subscribe will be ignored due to setupComplete flag.
-  const unsubscribers = stores.map((store) => subscribe(store as AnyAtom, runCallback));
+  const unsubscribers = stores.map((store) => subscribe(store as AnyZen, runCallback));
 
   // Mark setup as complete AFTER all subscriptions are done
   setupComplete = true;
@@ -104,9 +101,7 @@ export function effect<Stores extends AnyAtom[]>(
     if (typeof lastCleanup === 'function') {
       try {
         lastCleanup();
-      } catch (_error) {
-        console.error('Error during effect cleanup:', _error); // Log error (Adjusted message)
-      }
+      } catch (_error) {}
     }
 
     // Unsubscribe from all stores

@@ -9,7 +9,7 @@ export { produce } from './produce';
 // Patch application function
 export { applyPatches } from './patch';
 
-// Atom integration function
-export { produceAtom } from './atom';
+// Zen integration function
+export { produceZen } from './zen';
 
 // Note: Internal utilities from utils.ts are not exported

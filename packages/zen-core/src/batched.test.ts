@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { zen as atom, batch, set } from './atom'; // Alias zen to atom for minimal changes below
 import { batched } from './batched';
 import { computed } from './computed';
 import { subscribe } from './index'; // Use index subscribe
+import { zen as atom, batch, set } from './zen'; // Alias zen to atom for minimal changes below
 
 // Helper to wait for the next microtask tick
 const nextTick = () => new Promise((resolve) => queueMicrotask(() => resolve(undefined))); // Wrap resolve

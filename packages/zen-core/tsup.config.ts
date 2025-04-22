@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: ['src/index.ts'], // Point back to src directory
   format: ['esm', 'cjs'],
-  dts: false, // Let tsc handle DTS generation exclusively
+  dts: true,
   splitting: false,
   sourcemap: true, // Enable sourcemap for debugging if needed
   minify: false, // Disable minification for diagnostics

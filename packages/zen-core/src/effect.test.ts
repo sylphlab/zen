@@ -1,9 +1,9 @@
 import { describe, expect, test, vi } from 'vitest';
-import { set, zen } from './atom';
 import { batched } from './batched'; // Import batched for testing interaction
 import { computed } from './computed';
 import { effect } from './effect';
 import { subscribe } from './index'; // Use index subscribe
+import { set, zen } from './zen';
 
 // Helper to wait for the next microtask tick
 const nextTick = () => new Promise((resolve) => queueMicrotask(() => resolve(undefined)));

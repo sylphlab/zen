@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { subscribe } from './atom'; // Assuming subscribe handles TaskAtom
 import { runTask, task } from './task';
+import { subscribe } from './zen'; // Assuming subscribe handles TaskAtom
 
 // Helper to wait for promises/microtasks
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));

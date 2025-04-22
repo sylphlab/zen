@@ -1,20 +1,20 @@
+import type { BatchedZen } from './batched'; // Import BatchedZen
+import type { ComputedZen } from './computed'; // Only import ComputedZen
 // Base type definitions shared across the library.
 // import type { LifecycleListener, KeyListener, PathListener } from './events'; // Remove unused imports
-import type { Atom } from './atom';
-import type { BatchedAtom } from './batched'; // Import BatchedAtom
-import type { ComputedAtom } from './computed'; // Only import ComputedAtom
-// ReadonlyAtom will be an alias, DeepMapAtom defined below
+import type { Zen } from './zen';
+// ReadonlyZen will be an alias, DeepMapZen defined below
 
-/** Callback function type for atom listeners. */
+/** Callback function type for zen listeners. */
 export type Listener<T> = (value: T, oldValue?: T | null) => void;
 
 /** Function to unsubscribe a listener. */
 export type Unsubscribe = () => void;
 
-/** Base structure for atoms that directly hold value and listeners. */
-export type AtomWithValue<T> = {
-  /** Distinguishes atom types for faster checks */
-  _kind: 'atom' | 'computed' | 'map' | 'deepMap' | 'task' | 'batched'; // Add 'batched'
+/** Base structure for zens that directly hold value and listeners. */
+export type ZenWithValue<T> = {
+  /** Distinguishes zen types for faster checks */
+  _kind: 'zen' | 'computed' | 'map' | 'deepMap' | 'task' | 'batched'; // Add 'batched'
   /** Current value */
   _value: T; // Value type enforced by generic, no null default
   /** Value listeners (Set for efficient add/delete/has) */
@@ -39,7 +39,7 @@ export type AtomWithValue<T> = {
   _mountCleanups?: Map<any, (() => void) | undefined>;
 };
 
-/** Represents the possible states of a TaskAtom. */
+/** Represents the possible states of a TaskZen. */
 export type TaskState<T = unknown> =
   // Add TaskState back
   | { loading: true; error?: undefined; data?: undefined }
@@ -47,42 +47,42 @@ export type TaskState<T = unknown> =
   | { loading: false; error?: undefined; data: T }
   | { loading: false; error?: undefined; data?: undefined }; // Initial state
 
-// --- Merged Atom Type Definitions ---
+// --- Merged Zen Type Definitions ---
 
-/** Represents a Map Atom directly holding state and listeners. */
-export type MapAtom<T extends object = object> = AtomWithValue<T> & {
-  // Add MapAtom back
+/** Represents a Map Zen directly holding state and listeners. */
+export type MapZen<T extends object = object> = ZenWithValue<T> & {
+  // Add MapZen back
   _kind: 'map';
-  // No extra properties needed, structure matches AtomWithValue<Object>
+  // No extra properties needed, structure matches ZenWithValue<Object>
 };
 
-/** Represents a DeepMap Atom directly holding state and listeners. */
-export type DeepMapAtom<T extends object = object> = AtomWithValue<T> & {
+/** Represents a DeepMap Zen directly holding state and listeners. */
+export type DeepMapZen<T extends object = object> = ZenWithValue<T> & {
   // Default to object, not any
   _kind: 'deepMap';
-  // No extra properties needed, structure matches AtomWithValue<Object>
+  // No extra properties needed, structure matches ZenWithValue<Object>
 };
 
-/** Represents a Task Atom holding state and the async function. */
-export type TaskAtom<T = void, Args extends unknown[] = unknown[]> = AtomWithValue<TaskState<T>> & {
-  // Add TaskAtom back
+/** Represents a Task Zen holding state and the async function. */
+export type TaskZen<T = void, Args extends unknown[] = unknown[]> = ZenWithValue<TaskState<T>> & {
+  // Add TaskZen back
   _kind: 'task';
   _asyncFn: (...args: Args) => Promise<T>;
 };
 
-/** Utility type to extract the value type from any atom type. */
-export type AtomValue<A extends AnyAtom> = A extends AtomWithValue<infer V> ? V : never;
+/** Utility type to extract the value type from any zen type. */
+export type ZenValue<A extends AnyZen> = A extends ZenWithValue<infer V> ? V : never;
 
-/** Union type for any kind of atom structure recognized by the library. */
-// This union represents the structure, use AtomValue<A> to get the value type.
-export type AnyAtom =
+/** Union type for any kind of zen structure recognized by the library. */
+// This union represents the structure, use ZenValue<A> to get the value type.
+export type AnyZen =
   // biome-ignore lint/suspicious/noExplicitAny: Base union type requires any
-  | Atom<any>
+  | Zen<any>
   // biome-ignore lint/suspicious/noExplicitAny: Base union type requires any
-  | ComputedAtom<any>
-  | MapAtom<object>
-  | DeepMapAtom<object>
+  | ComputedZen<any>
+  | MapZen<object>
+  | DeepMapZen<object>
   // biome-ignore lint/suspicious/noExplicitAny: Base union type requires any
-  | TaskAtom<any, any>
+  | TaskZen<any, any>
   // biome-ignore lint/suspicious/noExplicitAny: Base union type requires any
-  | BatchedAtom<any>; // Add BatchedAtom<any>
+  | BatchedZen<any>; // Add BatchedZen<any>

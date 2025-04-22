@@ -6,22 +6,23 @@ import type { Search } from './index';
  * @returns An object representing the query parameters.
  */
 export function parseQuery(queryString: string): Search {
-  if (queryString.startsWith('?')) {
-    queryString = queryString.slice(1);
+  let processedQueryString = queryString;
+  if (processedQueryString.startsWith('?')) {
+    processedQueryString = processedQueryString.slice(1);
   }
   const search: Search = {};
-  if (!queryString) {
+  if (!processedQueryString) {
     return search;
   }
-  queryString.split('&').forEach((pair) => {
+  for (const pair of processedQueryString.split('&')) {
     const parts = pair.split('=');
     const keySource = parts[0];
     const valueSource = parts[1];
 
     // Ensure key exists before decoding
-    if (typeof keySource !== 'string') return;
+    if (typeof keySource !== 'string') continue;
     const key = decodeURIComponent(keySource);
-    if (!key) return; // Skip if key is empty after decoding
+    if (!key) continue; // Skip if key is empty after decoding
 
     // Handle cases like '?flag' where there's no value, and ensure valueSource exists before replace
     const value =
@@ -29,7 +30,7 @@ export function parseQuery(queryString: string): Search {
 
     // Simple assignment, doesn't handle multiple values for the same key yet
     search[key] = value;
-  });
+  }
   return search;
 }
 

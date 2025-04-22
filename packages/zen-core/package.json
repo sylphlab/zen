@@ -15,7 +15,7 @@
   },
   "files": ["dist"],
   "scripts": {
-    "build": "tsc && tsup",
+    "build": "tsup",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
     "bench": "vitest bench --run",

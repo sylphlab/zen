@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { batch, get, subscribe } from './atom'; // get/subscribe/batch are from atom
 import { map, set, setKey } from './map';
+import { batch, get, subscribe } from './zen'; // get/subscribe/batch are from atom
 
 describe('map', () => {
   it('should create a map atom with initial value', () => {

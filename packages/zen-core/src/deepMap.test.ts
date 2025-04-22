@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { batch } from './atom';
 import { deepMap, get, set, setPath, subscribe } from './deepMap'; // Import updated functional API (listenPaths removed)
 import type { Path } from './deepMapInternal'; // Import Path type if needed
+import { batch } from './zen';
 
 describe('deepMap (functional)', () => {
   it('should create a deep map store', () => {

@@ -14,13 +14,13 @@ import { proxy as valtioProxy, subscribe as valtioSubscribe } from 'valtio/vanil
 // @vitest-environment jsdom
 import { bench, describe } from 'vitest';
 import { createStore as createZustandVanillaStore } from 'zustand/vanilla';
+import { computed as zenCreateComputed } from './computed'; // Import computed factory, alias as zenCreateComputed
 import {
   zen as zenCreateAtom,
   get as zenGetAtomValue,
   set as zenSetAtomValue,
   subscribe as zenSubscribeToAtom,
-} from './atom'; // Import updated functional API, alias atom as zenCreateAtom
-import { computed as zenCreateComputed } from './computed'; // Import computed factory, alias as zenCreateComputed
+} from './zen'; // Import updated functional API, alias atom as zenCreateAtom
 
 // --- Common Setup Helpers (Duplicated for computed tests) ---
 const createJotaiReadBenchSetup = <T>(atomToRead: Atom<T>) => {
