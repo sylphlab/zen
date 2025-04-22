@@ -141,9 +141,7 @@ export function runTask<T, Args extends unknown[]>(
  * @param taskZen The task zen to read from.
  * @returns The current TaskState.
  */
-export function getTaskState<T, Args extends unknown[]>(
-  taskZen: TaskZen<T, Args>,
-): TaskState<T> {
+export function getTaskState<T, Args extends unknown[]>(taskZen: TaskZen<T, Args>): TaskState<T> {
   // TaskZen now directly holds the TaskState value
   return taskZen._value;
 }
