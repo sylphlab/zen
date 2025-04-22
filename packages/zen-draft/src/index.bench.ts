@@ -1,9 +1,9 @@
 // Import zen atom factory
-import { atom } from '@sylphlab/zen-core';
+import { zen } from '@sylphlab/zen-core';
 // Import immer for comparison
 import { produce as immerProduce } from 'immer';
 import { bench, describe, vi } from 'vitest'; // Import vi for potential mocking if needed
-import { produce, produceAtom } from './index';
+import { produce, produceZen } from './index';
 
 // --- produce Benchmarks ---
 
@@ -225,41 +225,41 @@ describe('produce: Set Clear', () => {
 // --- produceAtom Benchmarks ---
 
 describe('produceAtom: Simple Object Replace', () => {
-  const createBaseAtom = () => atom({ value: 1 });
-  bench('zen-draft + atom', () => {
+  const createBaseAtom = () => zen({ value: 1 });
+  bench('zen-draft + zen', () => {
     const myZen = createBaseAtom();
-    produceAtom(myZen, (draft) => {
+    produceZen(myZen, (draft) => {
       draft.value = 2;
     });
   });
 });
 
 describe('produceAtom: Nested Object Replace', () => {
-  const createBaseAtom = () => atom({ a: { b: { c: 1 } } });
-  bench('zen-draft + atom', () => {
+  const createBaseAtom = () => zen({ a: { b: { c: 1 } } });
+  bench('zen-draft + zen', () => {
     const myZen = createBaseAtom();
-    produceAtom(myZen, (draft) => {
+    produceZen(myZen, (draft) => {
       draft.a.b.c = 2;
     });
   });
 });
 
 describe('produceAtom: Array Push (Small)', () => {
-  const createBaseAtom = () => atom({ items: [1, 2, 3] });
-  bench('zen-draft + atom', () => {
+  const createBaseAtom = () => zen({ items: [1, 2, 3] });
+  bench('zen-draft + zen', () => {
     const myZen = createBaseAtom();
-    produceAtom(myZen, (draft) => {
+    produceZen(myZen, (draft) => {
       draft.items.push(4);
     });
   });
 });
 
 describe('produceAtom: Array Push (Large)', () => {
-  const createLargeArrayBaseAtom = () => atom({ items: Array.from({ length: 1000 }, (_, i) => i) });
-  bench('zen-draft + atom', () => {
+  const createLargeArrayBaseAtom = () => zen({ items: Array.from({ length: 1000 }, (_, i) => i) });
+  bench('zen-draft + zen', () => {
     // Create atom inside bench for fair comparison if needed, though setup cost is usually excluded
     const myZen = createLargeArrayBaseAtom();
-    produceAtom(myZen, (draft) => {
+    produceZen(myZen, (draft) => {
       draft.items.push(1000);
     });
   });
